@@ -662,13 +662,7 @@ def fix_seed(p):
 
 
 def program_version():
-    import launch
-
-    res = launch.git_tag()
-    if res == "<none>":
-        res = None
-
-    return res
+    return "classic"
 
 
 def create_infotext(p, all_prompts, all_seeds, all_subseeds, comments=None, iteration=0, position_in_batch=0, use_main_prompt=False, index=None, all_negative_prompts=None):
