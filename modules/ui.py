@@ -1190,11 +1190,8 @@ def create_ui():
 
 def versions_html():
     import torch
-    import launch
 
     python_version = ".".join([str(x) for x in sys.version_info[0:3]])
-    commit = launch.commit_hash()
-    tag = launch.git_tag()
 
     if shared.xformers_available:
         import xformers
@@ -1203,7 +1200,7 @@ def versions_html():
         xformers_version = "N/A"
 
     return f"""
-version: <a href="https://github.com/lllyasviel/stable-diffusion-webui-forge/commit/{commit}">{tag}</a>
+version: <a href="https://github.com/lllyasviel/stable-diffusion-webui-forge/tree/previous">classic</a>
 &#x2000;•&#x2000;
 python: <span title="{sys.version}">{python_version}</span>
 &#x2000;•&#x2000;

@@ -66,32 +66,8 @@ Use --skip-python-version-check to suppress this warning.
 """)
 
 
-@lru_cache()
-def commit_hash():
-    try:
-        return subprocess.check_output([git, "-C", script_path, "rev-parse", "HEAD"], shell=False, encoding='utf8').strip()
-    except Exception:
-        return "<none>"
-
-
-@lru_cache()
-def git_tag_a1111():
-    try:
-        return subprocess.check_output([git, "-C", script_path, "describe", "--tags"], shell=False, encoding='utf8').strip()
-    except Exception:
-        try:
-
-            changelog_md = os.path.join(os.path.dirname(os.path.dirname(__file__)), "CHANGELOG.md")
-            with open(changelog_md, "r", encoding="utf-8") as file:
-                line = next((line.strip() for line in file if line.strip()), "<none>")
-                line = line.replace("## ", "")
-                return line
-        except Exception:
-            return "<none>"
-
-
 def git_tag():
-    return 'f' + forge_version.version + '-' + git_tag_a1111()
+    return "classic"
 
 
 def run(command, desc=None, errdesc=None, custom_env=None, live: bool = default_command_live) -> str:
@@ -413,13 +389,11 @@ def prepare_environment():
 
     startup_timer.record("checks")
 
-    commit = commit_hash()
     tag = git_tag()
     startup_timer.record("git version info")
 
     print(f"Python {sys.version}")
     print(f"Version: {tag}")
-    print(f"Commit hash: {commit}")
 
     if args.reinstall_torch or not is_installed("torch") or not is_installed("torchvision"):
         run(f'"{python}" -m {torch_command}', "Installing torch and torchvision", "Couldn't install torch", live=True)
@@ -476,10 +450,6 @@ def prepare_environment():
 
     if not args.skip_install:
         run_extensions_installers(settings_file=args.ui_settings_file)
-
-    if args.update_check:
-        version_check(commit)
-        startup_timer.record("check version")
 
     if args.update_all_extensions:
         git_pull_recursive(extensions_dir)
