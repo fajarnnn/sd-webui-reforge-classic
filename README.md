@@ -6,7 +6,7 @@ Stable Diffusion WebUI Forge is a platform on top of [Stable Diffusion WebUI](ht
 
 <hr>
 
-This fork mainly serves as an archive for the "classic," or the "old" version of the Forge, built on `Gradio 3` before the major changes.
+This fork mainly serves as an archive for the "classic," or the "old" version of the Forge, built on `Gradio 3` before the major changes, with some minor changes added.
 
 > See the [Announcement](https://github.com/lllyasviel/stable-diffusion-webui-forge/discussions/801)
 

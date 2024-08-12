@@ -1,0 +1,8 @@
+{
+    "txt2img/Resize width to/step": 64,
+    "txt2img/Resize height to/step": 64,
+    "txt2img/Width/step": 64,
+    "txt2img/Height/step": 64,
+    "img2img/Width/step": 64,
+    "img2img/Height/step": 64
+}
