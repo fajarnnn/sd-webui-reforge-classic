@@ -455,6 +455,10 @@ def prepare_environment():
         git_pull_recursive(extensions_dir)
         startup_timer.record("update extensions")
 
+    if not requirements_met(requirements_file):
+        run_pip(f"install -r \"{requirements_file}\"", "requirements")
+        startup_timer.record("install requirements")
+
     if "--exit" in sys.argv:
         print("Exiting because of --exit argument")
         exit(0)
