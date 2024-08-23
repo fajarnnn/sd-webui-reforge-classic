@@ -179,6 +179,9 @@ class CFGDenoiser(torch.nn.Module):
         denoiser_params = CFGDenoiserParams(x, image_cond, sigma, state.sampling_step, state.sampling_steps, cond, uncond, self)
         cfg_denoiser_callback(denoiser_params)
 
+        if s_min_uncond > 0.0 and sigma[0] < s_min_uncond:
+            cond_scale = 1.0
+
         denoised = forge_sampler.forge_sample(self, denoiser_params=denoiser_params,
                                               cond_scale=cond_scale, cond_composition=cond_composition)
 
