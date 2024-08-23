@@ -4,5 +4,10 @@
     "txt2img/Width/step": 64,
     "txt2img/Height/step": 64,
     "img2img/Width/step": 64,
-    "img2img/Height/step": 64
+    "img2img/Height/step": 64,
+    "txt2img/Resize Mode/value": "Crop and Resize",
+    "img2img/Resize mode/value": "Crop and resize",
+    "img2img/Inpaint area/value": "Only masked",
+    "img2img/📎/visible": false,
+    "img2img/📦/visible": false
 }
