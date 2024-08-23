@@ -395,6 +395,9 @@ def prepare_environment():
     print(f"Python {sys.version}")
     print(f"Version: {tag}")
 
+    if not is_installed("pydantic"):
+        run_pip(f"install pydantic~=1.10.15", "pydantic")
+
     if args.reinstall_torch or not is_installed("torch") or not is_installed("torchvision"):
         run(f'"{python}" -m {torch_command}', "Installing torch and torchvision", "Couldn't install torch", live=True)
         startup_timer.record("install torch")
@@ -454,10 +457,6 @@ def prepare_environment():
     if args.update_all_extensions:
         git_pull_recursive(extensions_dir)
         startup_timer.record("update extensions")
-
-    if not requirements_met(requirements_file):
-        run_pip(f"install -r \"{requirements_file}\"", "requirements")
-        startup_timer.record("install requirements")
 
     if "--exit" in sys.argv:
         print("Exiting because of --exit argument")
