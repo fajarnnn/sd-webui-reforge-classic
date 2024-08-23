@@ -743,9 +743,13 @@ def process_images(p: StableDiffusionProcessing) -> Processed:
             if k == 'sd_vae':
                 sd_vae.reload_vae_weights()
 
+        sd_models.apply_token_merging(p.sd_model, getattr(shared.opts, "token_merging_ratio", 0.0))
+
         res = process_images_inner(p)
 
     finally:
+        sd_models.apply_token_merging(p.sd_model, 0.0)
+
         # restore opts to original state
         if p.override_settings_restore_afterwards:
             for k, v in stored_opts.items():
