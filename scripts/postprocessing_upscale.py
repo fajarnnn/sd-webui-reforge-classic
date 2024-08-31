@@ -6,6 +6,7 @@ import gradio as gr
 
 from modules.ui_components import FormRow, ToolButton
 from modules.ui import switch_values_symbol
+import re
 
 upscale_cache = {}
 
@@ -42,6 +43,14 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
         upscaling_res_switch_btn.click(lambda w, h: (h, w), inputs=[upscaling_resize_w, upscaling_resize_h], outputs=[upscaling_resize_w, upscaling_resize_h], show_progress=False)
         tab_scale_by.select(fn=lambda: 0, inputs=[], outputs=[selected_tab])
         tab_scale_to.select(fn=lambda: 1, inputs=[], outputs=[selected_tab])
+
+        def on_selected_upscale_method(upscale_method):
+                if not (match := re.search(r'(\d)[xX]|[xX](\d)', upscale_method)):
+                    return gr.update()
+
+                return gr.update(value=int(match.group(1) or match.group(2)))
+
+        extras_upscaler_1.change(on_selected_upscale_method, inputs=[extras_upscaler_1], outputs=[upscaling_resize], show_progress="hidden")
 
         return {
             "upscale_mode": selected_tab,
