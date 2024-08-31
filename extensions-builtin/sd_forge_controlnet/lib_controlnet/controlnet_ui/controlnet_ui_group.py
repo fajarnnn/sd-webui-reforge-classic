@@ -1184,7 +1184,7 @@ class ControlNetUiGroup(object):
         self.register_run_annotator()
         self.register_sync_batch_dir()
         self.register_shift_upload_mask()
-        self.register_sd_model_changed()
+        # self.register_sd_model_changed()
         if self.is_img2img:
             self.register_shift_crop_input_image()
         else:

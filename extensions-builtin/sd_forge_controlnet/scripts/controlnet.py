@@ -80,10 +80,10 @@ class ControlNetForForgeOfficial(scripts.Script):
                     if not shared.opts.data.get("controlnet_disable_photopea_edit", False)
                     else None
                 )
-                with gr.Row(elem_id=elem_id_tabname + "_accordions", elem_classes="accordions"):
+                with gr.Column(elem_id=elem_id_tabname + "_accordions", elem_classes="accordions"):
                     for i in range(max_models):
-                        with InputAccordion(
-                            value=False,
+                        with gr.Accordion(
+                            open=(i == 0),
                             label=f"ControlNet Unit {i}",
                             elem_classes=["cnet-unit-enabled-accordion"],  # Class on accordion
                         ):
