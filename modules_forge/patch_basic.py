@@ -1,6 +1,7 @@
 import torch
 import os
 import safetensors
+import warnings
 
 
 def build_loaded(module, loader_name):
@@ -14,7 +15,9 @@ def build_loaded(module, loader_name):
     def loader(*args, **kwargs):
         result = None
         try:
-            result = original_loader(*args, **kwargs)
+            with warnings.catch_warnings():
+                warnings.simplefilter(action='ignore', category=FutureWarning)
+                result = original_loader(*args, **kwargs)
         except Exception as e:
             result = None
             exp = str(e) + '\n'
