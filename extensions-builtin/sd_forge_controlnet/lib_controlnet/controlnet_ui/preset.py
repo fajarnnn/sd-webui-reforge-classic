@@ -15,6 +15,7 @@ save_symbol = "\U0001f4be"  # 💾
 delete_symbol = "\U0001f5d1\ufe0f"  # 🗑️
 refresh_symbol = "\U0001f504"  # 🔄
 reset_symbol = "\U000021A9"  # ↩
+apply_symbol = "\U0001F4E4"  # 📤
 
 NEW_PRESET = "New Preset"
 
@@ -53,6 +54,12 @@ class ControlNetPresetUI(object):
                 elem_classes=["cnet-preset-dropdown"],
                 choices=ControlNetPresetUI.dropdown_choices(),
                 value=NEW_PRESET,
+            )
+            self.apply_button = ToolButton(
+                value=apply_symbol,
+                elem_classes=["cnet-preset-reset"],
+                tooltip="Apply preset",
+                visible=False,
             )
             self.reset_button = ToolButton(
                 value=reset_symbol,
@@ -168,6 +175,7 @@ class ControlNetPresetUI(object):
         for element, action in (
             (self.dropdown, "change"),
             (self.reset_button, "click"),
+            (self.apply_button, "click"),
         ):
             getattr(element, action)(
                 fn=apply_preset,
@@ -175,9 +183,9 @@ class ControlNetPresetUI(object):
                 outputs=[self.delete_button, control_type, *ui_states],
                 show_progress="hidden",
             ).then(
-                fn=lambda: gr.update(visible=False),
+                fn=lambda: [gr.update(visible=False), gr.update(visible=True)],
                 inputs=None,
-                outputs=[self.reset_button],
+                outputs=[self.reset_button, self.apply_button],
             )
 
         def save_preset(name: str, *ui_states):
