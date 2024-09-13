@@ -457,6 +457,11 @@ def prepare_environment():
         git_pull_recursive(extensions_dir)
         startup_timer.record("update extensions")
 
+    pydantic = importlib.metadata.distribution("pydantic")
+    major, minor, patch = pydantic.version.split(".")
+    if not (int(major) == 1 and int(minor) == 10):
+        run_pip(f"install pydantic~=1.10.15", "pydantic")
+
     if "--exit" in sys.argv:
         print("Exiting because of --exit argument")
         exit(0)
