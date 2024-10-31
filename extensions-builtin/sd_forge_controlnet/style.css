@@ -22,6 +22,7 @@
         /* Changes to 1 column when window width is ≤ 600px */
     }
 }
+
 /* Input image thumbnail */
 .cnet-thumbnail {
     height: 3rem !important;
@@ -212,7 +213,8 @@
 /* Photopea integration styles */
 .photopea-button-group {
     position: absolute;
-    top: -30px; /* 20px modal padding + 10px margin */
+    top: -30px;
+    /* 20px modal padding + 10px margin */
 }
 
 .photopea-button {
