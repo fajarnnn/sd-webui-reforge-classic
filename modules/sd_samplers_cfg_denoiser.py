@@ -179,6 +179,8 @@ class CFGDenoiser(torch.nn.Module):
         denoiser_params = CFGDenoiserParams(x, image_cond, sigma, state.sampling_step, state.sampling_steps, cond, uncond, self)
         cfg_denoiser_callback(denoiser_params)
 
+        if 0.0 < self.step / self.total_steps <= opts.skip_early_cond:
+            cond_scale = 1.0
         if s_min_uncond > 0.0 and sigma[0] < s_min_uncond:
             cond_scale = 1.0
 
