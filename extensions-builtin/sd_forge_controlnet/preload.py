@@ -7,7 +7,7 @@ def preload(parser):
     )
     parser.add_argument(
         "--controlnet-tracemalloc",
+        default=None,
         action="store_true",
         help="Enable memory tracing.",
-        default=None,
     )
