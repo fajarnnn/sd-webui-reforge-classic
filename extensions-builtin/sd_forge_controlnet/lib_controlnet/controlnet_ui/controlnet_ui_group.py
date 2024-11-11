@@ -15,7 +15,6 @@ from lib_controlnet.logging import logger
 from lib_controlnet.controlnet_ui.openpose_editor import OpenposeEditor
 from lib_controlnet.controlnet_ui.preset import ControlNetPresetUI
 from lib_controlnet.controlnet_ui.tool_button import ToolButton
-from lib_controlnet.controlnet_ui.photopea import Photopea
 from lib_controlnet.enums import InputMode, HiResFixOption
 from modules import shared, script_callbacks
 from modules.ui_components import FormRow
@@ -157,7 +156,6 @@ class ControlNetUiGroup(object):
         self,
         is_img2img: bool,
         default_unit: external_code.ControlNetUnit,
-        photopea: Optional[Photopea] = None,
     ):
         # Whether callbacks have been registered.
         self.callbacks_registered: bool = False
@@ -166,7 +164,6 @@ class ControlNetUiGroup(object):
 
         self.is_img2img = is_img2img
         self.default_unit = default_unit
-        self.photopea = photopea
         self.webcam_enabled = False
         self.webcam_mirrored = False
 
@@ -287,8 +284,6 @@ class ControlNetUiGroup(object):
                             with gr.Group(
                                 elem_classes=["cnet-generated-image-control-group"]
                             ):
-                                if self.photopea:
-                                    self.photopea.render_child_trigger()
                                 self.openpose_editor.render_edit()
                                 preview_check_elem_id = f"{elem_id_tabname}_{tabname}_controlnet_preprocessor_preview_checkbox"
                                 preview_close_button_js = f"document.querySelector('#{preview_check_elem_id} input[type=\\'checkbox\\']').click();"
@@ -356,9 +351,6 @@ class ControlNetUiGroup(object):
                                         file_count="multiple",
                                     )
                                     self.mask_merge_clear_button = gr.Button("Clear Masks")
-
-            if self.photopea:
-                self.photopea.attach_photopea_output(self.generated_image)
 
             with gr.Accordion(
                 label="Open New Canvas", visible=False
