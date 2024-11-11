@@ -1,11 +1,7 @@
-from typing import List, Tuple, Union
-
-import gradio as gr
-
 from modules.processing import StableDiffusionProcessing
-
 from lib_controlnet import external_code
 from lib_controlnet.logging import logger
+import gradio as gr
 
 
 def field_to_displaytext(fieldname: str) -> str:
@@ -16,7 +12,7 @@ def displaytext_to_field(text: str) -> str:
     return "_".join([word.lower() for word in text.split(" ")])
 
 
-def parse_value(value: str) -> Union[str, float, int, bool]:
+def parse_value(value: str) -> bool | int | float | str:
     if value in ("True", "False"):
         return value == "True"
     try:
@@ -25,7 +21,7 @@ def parse_value(value: str) -> Union[str, float, int, bool]:
         try:
             return float(value)
         except ValueError:
-            return value  # Plain string.
+            return value
 
 
 def serialize_unit(unit: external_code.ControlNetUnit) -> str:
@@ -33,8 +29,8 @@ def serialize_unit(unit: external_code.ControlNetUnit) -> str:
         field_to_displaytext(field): getattr(unit, field)
         for field in external_code.ControlNetUnit.infotext_fields()
         if getattr(unit, field) != -1
-        # Note: exclude hidden slider values.
     }
+
     if not all("," not in str(v) and ":" not in str(v) for v in log_value.values()):
         logger.error(f"Unexpected tokens encountered:\n{log_value}")
         return ""
@@ -55,8 +51,8 @@ def parse_unit(text: str) -> external_code.ControlNetUnit:
 
 class Infotext(object):
     def __init__(self) -> None:
-        self.infotext_fields: List[Tuple[gr.components.IOComponent, str]] = []
-        self.paste_field_names: List[str] = []
+        self.infotext_fields: list[tuple[gr.components.Component, str]] = []
+        self.paste_field_names: list[str] = []
 
     @staticmethod
     def unit_prefix(unit_index: int) -> str:
@@ -64,17 +60,16 @@ class Infotext(object):
 
     def register_unit(self, unit_index: int, uigroup) -> None:
         """Register the unit's UI group. By regsitering the unit, A1111 will be
-        able to paste values from infotext to IOComponents.
+        able to paste values from infotext to Component.
 
         Args:
             unit_index: The index of the ControlNet unit
-            uigroup: The ControlNetUiGroup instance that contains all gradio
-                     iocomponents.
+            uigroup: The ControlNetUiGroup instance that contains all gradio components.
         """
         unit_prefix = Infotext.unit_prefix(unit_index)
         for field in external_code.ControlNetUnit.infotext_fields():
             # Every field in ControlNetUnit should have a corresponding
-            # IOComponent in ControlNetUiGroup.
+            # Component in ControlNetUiGroup.
             io_component = getattr(uigroup, field)
             component_locator = f"{unit_prefix} {field}"
             self.infotext_fields.append((io_component, component_locator))
@@ -82,9 +77,9 @@ class Infotext(object):
 
     @staticmethod
     def write_infotext(
-        units: List[external_code.ControlNetUnit], p: StableDiffusionProcessing
+        units: list[external_code.ControlNetUnit], p: StableDiffusionProcessing
     ):
-        """Write infotext to `p`."""
+        """Write infotext to p"""
         p.extra_generation_params.update(
             {
                 Infotext.unit_prefix(i): serialize_unit(unit)
@@ -107,14 +102,16 @@ class Infotext(object):
                     if field == "image":
                         continue
                     if value is None:
-                        logger.debug(f"InfoText: Skipping {field} because value is None.")
+                        logger.debug(
+                            f"InfoText: Skipping {field} because value is None."
+                        )
                         continue
 
                     component_locator = f"{k} {field}"
                     updates[component_locator] = value
                     logger.debug(f"InfoText: Setting {component_locator} = {value}")
             except Exception as e:
-                logger.warn(
+                logger.warning(
                     f"Failed to parse infotext, legacy format infotext is no longer supported:\n{v}\n{e}"
                 )
 
