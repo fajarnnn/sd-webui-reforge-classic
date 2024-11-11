@@ -588,8 +588,6 @@ def on_ui_settings():
     shared.opts.add_option("controlnet_increment_seed_during_batch", shared.OptionInfo(
         False, "Increment seed after each controlnet batch iteration", gr.Checkbox, {"interactive": True},
         section=section))
-    shared.opts.add_option("controlnet_disable_openpose_edit", shared.OptionInfo(
-        False, "Disable openpose edit", gr.Checkbox, {"interactive": True}, section=section))
     shared.opts.add_option("controlnet_input_thumbnail", shared.OptionInfo(
         True, "Input image thumbnail on unit header", gr.Checkbox, {"interactive": True}, section=section))
 
