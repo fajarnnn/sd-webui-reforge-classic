@@ -21,10 +21,10 @@ from lib_controlnet import global_state, external_code
 from lib_controlnet.external_code import ControlNetUnit
 from lib_controlnet.utils import (
     align_dim_latent,
-    set_numpy_seed,
     crop_and_resize_image,
-    prepare_mask,
     judge_image_type,
+    prepare_mask,
+    set_numpy_seed,
 )
 
 from lib_controlnet.controlnet_ui.controlnet_ui_group import ControlNetUiGroup
@@ -62,13 +62,12 @@ class ControlNetForForgeOfficial(scripts.Script):
         return scripts.AlwaysVisible
 
     def ui(self, is_img2img):
+        default_unit = ControlNetUnit(enabled=False, module="None", model="None")
+        elem_id_tabname = f'{"img2img" if is_img2img else "txt2img"}_controlnet'
         infotext = Infotext()
         ui_groups = []
         controls = []
-        max_models = shared.opts.data.get("control_net_unit_count", 3)
-        gen_type = "img2img" if is_img2img else "txt2img"
-        elem_id_tabname = f"{gen_type}_controlnet"
-        default_unit = ControlNetUnit(enabled=False, module="None", model="None")
+
         with gr.Group(elem_id=elem_id_tabname):
             with gr.Accordion(
                 open=False,
@@ -76,15 +75,10 @@ class ControlNetForForgeOfficial(scripts.Script):
                 elem_id="controlnet",
                 elem_classes=["controlnet"],
             ):
-                with gr.Column(
-                    elem_id=f"{elem_id_tabname}_accordions", elem_classes="accordions"
-                ):
+                with gr.Tabs(elem_classes="controlnet_tabs"):
+                    max_models = shared.opts.data.get("control_net_unit_count", 3)
                     for i in range(max_models):
-                        with gr.Accordion(
-                            open=(i == 0),
-                            label=f"ControlNet Unit {i}",
-                            elem_classes=["cnet-unit-enabled-accordion"],
-                        ):
+                        with gr.Tab(label=f"ControlNet Unit {i + 1}", id=i):
                             group = ControlNetUiGroup(is_img2img, default_unit)
                             ui_groups.append(group)
                             controls.append(
@@ -93,10 +87,12 @@ class ControlNetForForgeOfficial(scripts.Script):
 
         for i, ui_group in enumerate(ui_groups):
             infotext.register_unit(i, ui_group)
+
         if shared.opts.data.get("control_net_sync_field_args", True):
             self.infotext_fields = infotext.infotext_fields
             self.paste_field_names = infotext.paste_field_names
-        return tuple(controls)
+
+        return controls
 
     def get_enabled_units(self, units):
         # Parse dict from API calls.
@@ -117,11 +113,12 @@ class ControlNetForForgeOfficial(scripts.Script):
         preprocessor,
     ) -> np.ndarray:
         a1111_mask_image: Optional[Image.Image] = getattr(p, "image_mask", None)
-        is_only_masked_inpaint = (
+        is_only_masked_inpaint: bool = (
             issubclass(type(p), StableDiffusionProcessingImg2Img)
             and p.inpaint_full_res
             and a1111_mask_image is not None
         )
+
         if (
             preprocessor.corp_image_with_a1111_mask_when_in_img2img_inpaint_tab
             and is_only_masked_inpaint
@@ -143,7 +140,6 @@ class ControlNetForForgeOfficial(scripts.Script):
                 images.resize_image(resize_mode.int_value(), i, mask.width, mask.height)
                 for i in input_image
             ]
-
             input_image = [x.crop(crop_region) for x in input_image]
             input_image = [
                 images.resize_image(
@@ -151,9 +147,9 @@ class ControlNetForForgeOfficial(scripts.Script):
                 )
                 for x in input_image
             ]
-
             input_image = [np.asarray(x)[:, :, 0] for x in input_image]
             input_image = np.stack(input_image, axis=2)
+
         return input_image
 
     def get_input_data(self, p, unit, preprocessor, h, w):
@@ -382,9 +378,13 @@ class ControlNetForForgeOfficial(scripts.Script):
 
         def attach_extra_result_image(img: np.ndarray, is_high_res: bool = False):
             if (
-                (is_high_res and hr_option.high_res_enabled)
-                or (not is_high_res and hr_option.low_res_enabled)
-            ) and unit.save_detected_map:
+                not shared.opts.data.get("control_net_no_detectmap", False)
+                and (
+                    (is_high_res and hr_option.high_res_enabled)
+                    or (not is_high_res and hr_option.low_res_enabled)
+                )
+                and unit.save_detected_map
+            ):
                 p.extra_result_images.append(img)
 
         if preprocessor_output_is_image:
@@ -677,39 +677,21 @@ def on_ui_settings():
     category_id = "sd"
 
     shared.opts.add_option(
-        "control_net_detectedmap_dir",
-        shared.OptionInfo(
-            "detected_maps",
-            "Directory for detected maps auto saving",
-            section=section,
-            category_id=category_id,
-        ),
-    )
-    shared.opts.add_option(
         "control_net_models_path",
         shared.OptionInfo(
             "",
-            "Extra path to scan for ControlNet models (e.g. training output directory)",
+            "Additional path to look for ControlNet Models",
             section=section,
             category_id=category_id,
-        ),
-    )
-    shared.opts.add_option(
-        "control_net_modules_path",
-        shared.OptionInfo(
-            "",
-            "Path to directory containing annotator model directories (requires restart, overrides corresponding command line flag)",
-            section=section,
-            category_id=category_id,
-        ),
+        ).info("e.g. training output directory"),
     )
     shared.opts.add_option(
         "control_net_unit_count",
         shared.OptionInfo(
             3,
-            "Multi-ControlNet: ControlNet unit number",
+            "Number of ControlNet Units",
             gr.Slider,
-            {"minimum": 1, "maximum": 10, "step": 1},
+            {"minimum": 1, "maximum": 5, "step": 1},
             section=section,
             category_id=category_id,
         ).needs_reload_ui(),
@@ -717,10 +699,19 @@ def on_ui_settings():
     shared.opts.add_option(
         "control_net_model_cache_size",
         shared.OptionInfo(
-            5,
-            "Model cache size",
+            3,
+            "Number of Model to cache in memory",
             gr.Slider,
             {"minimum": 1, "maximum": 10, "step": 1},
+            section=section,
+            category_id=category_id,
+        ).needs_reload_ui(),
+    )
+    shared.opts.add_option(
+        "control_net_sync_field_args",
+        shared.OptionInfo(
+            True,
+            "Read ControlNet parameters from Infotext",
             section=section,
             category_id=category_id,
         ).needs_reload_ui(),
@@ -730,74 +721,6 @@ def on_ui_settings():
         shared.OptionInfo(
             False,
             "Do not append detectmap to output",
-            gr.Checkbox,
-            {"interactive": True},
-            section=section,
-            category_id=category_id,
-        ),
-    )
-    shared.opts.add_option(
-        "control_net_detectmap_autosaving",
-        shared.OptionInfo(
-            False,
-            "Allow detectmap auto saving",
-            gr.Checkbox,
-            {"interactive": True},
-            section=section,
-            category_id=category_id,
-        ),
-    )
-    shared.opts.add_option(
-        "control_net_allow_script_control",
-        shared.OptionInfo(
-            False,
-            "Allow other script to control this extension",
-            gr.Checkbox,
-            {"interactive": True},
-            section=section,
-            category_id=category_id,
-        ),
-    )
-    shared.opts.add_option(
-        "control_net_sync_field_args",
-        shared.OptionInfo(
-            True,
-            "Paste ControlNet parameters in infotext",
-            gr.Checkbox,
-            {"interactive": True},
-            section=section,
-            category_id=category_id,
-        ),
-    )
-    shared.opts.add_option(
-        "controlnet_show_batch_images_in_ui",
-        shared.OptionInfo(
-            False,
-            "Show batch images in gradio gallery output",
-            gr.Checkbox,
-            {"interactive": True},
-            section=section,
-            category_id=category_id,
-        ),
-    )
-    shared.opts.add_option(
-        "controlnet_increment_seed_during_batch",
-        shared.OptionInfo(
-            False,
-            "Increment seed after each controlnet batch iteration",
-            gr.Checkbox,
-            {"interactive": True},
-            section=section,
-            category_id=category_id,
-        ),
-    )
-    shared.opts.add_option(
-        "controlnet_input_thumbnail",
-        shared.OptionInfo(
-            True,
-            "Input image thumbnail on unit header",
-            gr.Checkbox,
-            {"interactive": True},
             section=section,
             category_id=category_id,
         ),
