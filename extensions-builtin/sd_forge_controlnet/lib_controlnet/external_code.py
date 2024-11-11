@@ -1,16 +1,13 @@
+from modules.api import api
+from modules import shared
+
+from typing import Optional, TypedDict
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Union, Dict, TypedDict
 import numpy as np
-from modules import shared
+
 from lib_controlnet.logging import logger
 from lib_controlnet.enums import InputMode, HiResFixOption
-from modules.api import api
-
-
-def get_api_version() -> int:
-    return 2
-
 
 class ControlMode(Enum):
     """
@@ -43,18 +40,17 @@ class ResizeMode(Enum):
             return 1
         elif self == ResizeMode.OUTER_FIT:
             return 2
-        assert False, "NOTREACHED"
 
 
 resize_mode_aliases = {
-    'Inner Fit (Scale to Fit)': 'Crop and Resize',
-    'Outer Fit (Shrink to Fit)': 'Resize and Fill',
-    'Scale to Fit (Inner Fit)': 'Crop and Resize',
-    'Envelope (Outer Fit)': 'Resize and Fill',
+    "Inner Fit (Scale to Fit)": "Crop and Resize",
+    "Outer Fit (Shrink to Fit)": "Resize and Fill",
+    "Scale to Fit (Inner Fit)": "Crop and Resize",
+    "Envelope (Outer Fit)": "Resize and Fill",
 }
 
 
-def resize_mode_from_value(value: Union[str, int, ResizeMode]) -> ResizeMode:
+def resize_mode_from_value(value: str | int | ResizeMode) -> ResizeMode:
     if isinstance(value, str):
         return ResizeMode(resize_mode_aliases.get(value, value))
     elif isinstance(value, int):
@@ -63,7 +59,9 @@ def resize_mode_from_value(value: Union[str, int, ResizeMode]) -> ResizeMode:
             return ResizeMode.RESIZE
 
         if value >= len(ResizeMode):
-            logger.warning(f'Unrecognized ResizeMode int value {value}. Fall back to RESIZE.')
+            logger.warning(
+                f"Unrecognized ResizeMode int value {value}. Fall back to RESIZE."
+            )
             return ResizeMode.RESIZE
 
         return [e for e in ResizeMode][value]
@@ -71,7 +69,7 @@ def resize_mode_from_value(value: Union[str, int, ResizeMode]) -> ResizeMode:
         return value
 
 
-def control_mode_from_value(value: Union[str, int, ControlMode]) -> ControlMode:
+def control_mode_from_value(value: str | int | ControlMode) -> ControlMode:
     if isinstance(value, str):
         return ControlMode(value)
     elif isinstance(value, int):
@@ -91,10 +89,10 @@ def visualize_inpaint_mask(img):
 
 
 def pixel_perfect_resolution(
-        image: np.ndarray,
-        target_H: int,
-        target_W: int,
-        resize_mode: ResizeMode,
+    image: np.ndarray,
+    target_H: int,
+    target_W: int,
+    resize_mode: ResizeMode,
 ) -> int:
     """
     Calculate the estimated resolution for resizing an image while preserving aspect ratio.
@@ -142,33 +140,24 @@ def pixel_perfect_resolution(
 
 
 class GradioImageMaskPair(TypedDict):
-    """Represents the dict object from Gradio's image component if `tool="sketch"`
-    is specified.
+    """
+    Represents the dict object from Gradio's image component if `tool="sketch"` is specified
     {
         "image": np.ndarray,
         "mask": np.ndarray,
     }
     """
+
     image: np.ndarray
     mask: np.ndarray
 
 
 @dataclass
 class ControlNetUnit:
-    """Represents an entire ControlNet processing unit.
-
-    To add a new field to this class
-    ## If the new field can be specified on UI, you need to
-    - Add a new field of the same name in constructor of `ControlNetUiGroup`
-    - Initialize the new `ControlNetUiGroup` field in `ControlNetUiGroup.render`
-      as a Gradio `IOComponent`.
-    - Add the new `ControlNetUiGroup` field to `unit_args` in
-      `ControlNetUiGroup.render`. The order of parameters matters.
-
-    ## If the new field needs to appear in infotext, you need to
-    - Add a new item in `ControlNetUnit.infotext_fields`.
-    API-only fields cannot appear in infotext.
     """
+    Represents an entire ControlNet processing unit
+    """
+
     # Following fields should only be used in the UI.
     # ====== Start of UI only fields ======
     # Specifies the input mode for the unit, defaulting to a simple mode.
@@ -176,13 +165,13 @@ class ControlNetUnit:
     # Determines whether to use the preview image as input; defaults to False.
     use_preview_as_input: bool = False
     # Directory path for batch processing of images.
-    batch_image_dir: str = ''
+    batch_image_dir: str = ""
     # Directory path for batch processing of masks.
-    batch_mask_dir: str = ''
+    batch_mask_dir: str = ""
     # Optional list of gallery images for batch input; defaults to None.
-    batch_input_gallery: Optional[List[str]] = None
+    batch_input_gallery: Optional[list[str]] = None
     # Optional list of gallery masks for batch processing; defaults to None.
-    batch_mask_gallery: Optional[List[str]] = None
+    batch_mask_gallery: Optional[list[str]] = None
     # Holds the preview image as a NumPy array; defaults to None.
     generated_image: Optional[np.ndarray] = None
     # ====== End of UI only fields ======
@@ -192,7 +181,7 @@ class ControlNetUnit:
     mask_image: Optional[GradioImageMaskPair] = None
     # Specifies how this unit should be applied in each pass of high-resolution fix.
     # Ignored if high-resolution fix is not enabled.
-    hr_option: Union[HiResFixOption, int, str] = HiResFixOption.BOTH
+    hr_option: HiResFixOption | int | str = HiResFixOption.BOTH
     # Indicates whether the unit is enabled; defaults to True.
     enabled: bool = True
     # Name of the module being used; defaults to "None".
@@ -204,7 +193,7 @@ class ControlNetUnit:
     # Optional image for input; defaults to None.
     image: Optional[GradioImageMaskPair] = None
     # Specifies the mode of image resizing; defaults to inner fit.
-    resize_mode: Union[ResizeMode, int, str] = ResizeMode.INNER_FIT
+    resize_mode: ResizeMode | int | str = ResizeMode.INNER_FIT
     # Resolution for processing by the unit; defaults to -1 (unspecified).
     processor_res: int = -1
     # Threshold A for processing; defaults to -1 (unspecified).
@@ -218,7 +207,7 @@ class ControlNetUnit:
     # Enables pixel-perfect processing; defaults to False.
     pixel_perfect: bool = False
     # Control mode for the unit; defaults to balanced.
-    control_mode: Union[ControlMode, int, str] = ControlMode.BALANCED
+    control_mode: ControlMode | int | str = ControlMode.BALANCED
 
     # Following fields should only be used in the API.
     # ====== Start of API only fields ======
@@ -228,10 +217,10 @@ class ControlNetUnit:
 
     @staticmethod
     def infotext_fields():
-        """Fields that should be included in infotext.
+        """
+        Fields that should be included in infotext.
         You should define a Gradio element with exact same name in ControlNetUiGroup
-        as well, so that infotext can wire the value to correct field when pasting
-        infotext.
+        as well, so that infotext can wire the value to correct field when parsing.
         """
         return (
             "module",
@@ -249,20 +238,22 @@ class ControlNetUnit:
         )
 
     @staticmethod
-    def from_dict(d: Dict) -> "ControlNetUnit":
-        """Create ControlNetUnit from dict. This is primarily used to convert
-        API json dict to ControlNetUnit."""
+    def from_dict(d: dict) -> "ControlNetUnit":
+        """
+        Create ControlNetUnit from dict.
+        This is primarily used to convert API json dict to ControlNetUnit.
+        """
         unit = ControlNetUnit(
             **{k: v for k, v in d.items() if k in vars(ControlNetUnit)}
         )
         if isinstance(unit.image, str):
-            img = np.array(api.decode_base64_to_image(unit.image)).astype('uint8')
+            img = np.array(api.decode_base64_to_image(unit.image)).astype("uint8")
             unit.image = {
                 "image": img,
                 "mask": np.zeros_like(img),
             }
         if isinstance(unit.mask_image, str):
-            mask = np.array(api.decode_base64_to_image(unit.mask_image)).astype('uint8')
+            mask = np.array(api.decode_base64_to_image(unit.mask_image)).astype("uint8")
             if unit.image is not None:
                 # Attach mask on image if ControlNet has input image.
                 assert isinstance(unit.image, dict)
@@ -278,22 +269,5 @@ class ControlNetUnit:
         return unit
 
 
-# Backward Compatible
 UiControlNetUnit = ControlNetUnit
-
-
-def to_base64_nparray(encoding: str):
-    """
-    Convert a base64 image into the image type the extension uses
-    """
-
-    return np.array(api.decode_base64_to_image(encoding)).astype('uint8')
-
-
-def get_max_models_num():
-    """
-    Fetch the maximum number of allowed ControlNet models.
-    """
-
-    max_models_num = shared.opts.data.get("control_net_unit_count", 3)
-    return max_models_num
+"""for Backward Compatibility"""

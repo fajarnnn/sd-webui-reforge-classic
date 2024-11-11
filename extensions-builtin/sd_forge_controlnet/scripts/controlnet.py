@@ -700,7 +700,7 @@ def on_ui_settings():
         "control_net_model_cache_size",
         shared.OptionInfo(
             3,
-            "Number of Model to cache in memory",
+            "Number of Models to Cache in Memory",
             gr.Slider,
             {"minimum": 1, "maximum": 10, "step": 1},
             section=section,
