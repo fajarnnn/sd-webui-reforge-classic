@@ -13,7 +13,7 @@ from PIL import Image, PngImagePlugin  # noqa: F401
 from modules.call_queue import wrap_gradio_gpu_call, wrap_queued_call, wrap_gradio_call
 
 from modules import gradio_extensons  # noqa: F401
-from modules import extras, sd_models, script_callbacks, ui_extensions, deepbooru, extra_networks, ui_common, ui_postprocessing, progress, ui_loadsave, shared_items, ui_settings, timer, sysinfo, scripts, sd_samplers, processing, ui_extra_networks, ui_toprow, launch_utils
+from modules import extras, sd_models, script_callbacks, ui_extensions, extra_networks, ui_common, ui_postprocessing, progress, ui_loadsave, shared_items, ui_settings, timer, sysinfo, scripts, sd_samplers, processing, ui_extra_networks, ui_toprow, launch_utils
 from modules.ui_components import FormRow, FormGroup, ToolButton, FormHTML, InputAccordion, ResizeHandleRow
 from modules.paths import script_path
 from modules.ui_common import create_refresh_button
@@ -103,39 +103,6 @@ def resize_from_to_html(width, height, scale_by):
         return "no image selected"
 
     return f"resize: from <span class='resolution'>{width}x{height}</span> to <span class='resolution'>{target_width}x{target_height}</span>"
-
-
-def process_interrogate(interrogation_function, mode, ii_input_dir, ii_output_dir, *ii_singles):
-    if mode in {0, 1, 3, 4}:
-        return [interrogation_function(ii_singles[mode]), None]
-    elif mode == 2:
-        return [interrogation_function(ii_singles[mode]["image"]), None]
-    elif mode == 5:
-        assert not shared.cmd_opts.hide_ui_dir_config, "Launched with --hide-ui-dir-config, batch img2img disabled"
-        images = shared.listfiles(ii_input_dir)
-        print(f"Will process {len(images)} images.")
-        if ii_output_dir != "":
-            os.makedirs(ii_output_dir, exist_ok=True)
-        else:
-            ii_output_dir = ii_input_dir
-
-        for image in images:
-            img = Image.open(image)
-            filename = os.path.basename(image)
-            left, _ = os.path.splitext(filename)
-            print(interrogation_function(img), file=open(os.path.join(ii_output_dir, f"{left}.txt"), 'a', encoding='utf-8'))
-
-        return [gr.update(), None]
-
-
-def interrogate(image):
-    prompt = shared.interrogator.interrogate(image.convert("RGB"))
-    return gr.update() if prompt is None else prompt
-
-
-def interrogate_deepbooru(image):
-    prompt = deepbooru.model.tag(image)
-    return gr.update() if prompt is None else prompt
 
 
 def connect_clear_prompt(button):
@@ -789,21 +756,6 @@ def create_ui():
                 show_progress=False,
             )
 
-            interrogate_args = dict(
-                _js="get_img2img_tab_index",
-                inputs=[
-                    dummy_component,
-                    img2img_batch_input_dir,
-                    img2img_batch_output_dir,
-                    init_img,
-                    sketch,
-                    init_img_with_mask,
-                    inpaint_color_sketch,
-                    init_img_inpaint,
-                ],
-                outputs=[toprow.prompt, dummy_component],
-            )
-
             toprow.prompt.submit(**img2img_args)
             toprow.submit.click(**img2img_args)
 
@@ -828,16 +780,6 @@ def create_ui():
                     output_panel.html_log,
                 ],
                 show_progress=False,
-            )
-
-            toprow.button_interrogate.click(
-                fn=lambda *args: process_interrogate(interrogate, *args),
-                **interrogate_args,
-            )
-
-            toprow.button_deepbooru.click(
-                fn=lambda *args: process_interrogate(interrogate_deepbooru, *args),
-                **interrogate_args,
             )
 
             toprow.ui_styles.dropdown.change(fn=wrap_queued_call(update_token_counter), inputs=[toprow.prompt, steps, toprow.ui_styles.dropdown], outputs=[toprow.token_counter])

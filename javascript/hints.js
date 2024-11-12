@@ -65,8 +65,6 @@ var titles = {
     "Resize seed from height": "Make an attempt to produce a picture similar to what would have been produced with same seed at specified resolution",
     "Resize seed from width": "Make an attempt to produce a picture similar to what would have been produced with same seed at specified resolution",
 
-    "Interrogate": "Reconstruct prompt from existing image and put it into the prompt field.",
-
     "Images filename pattern": "Use tags like [seed] and [date] to define how filenames for images are chosen. Leave empty for default.",
     "Directory name pattern": "Use tags like [seed] and [date] to define how subdirectories for images and grids are chosen. Leave empty for default.",
     "Max prompt words": "Set the maximum number of words to be used in the [prompt_words] option; ATTENTION: If the words are too long, they may exceed the maximum length of the file path that the system can handle",
