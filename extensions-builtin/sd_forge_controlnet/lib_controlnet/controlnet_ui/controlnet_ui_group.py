@@ -10,10 +10,10 @@ import functools
 import json
 
 from lib_controlnet.logging import logger
-from lib_controlnet.utils import svg_preprocess, judge_image_type
+from lib_controlnet.controlnet_ui.tool_button import ToolButton
 from lib_controlnet.controlnet_ui.openpose_editor import OpenposeEditor
 from lib_controlnet.controlnet_ui.preset import ControlNetPresetUI
-from lib_controlnet.controlnet_ui.tool_button import ToolButton
+from lib_controlnet.utils import svg_preprocess, judge_image_type
 from lib_controlnet.enums import InputMode, HiResFixOption
 from lib_controlnet.external_code import UiControlNetUnit
 from lib_controlnet import (
@@ -804,7 +804,7 @@ class ControlNetUiGroup(object):
             if image is None:
                 return (
                     gr.update(value=None, visible=True),
-                    gr.update(),
+                    gr.skip(),
                     *self.openpose_editor.update(""),
                 )
 
@@ -854,7 +854,6 @@ class ControlNetUiGroup(object):
             )
 
             is_image = judge_image_type(result)
-
             if not is_image:
                 result = img
 
@@ -892,13 +891,13 @@ class ControlNetUiGroup(object):
         def shift_preview(is_on):
             return (
                 # generated_image
-                gr.update() if is_on else gr.update(value=None),
+                gr.skip() if is_on else gr.update(value=None),
                 # generated_image_group
                 gr.update(visible=is_on),
                 # use_preview_as_input,
                 gr.update(visible=False),  # Now this is automatically managed
                 # download_pose_link
-                gr.update() if is_on else gr.update(value=None),
+                gr.skip() if is_on else gr.update(value=None),
             )
 
         self.preprocessor_preview.change(
@@ -995,7 +994,7 @@ class ControlNetUiGroup(object):
                     gr.update(value=empty_canvas),
                     gr.update(visible=True),
                     gr.update(visible=True),
-                    gr.update(),
+                    gr.skip(),
                 )
 
         self.mask_upload.change(
@@ -1156,7 +1155,6 @@ class ControlNetUiGroup(object):
         )
         assert self.type_filter is not None
         self.preset_panel.register_callbacks(
-            self,
             self.type_filter,
             *[
                 getattr(self, key)
@@ -1172,7 +1170,7 @@ class ControlNetUiGroup(object):
         ):
             """When SD version changes, update model dropdown choices"""
             if setting_name != "sd_model_checkpoint":
-                return gr.update()
+                return gr.skip()
 
             filtered_model_list = global_state.get_filtered_controlnet_names(
                 type_filter
@@ -1202,7 +1200,7 @@ class ControlNetUiGroup(object):
 
     def register_callbacks(self):
         """Register callbacks that involves A1111 context gradio components"""
-        # Prevent infinite recursion
+        # Prevent recursion
         if self.callbacks_registered:
             return
 

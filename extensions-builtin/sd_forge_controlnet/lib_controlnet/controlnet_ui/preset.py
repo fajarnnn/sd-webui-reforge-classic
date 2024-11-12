@@ -1,25 +1,25 @@
-import os
-import gradio as gr
-
-from typing import Dict, List
-
-from modules import scripts
-from lib_controlnet.infotext import parse_unit, serialize_unit
-from lib_controlnet.controlnet_ui.tool_button import ToolButton
-from lib_controlnet.logging import logger
-from lib_controlnet.external_code import ControlNetUnit, UiControlNetUnit
-from lib_controlnet.global_state import get_preprocessor
 from modules_forge.supported_preprocessor import Preprocessor
+from modules import scripts
 
+from lib_controlnet.controlnet_ui.tool_button import ToolButton
+from lib_controlnet.infotext import parse_unit, serialize_unit
+from lib_controlnet.global_state import get_preprocessor
+from lib_controlnet.external_code import ControlNetUnit
+from lib_controlnet.logging import logger
+
+import gradio as gr
+import os
+
+NEW_PRESET = "New Preset"
+PRESET_FOLDER = os.path.join(scripts.basedir(), "presets")
+
+reset_symbol = "\U000021A9"  # ↩
 save_symbol = "\U0001f4be"  # 💾
 delete_symbol = "\U0001f5d1\ufe0f"  # 🗑️
 refresh_symbol = "\U0001f504"  # 🔄
-reset_symbol = "\U000021A9"  # ↩
-
-NEW_PRESET = "New Preset"
 
 
-def load_presets(preset_dir: str) -> Dict[str, str]:
+def load_presets(preset_dir: str) -> dict[str, str]:
     if not os.path.exists(preset_dir):
         os.makedirs(preset_dir)
         return {}
@@ -27,25 +27,19 @@ def load_presets(preset_dir: str) -> Dict[str, str]:
     presets = {}
     for filename in os.listdir(preset_dir):
         if filename.endswith(".txt"):
+            name = filename.split(".txt")[0]
+            assert name != NEW_PRESET
             with open(os.path.join(preset_dir, filename), "r") as f:
-                name = filename.replace(".txt", "")
-                if name == NEW_PRESET:
-                    continue
                 presets[name] = f.read()
     return presets
 
 
-def infer_control_type(module: str) -> str:
-    preprocessor: Preprocessor = get_preprocessor(module)
-    assert preprocessor is not None
-    return preprocessor.tags[0] if preprocessor.tags else "All"
-
-
-class ControlNetPresetUI(object):
-    preset_directory = os.path.join(scripts.basedir(), "presets")
-    presets = load_presets(preset_directory)
+class ControlNetPresetUI:
+    presets = load_presets(PRESET_FOLDER)
 
     def __init__(self, id_prefix: str):
+        """UIs for the Preset Row"""
+
         with gr.Row():
             self.dropdown = gr.Dropdown(
                 label="Presets",
@@ -56,112 +50,79 @@ class ControlNetPresetUI(object):
             )
             self.reset_button = ToolButton(
                 value=reset_symbol,
-                elem_classes=["cnet-preset-reset"],
-                tooltip="Reset preset",
-                visible=False,
+                elem_id="cnet-preset-reset",
+                tooltip="Apply preset",
+                visible=True,
+                interactive=False,
             )
             self.save_button = ToolButton(
                 value=save_symbol,
-                elem_classes=["cnet-preset-save"],
+                elem_id="cnet-preset-save",
                 tooltip="Save preset",
+                visible=True,
+                interactive=True,
             )
             self.delete_button = ToolButton(
                 value=delete_symbol,
-                elem_classes=["cnet-preset-delete"],
+                elem_id="cnet-preset-delete",
                 tooltip="Delete preset",
+                visible=True,
+                interactive=False,
             )
             self.refresh_button = ToolButton(
                 value=refresh_symbol,
-                elem_classes=["cnet-preset-refresh"],
+                elem_id="cnet-preset-refresh",
                 tooltip="Refresh preset",
+                visible=True,
+                interactive=True,
             )
 
-        with gr.Box(
-            elem_classes=["popup-dialog", "cnet-preset-enter-name"],
+        with gr.Group(
+            visible=False,
             elem_id=f"{id_prefix}_cnet_preset_enter_name",
+            elem_classes=["popup-dialog", "cnet-preset-enter-name"],
         ) as self.name_dialog:
-            with gr.Row():
+            with gr.Row(elem_id="cnet-preset-dialog-row"):
                 self.preset_name = gr.Textbox(
                     label="Preset name",
                     show_label=True,
-                    lines=1,
                     elem_classes=["cnet-preset-name"],
+                    max_lines=1,
+                    lines=1,
                 )
                 self.confirm_preset_name = ToolButton(
                     value=save_symbol,
-                    elem_classes=["cnet-preset-confirm-name"],
+                    elem_id="cnet-preset-confirm-name",
                     tooltip="Save preset",
                 )
 
-    def register_callbacks(
-        self,
-        uigroup,
-        control_type: gr.Radio,
-        *ui_states,
-    ):
-        def init_with_ui_states(*ui_states) -> ControlNetUnit:
-            return ControlNetUnit(**{
-                field: value
-                for field, value in zip(ControlNetUnit.infotext_fields(), ui_states)
-            })
+    def register_callbacks(self, control_type: gr.Radio, *ui_states):
+        """Interactions with the main ControlNet tab"""
 
-        def apply_preset(name: str, control_type: str, *ui_states):
+        def apply_preset(name: str, *ui_states) -> tuple[dict]:
+            assert name in (*self.presets, NEW_PRESET)
             if name == NEW_PRESET:
-                return (
-                    gr.update(visible=False),
-                    *(
-                        (gr.skip(),)
-                        * (len(ControlNetUnit.infotext_fields()) + 1)
-                    ),
-                )
+                return (gr.skip(),) * (len(ControlNetUnit.infotext_fields()) + 1)
 
-            assert name in ControlNetPresetUI.presets
-
-            infotext = ControlNetPresetUI.presets[name]
+            infotext = self.presets[name]
             preset_unit = parse_unit(infotext)
-            current_unit = init_with_ui_states(*ui_states)
+            current_unit = self.init_with_ui_states(*ui_states)
+
             preset_unit.image = None
             current_unit.image = None
+            new_control_type = self.infer_control_type(preset_unit.module)
 
-            # Do not compare module param that are not used in preset.
+            # Do not compare module param that are not used in preset
             for module_param in ("processor_res", "threshold_a", "threshold_b"):
                 if getattr(preset_unit, module_param) == -1:
                     setattr(current_unit, module_param, -1)
 
-            # No update necessary.
-            if vars(current_unit) == vars(preset_unit):
-                return (
-                    gr.update(visible=False),
-                    *(
-                        (gr.skip(),)
-                        * (len(ControlNetUnit.infotext_fields()) + 1)
-                    ),
-                )
-
-            unit = preset_unit
-
-            try:
-                new_control_type = infer_control_type(unit.module)
-            except ValueError as e:
-                logger.error(e)
-                new_control_type = control_type
-
-            if new_control_type != control_type:
-                uigroup.prevent_next_n_module_update += 1
-
-            if preset_unit.module != current_unit.module:
-                uigroup.prevent_next_n_slider_value_update += 1
-
-            if preset_unit.pixel_perfect != current_unit.pixel_perfect:
-                uigroup.prevent_next_n_slider_value_update += 1
-
             return (
-                gr.update(visible=True),
                 gr.update(value=new_control_type),
                 *[
-                    gr.update(value=value) if value is not None else gr.update()
+                    gr.update(value=value) if value is not None else gr.skip()
                     for field in ControlNetUnit.infotext_fields()
-                    for value in (getattr(unit, field),)
+                    for value in (getattr(preset_unit, field),)
                 ],
             )
 
@@ -171,69 +132,41 @@ class ControlNetPresetUI(object):
         ):
             getattr(element, action)(
                 fn=apply_preset,
-                inputs=[self.dropdown, control_type, *ui_states],
-                outputs=[self.delete_button, control_type, *ui_states],
+                inputs=[self.dropdown, *ui_states],
+                outputs=[control_type, *ui_states],
                 show_progress="hidden",
-            ).then(
-                fn=lambda: gr.update(visible=False),
-                inputs=None,
-                outputs=[self.reset_button],
             )
 
-        def save_preset(name: str, *ui_states):
-            if name == NEW_PRESET:
-                return gr.update(visible=True), gr.update(), gr.update()
-
-            ControlNetPresetUI.save_preset(
-                name, init_with_ui_states(*ui_states)
-            )
-            return (
-                gr.update(),  # name dialog
-                gr.update(choices=ControlNetPresetUI.dropdown_choices(), value=name),
-                gr.update(visible=False),  # Reset button
-            )
+        def on_save_preset(name: str) -> dict:
+            return gr.update(visible=(name == NEW_PRESET))
 
         self.save_button.click(
-            fn=save_preset,
-            inputs=[self.dropdown, *ui_states],
-            outputs=[self.name_dialog, self.dropdown, self.reset_button],
+            fn=on_save_preset,
+            inputs=[self.dropdown],
+            outputs=[self.name_dialog],
             show_progress="hidden",
-        ).then(
+        ).success(
             fn=None,
+            inputs=[self.dropdown],
             _js=f"""
             (name) => {{
                 if (name === "{NEW_PRESET}")
-                    popup(gradioApp().getElementById('{self.name_dialog.elem_id}'));
+                    popup(document.getElementById('{self.name_dialog.elem_id}'));
             }}""",
-            inputs=[self.dropdown],
         )
 
-        def delete_preset(name: str):
-            ControlNetPresetUI.delete_preset(name)
-            return gr.Dropdown.update(
-                choices=ControlNetPresetUI.dropdown_choices(),
-                value=NEW_PRESET,
-            ), gr.update(visible=False)
-
-        self.delete_button.click(
-            fn=delete_preset,
-            inputs=[self.dropdown],
-            outputs=[self.dropdown, self.reset_button],
-            show_progress="hidden",
-        )
-
-        self.name_dialog.visible = False
-
-        def save_new_preset(new_name: str, *ui_states):
+        def save_new_preset(new_name: str, *ui_states) -> tuple[dict]:
             if new_name == NEW_PRESET:
-                logger.warn(f"Cannot save preset with reserved name '{NEW_PRESET}'")
-                return gr.update(visible=False), gr.update()
+                logger.error(f'"{NEW_PRESET}" is a reserved name ')
+                return (gr.update(visible=False), gr.skip())
 
-            ControlNetPresetUI.save_preset(
-                new_name, init_with_ui_states(*ui_states)
-            )
-            return gr.update(visible=False), gr.update(
-                choices=ControlNetPresetUI.dropdown_choices(), value=new_name
+            self.save_preset(new_name, self.init_with_ui_states(*ui_states))
+            return (
+                gr.update(visible=False),
+                gr.update(
+                    value=new_name,
+                    choices=ControlNetPresetUI.dropdown_choices(),
+                ),
             )
 
         self.confirm_preset_name.click(
@@ -241,73 +174,81 @@ class ControlNetPresetUI(object):
             inputs=[self.preset_name, *ui_states],
             outputs=[self.name_dialog, self.dropdown],
             show_progress="hidden",
-        ).then(fn=None, _js="closePopup")
+        ).success(fn=None, _js="closePopup")
+
+        def on_delete_preset(name: str) -> dict:
+            self.delete_preset(name)
+            return gr.update(
+                value=NEW_PRESET,
+                choices=ControlNetPresetUI.dropdown_choices(),
+            )
+
+        self.delete_button.click(
+            fn=on_delete_preset,
+            inputs=[self.dropdown],
+            outputs=[self.dropdown],
+            show_progress="hidden",
+        )
 
         self.refresh_button.click(
-            fn=ControlNetPresetUI.refresh_preset,
+            fn=self.refresh_preset,
             inputs=None,
             outputs=[self.dropdown],
             show_progress="hidden",
         )
 
-        def update_reset_button(preset_name: str, *ui_states):
-            if preset_name == NEW_PRESET:
-                return gr.update(visible=False)
+        def update_buttons(preset_name: str):
+            return [
+                gr.update(interactive=(preset_name != NEW_PRESET)),
+                gr.update(interactive=(preset_name == NEW_PRESET)),
+                gr.update(interactive=(preset_name != NEW_PRESET)),
+            ]
 
-            infotext = ControlNetPresetUI.presets[preset_name]
-            preset_unit = parse_unit(infotext)
-            current_unit = init_with_ui_states(*ui_states)
-            preset_unit.image = None
-            current_unit.image = None
+        self.dropdown.change(
+            fn=update_buttons,
+            inputs=[self.dropdown],
+            outputs=[self.reset_button, self.save_button, self.delete_button],
+        )
 
-            # Do not compare module param that are not used in preset.
-            for module_param in ("processor_res", "threshold_a", "threshold_b"):
-                if getattr(preset_unit, module_param) == -1:
-                    setattr(current_unit, module_param, -1)
+    @classmethod
+    def dropdown_choices(cls) -> list[str]:
+        return [NEW_PRESET] + list(cls.presets.keys())
 
-            return gr.update(visible=vars(current_unit) != vars(preset_unit))
-
-        for ui_state in ui_states:
-            if isinstance(ui_state, gr.Image):
-                continue
-
-            for action in ("edit", "click", "change", "clear", "release"):
-                if action == "release" and not isinstance(ui_state, gr.Slider):
-                    continue
-
-                if hasattr(ui_state, action):
-                    getattr(ui_state, action)(
-                        fn=update_reset_button,
-                        inputs=[self.dropdown, *ui_states],
-                        outputs=[self.reset_button],
-                    )
-
-    @staticmethod
-    def dropdown_choices() -> List[str]:
-        return list(ControlNetPresetUI.presets.keys()) + [NEW_PRESET]
-
-    @staticmethod
-    def save_preset(name: str, unit: ControlNetUnit):
+    @classmethod
+    def save_preset(cls, name: str, unit: ControlNetUnit):
         infotext = serialize_unit(unit)
-        with open(
-            os.path.join(ControlNetPresetUI.preset_directory, f"{name}.txt"), "w"
-        ) as f:
+        with open(os.path.join(PRESET_FOLDER, f"{name}.txt"), "w+") as f:
             f.write(infotext)
 
-        ControlNetPresetUI.presets[name] = infotext
+        cls.presets[name] = infotext
 
-    @staticmethod
-    def delete_preset(name: str):
-        if name not in ControlNetPresetUI.presets:
-            return
+    @classmethod
+    def delete_preset(cls, name: str):
+        assert name in cls.presets
+        del cls.presets[name]
 
-        del ControlNetPresetUI.presets[name]
-
-        file = os.path.join(ControlNetPresetUI.preset_directory, f"{name}.txt")
+        file = os.path.join(PRESET_FOLDER, f"{name}.txt")
         if os.path.exists(file):
-            os.unlink(file)
+            os.remove(file)
+
+    @classmethod
+    def refresh_preset(cls):
+        cls.presets = load_presets(PRESET_FOLDER)
+        return gr.update(choices=cls.dropdown_choices())
 
     @staticmethod
-    def refresh_preset():
-        ControlNetPresetUI.presets = load_presets(ControlNetPresetUI.preset_directory)
-        return gr.update(choices=ControlNetPresetUI.dropdown_choices())
+    def init_with_ui_states(*ui_states) -> ControlNetUnit:
+        return ControlNetUnit(
+            **{
+                field: value
+                for field, value in zip(ControlNetUnit.infotext_fields(), ui_states)
+            }
+        )
+
+    @staticmethod
+    def infer_control_type(module: str) -> str:
+        preprocessor: Preprocessor = get_preprocessor(module)
+        if preprocessor is None:
+            return "All"
+
+        return getattr(preprocessor, "tags", ["All"])[0]
