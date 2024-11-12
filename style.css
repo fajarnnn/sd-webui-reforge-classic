@@ -1017,7 +1017,7 @@ footer {
     overflow: hidden;
     cursor: pointer;
 
-    background-image: url('./file=html/card-no-preview.png')
+    background-image: url('./file=html/card-no-preview.jpg')
 }
 
 .extra-network-pane .card:hover{
@@ -1348,7 +1348,7 @@ body.resizing .resize-handle {
     flex-basis: 100%;
 }
 /* Buttons for directories. */
-.extra-network-tree .tree-list-content-dir {}   
+.extra-network-tree .tree-list-content-dir {}
 
 /* Buttons for files. */
 .extra-network-tree .tree-list-item--has-subitem .tree-list--subgroup > li:first-child {
