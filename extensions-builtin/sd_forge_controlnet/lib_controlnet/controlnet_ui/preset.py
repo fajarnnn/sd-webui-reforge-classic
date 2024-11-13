@@ -157,7 +157,7 @@ class ControlNetPresetUI:
 
         def save_new_preset(new_name: str, *ui_states) -> tuple[dict]:
             if new_name == NEW_PRESET:
-                logger.error(f'"{NEW_PRESET}" is a reserved name ')
+                logger.error(f'"{NEW_PRESET}" is a reserved name...')
                 return (gr.update(visible=False), gr.skip())
 
             self.save_preset(new_name, self.init_with_ui_states(*ui_states))

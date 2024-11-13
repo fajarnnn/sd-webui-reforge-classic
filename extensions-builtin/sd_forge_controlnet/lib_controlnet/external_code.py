@@ -9,6 +9,7 @@ import numpy as np
 from lib_controlnet.logging import logger
 from lib_controlnet.enums import InputMode, HiResFixOption
 
+
 class ControlMode(Enum):
     """
     The improved guess mode.
@@ -158,25 +159,16 @@ class ControlNetUnit:
     Represents an entire ControlNet processing unit
     """
 
-    # Following fields should only be used in the UI.
-    # ====== Start of UI only fields ======
+    # ====== UI-only Fields ======
     # Specifies the input mode for the unit, defaulting to a simple mode.
     input_mode: InputMode = InputMode.SIMPLE
     # Determines whether to use the preview image as input; defaults to False.
     use_preview_as_input: bool = False
-    # Directory path for batch processing of images.
-    batch_image_dir: str = ""
-    # Directory path for batch processing of masks.
-    batch_mask_dir: str = ""
-    # Optional list of gallery images for batch input; defaults to None.
-    batch_input_gallery: Optional[list[str]] = None
-    # Optional list of gallery masks for batch processing; defaults to None.
-    batch_mask_gallery: Optional[list[str]] = None
     # Holds the preview image as a NumPy array; defaults to None.
     generated_image: Optional[np.ndarray] = None
-    # ====== End of UI only fields ======
+    # ====== UI-only Fields ======
 
-    # Following fields are used in both the API and the UI.
+    # ====== UI & API Fields ======
     # Holds the mask image; defaults to None.
     mask_image: Optional[GradioImageMaskPair] = None
     # Specifies how this unit should be applied in each pass of high-resolution fix.
@@ -208,12 +200,19 @@ class ControlNetUnit:
     pixel_perfect: bool = False
     # Control mode for the unit; defaults to balanced.
     control_mode: ControlMode | int | str = ControlMode.BALANCED
+    # ====== UI & API Fields ======
 
-    # Following fields should only be used in the API.
-    # ====== Start of API only fields ======
+    # ====== API-only Fields ======
     # Whether to save the detected map for this unit; defaults to True.
     save_detected_map: bool = True
-    # ====== End of API only fields ======
+    # ====== API-only Fields ======
+
+    # ====== Legacy Fields ======
+    batch_image_dir = None
+    batch_mask_dir = None
+    batch_input_gallery = None
+    batch_mask_gallery = None
+    # ====== Legacy Fields ======
 
     @staticmethod
     def infotext_fields():

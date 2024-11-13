@@ -1,6 +1,6 @@
 from modules.processing import StableDiffusionProcessing
-from lib_controlnet import external_code
 from lib_controlnet.logging import logger
+from lib_controlnet import external_code
 import gradio as gr
 
 
@@ -49,7 +49,7 @@ def parse_unit(text: str) -> external_code.ControlNetUnit:
     )
 
 
-class Infotext(object):
+class Infotext:
     def __init__(self) -> None:
         self.infotext_fields: list[tuple[gr.components.Component, str]] = []
         self.paste_field_names: list[str] = []
