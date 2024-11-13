@@ -154,101 +154,61 @@ class ControlNetForForgeOfficial(scripts.Script):
 
     def get_input_data(self, p, unit, preprocessor, h, w):
         logger.info(f"ControlNet Input Mode: {unit.input_mode}")
-        image_list = []
         resize_mode = external_code.resize_mode_from_value(unit.resize_mode)
+        image_list = []
 
-        if unit.input_mode == external_code.InputMode.MERGE:
-            for idx, item in enumerate(unit.batch_input_gallery):
-                img_path = item["name"]
-                logger.info(f"Try to read image: {img_path}")
-                img = np.ascontiguousarray(cv2.imread(img_path)[:, :, ::-1]).copy()
-                mask = None
-                if len(unit.batch_mask_gallery) > 0:
-                    if len(unit.batch_mask_gallery) >= len(unit.batch_input_gallery):
-                        mask_path = unit.batch_mask_gallery[idx]["name"]
-                    else:
-                        mask_path = unit.batch_mask_gallery[0]["name"]
-                    mask = np.ascontiguousarray(
-                        cv2.imread(mask_path)[:, :, ::-1]
-                    ).copy()
-                if img is not None:
-                    image_list.append([img, mask])
-        elif unit.input_mode == external_code.InputMode.BATCH:
-            image_list = []
-            image_extensions = [".jpg", ".jpeg", ".png", ".bmp"]
-            batch_image_files = shared.listfiles(unit.batch_image_dir)
-            for batch_modifier in getattr(unit, "batch_modifiers", []):
-                batch_image_files = batch_modifier(batch_image_files, p)
-            for idx, filename in enumerate(batch_image_files):
-                if any(filename.lower().endswith(ext) for ext in image_extensions):
-                    img_path = os.path.join(unit.batch_image_dir, filename)
-                    logger.info(f"Try to read image: {img_path}")
-                    img = np.ascontiguousarray(cv2.imread(img_path)[:, :, ::-1]).copy()
-                    mask = None
-                    if unit.batch_mask_dir:
-                        batch_mask_files = shared.listfiles(unit.batch_mask_dir)
-                        if len(batch_mask_files) >= len(batch_image_files):
-                            mask_path = batch_mask_files[idx]
-                        else:
-                            mask_path = batch_mask_files[0]
-                        mask_path = os.path.join(unit.batch_mask_dir, mask_path)
-                        mask = np.ascontiguousarray(
-                            cv2.imread(mask_path)[:, :, ::-1]
-                        ).copy()
-                    if img is not None:
-                        image_list.append([img, mask])
-        else:
-            a1111_i2i_image = getattr(p, "init_images", [None])[0]
-            a1111_i2i_mask = getattr(p, "image_mask", None)
+        assert unit.input_mode == external_code.InputMode.SIMPLE
+        assert unit.use_preview_as_input is False
 
-            using_a1111_data = False
+        a1111_i2i_image = getattr(p, "init_images", [None])[0]
+        a1111_i2i_mask = getattr(p, "image_mask", None)
 
-            if unit.use_preview_as_input and unit.generated_image is not None:
-                image = unit.generated_image
-            elif unit.image is None:
+        using_a1111_data = False
+
+        if unit.image is None:
+            if isinstance(p, StableDiffusionProcessingImg2Img):
                 resize_mode = external_code.resize_mode_from_value(p.resize_mode)
                 image = HWC3(np.asarray(a1111_i2i_image))
                 using_a1111_data = True
-            elif (unit.image["image"] < 5).all() and (unit.image["mask"] > 5).any():
-                image = unit.image["mask"]
             else:
-                image = unit.image["image"]
+                image = None
+        elif (unit.image["image"] < 5).all() and (unit.image["mask"] > 5).any():
+            image = unit.image["mask"]
+        else:
+            image = unit.image["image"]
 
-            if not isinstance(image, np.ndarray):
-                raise ValueError("controlnet is enabled but no input image is given")
+        if not isinstance(image, np.ndarray):
+            logger.error("ControlNet is enabled but no input image is given...")
+            raise ValueError
 
-            image = HWC3(image)
+        image = HWC3(image)
 
-            if using_a1111_data:
-                mask = (
-                    HWC3(np.asarray(a1111_i2i_mask))
-                    if a1111_i2i_mask is not None
-                    else None
-                )
-            elif unit.mask_image is not None and (unit.mask_image["image"] > 5).any():
-                mask = unit.mask_image["image"]
-            elif unit.mask_image is not None and (unit.mask_image["mask"] > 5).any():
-                mask = unit.mask_image["mask"]
-            elif unit.image is not None and (unit.image["mask"] > 5).any():
-                mask = unit.image["mask"]
-            else:
-                mask = None
+        if using_a1111_data:
+            mask = None if a1111_i2i_mask is None else HWC3(np.asarray(a1111_i2i_mask))
+        elif unit.mask_image is not None and (unit.mask_image["image"] > 5).any():
+            mask = unit.mask_image["image"]
+        elif unit.mask_image is not None and (unit.mask_image["mask"] > 5).any():
+            mask = unit.mask_image["mask"]
+        elif unit.image is not None and (unit.image["mask"] > 5).any():
+            mask = unit.image["mask"]
+        else:
+            mask = None
 
-            image = self.try_crop_image_with_a1111_mask(
-                p, unit, image, resize_mode, preprocessor
+        image = self.try_crop_image_with_a1111_mask(
+            p, unit, image, resize_mode, preprocessor
+        )
+
+        if mask is not None:
+            mask = cv2.resize(
+                HWC3(mask),
+                (image.shape[1], image.shape[0]),
+                interpolation=cv2.INTER_NEAREST,
+            )
+            mask = self.try_crop_image_with_a1111_mask(
+                p, unit, mask, resize_mode, preprocessor
             )
 
-            if mask is not None:
-                mask = cv2.resize(
-                    HWC3(mask),
-                    (image.shape[1], image.shape[0]),
-                    interpolation=cv2.INTER_NEAREST,
-                )
-                mask = self.try_crop_image_with_a1111_mask(
-                    p, unit, mask, resize_mode, preprocessor
-                )
-
-            image_list = [[image, mask]]
+        image_list = [[image, mask]]
 
         if (
             resize_mode == external_code.ResizeMode.OUTER_FIT
@@ -310,7 +270,7 @@ class ControlNetForForgeOfficial(scripts.Script):
         params: ControlNetCachedParameters,
         *args,
         **kwargs,
-    ):
+    ) -> bool:
 
         h, w, hr_y, hr_x = self.get_target_dimensions(p)
 
@@ -323,7 +283,11 @@ class ControlNetForForgeOfficial(scripts.Script):
 
         preprocessor = global_state.get_preprocessor(unit.module)
 
-        input_list, resize_mode = self.get_input_data(p, unit, preprocessor, h, w)
+        try:
+            input_list, resize_mode = self.get_input_data(p, unit, preprocessor, h, w)
+        except ValueError:
+            return False
+
         preprocessor_outputs = []
         control_masks = []
         preprocessor_output_is_image = False
@@ -357,7 +321,6 @@ class ControlNetForForgeOfficial(scripts.Script):
             )
 
             preprocessor_outputs.append(preprocessor_output)
-
             preprocessor_output_is_image = judge_image_type(preprocessor_output)
 
             if input_mask is not None:
@@ -465,12 +428,14 @@ class ControlNetForForgeOfficial(scripts.Script):
             model_filename = "Not Needed"
             params.model = ControlModelPatcher()
         else:
-            assert unit.model != "None", "You have not selected any control model!"
+            if unit.model == "None":
+                logger.error("You have not selected any control model!")
+                return False
             model_filename = global_state.get_controlnet_filename(unit.model)
             params.model = cached_controlnet_loader(model_filename)
-            assert params.model is not None, logger.error(
-                f"Recognizing Control Model failed: {model_filename}"
-            )
+            if params.model is None:
+                logger.error(f"Failed to recognize {model_filename}...")
+                return False
 
         params.preprocessor = preprocessor
 
@@ -481,10 +446,8 @@ class ControlNetForForgeOfficial(scripts.Script):
             process=p, params=params, **kwargs
         )
 
-        logger.info(
-            f"Current ControlNet {type(params.model).__name__}: {model_filename}"
-        )
-        return
+        logger.info(f"{type(params.model).__name__}: {model_filename}")
+        return True
 
     @torch.no_grad()
     def process_unit_before_every_sampling(
@@ -647,29 +610,29 @@ class ControlNetForForgeOfficial(scripts.Script):
         for i, unit in enumerate(enabled_units):
             self.bound_check_params(unit)
             params = ControlNetCachedParameters()
-            self.process_unit_after_click_generate(p, unit, params, *args, **kwargs)
-            self.current_params[i] = params
-        return
+            if self.process_unit_after_click_generate(p, unit, params, *args, **kwargs):
+                self.current_params[i] = params
 
     @torch.no_grad()
     def process_before_every_sampling(self, p, *args, **kwargs):
         for i, unit in enumerate(self.get_enabled_units(args)):
+            if i not in self.current_params:
+                logger.warning(f"ControlNet Unit {i + 1} is skipped...")
+                continue
             self.process_unit_before_every_sampling(
                 p, unit, self.current_params[i], *args, **kwargs
             )
-        return
 
     @torch.no_grad()
     def postprocess_batch_list(self, p, pp, *args, **kwargs):
         for i, unit in enumerate(self.get_enabled_units(args)):
-            self.process_unit_after_every_sampling(
-                p, unit, self.current_params[i], pp, *args, **kwargs
-            )
-        return
+            if i in self.current_params:
+                self.process_unit_after_every_sampling(
+                    p, unit, self.current_params[i], pp, *args, **kwargs
+                )
 
     def postprocess(self, p, processed, *args):
         self.current_params = {}
-        return
 
 
 def on_ui_settings():
