@@ -15,7 +15,6 @@ import numpy as np
 import functools
 import torch
 import cv2
-import os
 
 from lib_controlnet import global_state, external_code
 from lib_controlnet.external_code import ControlNetUnit
@@ -643,7 +642,7 @@ def on_ui_settings():
         "control_net_models_path",
         shared.OptionInfo(
             "",
-            "Additional path to look for ControlNet Models",
+            "Extra Path to look for ControlNet Models",
             section=section,
             category_id=category_id,
         ).info("e.g. training output directory"),

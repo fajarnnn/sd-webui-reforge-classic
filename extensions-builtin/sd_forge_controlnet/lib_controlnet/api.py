@@ -1,19 +1,19 @@
-from typing import List
+from modules.api import api
 
-import numpy as np
-from fastapi import FastAPI, Body
 from fastapi.exceptions import HTTPException
+from fastapi import FastAPI, Body
+from typing import List
 from PIL import Image
 import gradio as gr
+import numpy as np
 
-from modules.api import api
+from .utils import judge_image_type
+from .logging import logger
 from .global_state import (
     get_all_preprocessor_names,
     get_all_controlnet_names,
     get_preprocessor,
 )
-from .utils import judge_image_type
-from .logging import logger
 
 
 def encode_to_base64(image):
@@ -26,7 +26,7 @@ def encode_to_base64(image):
     elif isinstance(image, np.ndarray):
         return encode_np_to_base64(image)
     else:
-        logger.warn("Unable to encode image.")
+        logger.warning("Unable to encode image...")
         return ""
 
 
@@ -55,13 +55,11 @@ def controlnet_api(_: gr.Blocks, app: FastAPI):
 
     @app.post("/controlnet/detect")
     async def detect(
-        controlnet_module: str = Body("none", title="Controlnet Module"),
-        controlnet_input_images: List[str] = Body([], title="Controlnet Input Images"),
-        controlnet_processor_res: int = Body(
-            512, title="Controlnet Processor Resolution"
-        ),
-        controlnet_threshold_a: float = Body(64, title="Controlnet Threshold a"),
-        controlnet_threshold_b: float = Body(64, title="Controlnet Threshold b"),
+        controlnet_module: str = Body("none", title="Module"),
+        controlnet_input_images: List[str] = Body([], title="Input Images"),
+        controlnet_processor_res: int = Body(512, title="Processor Resolution"),
+        controlnet_threshold_a: float = Body(64, title="Threshold a"),
+        controlnet_threshold_b: float = Body(64, title="Threshold b"),
     ):
         processor_module = get_preprocessor(controlnet_module)
         if processor_module is None:
@@ -78,7 +76,7 @@ def controlnet_api(_: gr.Blocks, app: FastAPI):
         poses = []
 
         for input_image in controlnet_input_images:
-            img = np.array(api.decode_base64_to_image(input_image)).astype('uint8')
+            img = np.array(api.decode_base64_to_image(input_image)).astype("uint8")
 
             class JsonAcceptor:
                 def __init__(self) -> None:
@@ -109,4 +107,3 @@ def controlnet_api(_: gr.Blocks, app: FastAPI):
             res["poses"] = poses
 
         return res
-

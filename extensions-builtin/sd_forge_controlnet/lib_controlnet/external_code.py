@@ -1,5 +1,4 @@
 from modules.api import api
-from modules import shared
 
 from typing import Optional, TypedDict
 from dataclasses import dataclass
@@ -12,7 +11,7 @@ from lib_controlnet.enums import InputMode, HiResFixOption
 
 class ControlMode(Enum):
     """
-    The improved guess mode.
+    The improved guess mode
     """
 
     BALANCED = "Balanced"
@@ -27,7 +26,7 @@ class BatchOption(Enum):
 
 class ResizeMode(Enum):
     """
-    Resize modes for ControlNet input images.
+    Resize modes for ControlNet input images
     """
 
     RESIZE = "Just Resize"
