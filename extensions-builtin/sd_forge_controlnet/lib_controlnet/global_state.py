@@ -69,14 +69,15 @@ def get_controlnet_filename(controlnet_name: str) -> str:
 
 def get_filtered_controlnet_names(tag: str) -> list[str]:
     filtered_preprocessors = get_filtered_preprocessors(tag)
-    model_filename_filters = [
-        p.model_filename_filters for p in filtered_preprocessors.values()
-    ]
+    model_filename_filters = ["union"]
+    for p in filtered_preprocessors.values():
+        model_filename_filters.extend(p.model_filename_filters)
 
     return [
         x
         for x in controlnet_names
-        if x == "None" or any(f.lower() in x.lower() for f in model_filename_filters)
+        if x == "None"
+        or any(f.lower() in x.lower() for f in model_filename_filters if f.strip())
     ]
 
 

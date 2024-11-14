@@ -62,7 +62,7 @@ class ControlNetForForgeOfficial(scripts.Script):
 
     def ui(self, is_img2img):
         default_unit = ControlNetUnit(enabled=False, module="None", model="None")
-        elem_id_tabname = f'{"img2img" if is_img2img else "txt2img"}_controlnet'
+        elem_id_tabname = f"{'img2img' if is_img2img else 'txt2img'}_controlnet"
         infotext = Infotext()
         ui_groups = []
         controls = []
@@ -94,7 +94,7 @@ class ControlNetForForgeOfficial(scripts.Script):
         return controls
 
     def get_enabled_units(self, units):
-        # Parse dict from API calls.
+        # Parse dict from API calls
         units = [
             ControlNetUnit.from_dict(unit) if isinstance(unit, dict) else unit
             for unit in units
@@ -106,7 +106,6 @@ class ControlNetForForgeOfficial(scripts.Script):
     @staticmethod
     def try_crop_image_with_a1111_mask(
         p: StableDiffusionProcessing,
-        unit: ControlNetUnit,
         input_image: np.ndarray,
         resize_mode: external_code.ResizeMode,
         preprocessor,
@@ -193,9 +192,7 @@ class ControlNetForForgeOfficial(scripts.Script):
         else:
             mask = None
 
-        image = self.try_crop_image_with_a1111_mask(
-            p, unit, image, resize_mode, preprocessor
-        )
+        image = self.try_crop_image_with_a1111_mask(p, image, resize_mode, preprocessor)
 
         if mask is not None:
             mask = cv2.resize(
@@ -204,7 +201,7 @@ class ControlNetForForgeOfficial(scripts.Script):
                 interpolation=cv2.INTER_NEAREST,
             )
             mask = self.try_crop_image_with_a1111_mask(
-                p, unit, mask, resize_mode, preprocessor
+                p, mask, resize_mode, preprocessor
             )
 
         image_list = [[image, mask]]
@@ -244,9 +241,10 @@ class ControlNetForForgeOfficial(scripts.Script):
         h = align_dim_latent(p.height)
         w = align_dim_latent(p.width)
 
-        high_res_fix = isinstance(p, StableDiffusionProcessingTxt2Img) and getattr(
-            p, "enable_hr", False
+        high_res_fix = getattr(p, "enable_hr", False) and isinstance(
+            p, StableDiffusionProcessingTxt2Img
         )
+
         if high_res_fix:
             if p.hr_resize_x == 0 and p.hr_resize_y == 0:
                 hr_y = int(p.height * p.hr_scale)

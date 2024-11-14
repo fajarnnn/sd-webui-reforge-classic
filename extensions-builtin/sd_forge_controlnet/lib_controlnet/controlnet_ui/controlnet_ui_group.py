@@ -203,7 +203,7 @@ class ControlNetUiGroup:
 
         ControlNetUiGroup.all_ui_groups.append(self)
 
-    def render(self, tabname: str, elem_id_tabname: str) -> None:
+    def render(self, tabname: str, elem_id_tabname: str):
         """
         The pure HTML structure of a single ControlNetUnit.
         Calling this function will populate `self` with all
@@ -571,18 +571,18 @@ class ControlNetUiGroup:
         """Register event handler for send dimension button"""
 
         def send_dimensions(image):
-            def closesteight(num):
-                rem = num % 8
-                if rem <= 4:
+            def closest(num):
+                rem = num % 64
+                if rem <= 32:
                     return round(num - rem)
                 else:
-                    return round(num + (8 - rem))
+                    return round(num + (64 - rem))
 
             if image:
                 interm = np.asarray(image.get("image"))
-                return closesteight(interm.shape[1]), closesteight(interm.shape[0])
+                return closest(interm.shape[1]), closest(interm.shape[0])
             else:
-                return gr.Slider.update(), gr.Slider.update()
+                return gr.skip(), gr.skip()
 
         self.send_dimen_button.click(
             fn=send_dimensions,
