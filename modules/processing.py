@@ -35,6 +35,7 @@ from einops import repeat, rearrange
 from blendmodes.blend import blendLayers, BlendType
 from modules.sd_models import apply_token_merging
 from modules_forge.forge_util import apply_circular_forge
+from modules_forge.forge_loader import apply_alpha_schedule_override
 
 
 # some of those options should not be changed at all because they would break the model, so I removed them from options.
@@ -880,48 +881,9 @@ def process_images_inner(p: StableDiffusionProcessing) -> Processed:
             if p.n_iter > 1:
                 shared.state.job = f"Batch {n+1} out of {p.n_iter}"
 
-            def rescale_zero_terminal_snr_abar(alphas_cumprod):
-                alphas_bar_sqrt = alphas_cumprod.sqrt()
-
-                # Store old values.
-                alphas_bar_sqrt_0 = alphas_bar_sqrt[0].clone()
-                alphas_bar_sqrt_T = alphas_bar_sqrt[-1].clone()
-
-                # Shift so the last timestep is zero.
-                alphas_bar_sqrt -= (alphas_bar_sqrt_T)
-
-                # Scale so the first timestep is back to the old value.
-                alphas_bar_sqrt *= alphas_bar_sqrt_0 / (alphas_bar_sqrt_0 - alphas_bar_sqrt_T)
-
-                # Convert alphas_bar_sqrt to betas
-                alphas_bar = alphas_bar_sqrt**2  # Revert sqrt
-                alphas_bar[-1] = 4.8973451890853435e-08
-                return alphas_bar
-
-            if hasattr(p.sd_model, 'alphas_cumprod') and hasattr(p.sd_model, 'alphas_cumprod_original'):
-                p.sd_model.alphas_cumprod = p.sd_model.alphas_cumprod_original.to(shared.device)
-
-                if opts.use_downcasted_alpha_bar:
-                    p.extra_generation_params['Downcast alphas_cumprod'] = opts.use_downcasted_alpha_bar
-                    p.sd_model.alphas_cumprod = p.sd_model.alphas_cumprod.half().to(shared.device)
-                if opts.sd_noise_schedule == "Zero Terminal SNR":
-                    p.extra_generation_params['Noise Schedule'] = opts.sd_noise_schedule
-                    p.sd_model.alphas_cumprod = rescale_zero_terminal_snr_abar(p.sd_model.alphas_cumprod).to(shared.device)
-
-            alphas_cumprod_modifiers = p.sd_model.forge_objects.unet.model_options.get('alphas_cumprod_modifiers', [])
-            alphas_cumprod_backup = None
-
-            if len(alphas_cumprod_modifiers) > 0:
-                alphas_cumprod_backup = p.sd_model.alphas_cumprod
-                for modifier in alphas_cumprod_modifiers:
-                    p.sd_model.alphas_cumprod = modifier(p.sd_model.alphas_cumprod)
-                p.sd_model.forge_objects.unet.model.model_sampling.set_sigmas(((1 - p.sd_model.alphas_cumprod) / p.sd_model.alphas_cumprod) ** 0.5)
+            apply_alpha_schedule_override(p.sd_model, p)
 
             samples_ddim = p.sample(conditioning=p.c, unconditional_conditioning=p.uc, seeds=p.seeds, subseeds=p.subseeds, subseed_strength=p.subseed_strength, prompts=p.prompts)
-
-            if alphas_cumprod_backup is not None:
-                p.sd_model.alphas_cumprod = alphas_cumprod_backup
-                p.sd_model.forge_objects.unet.model.model_sampling.set_sigmas(((1 - p.sd_model.alphas_cumprod) / p.sd_model.alphas_cumprod) ** 0.5)
 
             if p.scripts is not None:
                 ps = scripts.PostSampleArgs(samples_ddim)

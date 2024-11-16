@@ -11,7 +11,7 @@ import ldm_patched.modules.clip_vision
 
 from omegaconf import OmegaConf
 from modules.sd_models_config import find_checkpoint_config
-from modules.shared import cmd_opts
+from modules import shared
 from modules import sd_hijack
 from modules.sd_models_xl import extend_sdxl
 from ldm.util import instantiate_from_config
@@ -133,6 +133,10 @@ def load_checkpoint_guess_config(sd, output_vae=True, output_clip=True, output_c
 
 @torch.no_grad()
 def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
+    ztsnr = False
+    if state_dict is not None:
+        ztsnr =  state_dict.pop("ztsnr", None) is not None
+
     a1111_config_filename = find_checkpoint_config(state_dict, checkpoint_info)
     a1111_config = OmegaConf.load(a1111_config_filename)
     timer.record("forge solving config")
@@ -156,7 +160,7 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
         output_vae=True,
         output_clip=True,
         output_clipvision=True,
-        embedding_directory=cmd_opts.embeddings_dir,
+        embedding_directory=shared.cmd_opts.embeddings_dir,
         output_model=True
     )
     sd_model.forge_objects = forge_objects
@@ -215,6 +219,10 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
     else:
         raise NotImplementedError('Bad Clip Class Name:' + type(sd_model.cond_stage_model).__name__)
 
+    sd_model.is_sdxl = conditioner is not None
+    if sd_model.is_sdxl:
+        extend_sdxl(sd_model)
+
     timer.record("forge set components")
 
     sd_model_hash = checkpoint_info.calculate_shorthash()
@@ -223,15 +231,15 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
     if getattr(sd_model, 'parameterization', None) == 'v':
         sd_model.forge_objects.unet.model.model_sampling = model_sampling(sd_model.forge_objects.unet.model.model_config, ModelType.V_PREDICTION)
 
-    sd_model.is_sdxl = conditioner is not None
+    sd_model.ztsnr = ztsnr
     sd_model.is_sd2 = not sd_model.is_sdxl and hasattr(sd_model.cond_stage_model, 'model')
     sd_model.is_sd1 = not sd_model.is_sdxl and not sd_model.is_sd2
     sd_model.is_ssd = sd_model.is_sdxl and 'model.diffusion_model.middle_block.1.transformer_blocks.0.attn1.to_q.weight' not in sd_model.state_dict().keys()
-    if sd_model.is_sdxl:
-        extend_sdxl(sd_model)
     sd_model.sd_model_hash = sd_model_hash
     sd_model.sd_model_checkpoint = checkpoint_info.filename
     sd_model.sd_checkpoint_info = checkpoint_info
+
+    apply_alpha_schedule_override(sd_model)
 
     @torch.inference_mode()
     def patched_decode_first_stage(x):
@@ -255,3 +263,45 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
 
     sd_model.current_lora_hash = str([])
     return sd_model
+
+
+def rescale_zero_terminal_snr_abar(alphas_cumprod):
+    alphas_bar_sqrt = alphas_cumprod.sqrt()
+
+    # Store old values.
+    alphas_bar_sqrt_0 = alphas_bar_sqrt[0].clone()
+    alphas_bar_sqrt_T = alphas_bar_sqrt[-1].clone()
+
+    # Shift so the last timestep is zero.
+    alphas_bar_sqrt -= (alphas_bar_sqrt_T)
+
+    # Scale so the first timestep is back to the old value.
+    alphas_bar_sqrt *= alphas_bar_sqrt_0 / (alphas_bar_sqrt_0 - alphas_bar_sqrt_T)
+
+    # Convert alphas_bar_sqrt to betas
+    alphas_bar = alphas_bar_sqrt ** 2  # Revert sqrt
+    alphas_bar[-1] = 4.8973451890853435e-08
+    return alphas_bar
+
+
+def apply_alpha_schedule_override(sd_model, p=None):
+    """
+    Applies an override to the alpha schedule of the model according to settings.
+    - downcasts the alpha schedule to half precision
+    - rescales the alpha schedule to have zero terminal SNR
+    """
+
+    if not (hasattr(sd_model, 'alphas_cumprod') and hasattr(sd_model, 'alphas_cumprod_original')):
+        return
+
+    sd_model.alphas_cumprod = sd_model.alphas_cumprod_original.to(shared.device)
+
+    if shared.opts.use_downcasted_alpha_bar:
+        if p is not None:
+            p.extra_generation_params['Downcast alphas_cumprod'] = shared.opts.use_downcasted_alpha_bar
+        sd_model.alphas_cumprod = sd_model.alphas_cumprod.half().to(shared.device)
+
+    if getattr(sd_model, 'ztsnr', False) or shared.opts.sd_noise_schedule == "Zero Terminal SNR":
+        if p is not None:
+            p.extra_generation_params['Noise Schedule'] = shared.opts.sd_noise_schedule
+        sd_model.alphas_cumprod = rescale_zero_terminal_snr_abar(sd_model.alphas_cumprod).to(shared.device)

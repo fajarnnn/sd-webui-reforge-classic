@@ -103,6 +103,7 @@ def extend_sdxl(model):
 
     discretization = sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization()
     model.alphas_cumprod = torch.asarray(discretization.alphas_cumprod, device=devices.device, dtype=torch.float32)
+    model.alphas_cumprod_original = model.alphas_cumprod
 
     model.conditioner.wrapped = torch.nn.Module()
 
