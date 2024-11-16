@@ -230,6 +230,7 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
 
     if getattr(sd_model, 'parameterization', None) == 'v':
         sd_model.forge_objects.unet.model.model_sampling = model_sampling(sd_model.forge_objects.unet.model.model_config, ModelType.V_PREDICTION)
+        sd_model.alphas_cumprod_original = sd_model.alphas_cumprod
 
     sd_model.ztsnr = ztsnr
     sd_model.is_sd2 = not sd_model.is_sdxl and hasattr(sd_model.cond_stage_model, 'model')
