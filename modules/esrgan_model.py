@@ -3,6 +3,7 @@ from modules.shared import opts
 from modules.upscaler import Upscaler, UpscalerData
 from modules.upscaler_utils import upscale_with_model
 from modules_forge.forge_util import prepare_free_memory
+from functools import lru_cache
 
 
 class UpscalerESRGAN(Upscaler):
@@ -13,7 +14,7 @@ class UpscalerESRGAN(Upscaler):
         self.scalers = []
         self.user_path = dirname
         super().__init__()
-        model_paths = self.find_models(ext_filter=[".pt", ".pth"])
+        model_paths = self.find_models(ext_filter=[".pt", ".pth", ".safetensors"])
         scalers = []
         if len(model_paths) == 0:
             scaler_data = UpscalerData(self.model_name, self.model_url, self, 4)
@@ -34,25 +35,26 @@ class UpscalerESRGAN(Upscaler):
         except Exception:
             errors.report(f"Unable to load ESRGAN model {selected_model}", exc_info=True)
             return img
-        model.to(devices.device_esrgan)
         return esrgan_upscale(model, img)
 
+    @lru_cache(maxsize=3, typed=False)
     def load_model(self, path: str):
-        if path.startswith("http"):
-            # TODO: this doesn't use `path` at all?
-            filename = modelloader.load_file_from_url(
-                url=self.model_url,
-                model_dir=self.model_download_path,
-                file_name=f"{self.model_name}.pth",
-            )
-        else:
+        if not path.startswith("http"):
             filename = path
+        else:
+            filename = modelloader.load_file_from_url(
+                url=path,
+                model_dir=self.model_download_path,
+                file_name=path.rsplit("/", 1)[-1],
+            )
 
-        return modelloader.load_spandrel_model(
+        model = modelloader.load_spandrel_model(
             filename,
-            device=('cpu' if devices.device_esrgan.type == 'mps' else None),
-            expected_architecture='ESRGAN',
+            device=("cpu" if devices.device_esrgan.type == "mps" else None),
+            expected_architecture="ESRGAN",
         )
+        model.to(devices.device_esrgan)
+        return model
 
 
 def esrgan_upscale(model, img):
