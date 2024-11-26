@@ -41,7 +41,7 @@ def upscale_pil_patch(model, img: Image.Image) -> Image.Image:
     """
     param = torch_utils.get_param(model)
 
-    with torch.no_grad():
+    with torch.inference_mode():
         tensor = pil_image_to_torch_bgr(img).unsqueeze(0)  # add batch dimension
         tensor = tensor.to(device=param.device, dtype=param.dtype)
         with devices.without_autocast():
@@ -177,7 +177,7 @@ def upscale_2(
     param = torch_utils.get_param(model)
     tensor = pil_image_to_torch_bgr(img).to(dtype=param.dtype).unsqueeze(0)  # add batch dimension
 
-    with torch.no_grad():
+    with torch.inference_mode():
         output = tiled_upscale_2(
             tensor,
             model,
