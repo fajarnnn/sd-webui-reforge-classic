@@ -13,6 +13,7 @@ import numpy as np
 import piexif
 import piexif.helper
 from PIL import Image, ImageFont, ImageDraw, ImageColor, PngImagePlugin
+import pillow_avif # noqa: F401
 import string
 import json
 import hashlib
@@ -551,10 +552,8 @@ def save_image_with_geninfo(image, geninfo, filename, extension=None, existing_p
         image.save(filename, format=image_format, quality=opts.jpeg_quality, pnginfo=pnginfo_data)
 
     elif extension.lower() in (".jpg", ".jpeg", ".webp"):
-        if image.mode == 'RGBA':
+        if image.mode != "RGB":
             image = image.convert("RGB")
-        elif image.mode == 'I;16':
-            image = image.point(lambda p: p * 0.0038910505836576).convert("RGB" if extension.lower() == ".webp" else "L")
 
         image.save(filename, format=image_format, quality=opts.jpeg_quality, lossless=opts.webp_lossless)
 
@@ -566,6 +565,15 @@ def save_image_with_geninfo(image, geninfo, filename, extension=None, existing_p
             })
 
             piexif.insert(exif_bytes, filename)
+    elif extension.lower() == '.avif':
+        if opts.enable_pnginfo and geninfo is not None:
+            exif_bytes = piexif.dump({
+                "Exif": {
+                    piexif.ExifIFD.UserComment: piexif.helper.UserComment.dump(geninfo or "", encoding="unicode")
+                },
+            })
+
+        image.save(filename,format=image_format, exif=exif_bytes)
     elif extension.lower() == ".gif":
         image.save(filename, format=image_format, comment=geninfo)
     else:
@@ -744,7 +752,6 @@ def read_info_from_image(image: Image.Image) -> tuple[str | None, dict]:
             exif_comment = exif_comment.decode('utf8', errors="ignore")
 
         if exif_comment:
-            items['exif comment'] = exif_comment
             geninfo = exif_comment
     elif "comment" in items: # for gif
         geninfo = items["comment"].decode('utf8', errors="ignore")

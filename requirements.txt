@@ -18,6 +18,7 @@ omegaconf
 open-clip-torch
 
 piexif
+pillow-avif-plugin
 psutil
 pytorch_lightning
 requests
