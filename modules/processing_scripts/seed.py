@@ -47,8 +47,8 @@ class ScriptSeed(scripts.ScriptBuiltinUI):
                 seed_resize_from_w = gr.Slider(minimum=0, maximum=2048, step=8, label="Resize seed from width", value=0, elem_id=self.elem_id("seed_resize_from_w"))
                 seed_resize_from_h = gr.Slider(minimum=0, maximum=2048, step=8, label="Resize seed from height", value=0, elem_id=self.elem_id("seed_resize_from_h"))
 
-        random_seed.click(fn=lambda: "-1" if cmd_opts.use_textbox_seed else -1, show_progress=False, outputs=[self.seed])
-        random_subseed.click(fn=lambda: -1, show_progress=False, outputs=[subseed])
+        random_seed.click(fn=None, _js=f'() => {{ setRandomSeed("{self.elem_id("seed")}"); }}', show_progress=False, queue=False)
+        random_subseed.click(fn=None, _js=f'() => {{ setRandomSeed("{self.elem_id("subseed")}"); }}', show_progress=False, queue=False)
 
         seed_checkbox.change(lambda x: gr.update(visible=x), show_progress=False, inputs=[seed_checkbox], outputs=[seed_extras])
 

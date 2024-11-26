@@ -388,6 +388,13 @@ function updateImg2imgResizeToTextAfterChangingImage() {
 
 }
 
+function setRandomSeed(elem_id) {
+    let input = gradioApp().querySelector(`#${elem_id} input`);
+    if (!input) return;
+
+    input.value = "-1";
+    updateInput(input);
+}
 
 function switchWidthHeight(tabname) {
     let width = gradioApp().querySelector("#" + tabname + "_width input[type=number]");
