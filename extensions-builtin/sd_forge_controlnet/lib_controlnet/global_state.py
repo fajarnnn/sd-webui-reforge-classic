@@ -69,7 +69,7 @@ def get_controlnet_filename(controlnet_name: str) -> str:
 
 def get_filtered_controlnet_names(tag: str) -> list[str]:
     filtered_preprocessors = get_filtered_preprocessors(tag)
-    model_filename_filters = ["union"]
+    model_filename_filters = ["union", "promax"]
     for p in filtered_preprocessors.values():
         model_filename_filters.extend(p.model_filename_filters)
 
