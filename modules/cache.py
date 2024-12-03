@@ -1,23 +1,19 @@
-import json
-import os
-import os.path
 import threading
-
 import diskcache
+import json
 import tqdm
+import os
 
 from modules.paths import data_path, script_path
 
-cache_filename = os.environ.get('SD_WEBUI_CACHE_FILE', os.path.join(data_path, "cache.json"))
-cache_dir = os.environ.get('SD_WEBUI_CACHE_DIR', os.path.join(data_path, "cache"))
-caches = {}
 cache_lock = threading.Lock()
+cache_filename = os.environ.get("SD_WEBUI_CACHE_FILE", os.path.join(data_path, "cache.json"))
+cache_dir = os.environ.get("SD_WEBUI_CACHE_DIR", os.path.join(data_path, "cache"))
+caches = {}
 
 
-def dump_cache():
-    """old function for dumping cache to disk; does nothing since diskcache."""
-
-    pass
+dump_cache = lambda: None
+"""does nothing since diskcache"""
 
 
 def convert_old_cached_data():
@@ -28,7 +24,7 @@ def convert_old_cached_data():
         return
     except Exception:
         os.replace(cache_filename, os.path.join(script_path, "tmp", "cache.json"))
-        print('[ERROR] issue occurred while trying to read cache.json; old cache has been moved to tmp/cache.json')
+        print("failed to read cache.json; file has been moved to tmp/cache.json")
         return
 
     total_count = sum(len(keyvalues) for keyvalues in data.values())
@@ -83,7 +79,7 @@ def cached_data_for_file(subsection, title, filename, func):
     Returns:
         dict or None: The cached or generated data, or None if data generation fails.
 
-    The `cached_data_for_file` function implements a caching mechanism for data stored in files.
+    The function implements a caching mechanism for data stored in files.
     It checks if the data associated with the given `title` is present in the cache and compares the
     modification time of the file with the cached modification time. If the file has been modified,
     the cache is considered invalid and the data is regenerated using the provided `func`.
@@ -102,14 +98,61 @@ def cached_data_for_file(subsection, title, filename, func):
         if ondisk_mtime > cached_mtime:
             entry = None
 
-    if not entry or 'value' not in entry:
+    if not entry or "value" not in entry:
         value = func()
         if value is None:
             return None
 
-        entry = {'mtime': ondisk_mtime, 'value': value}
+        entry = {"mtime": ondisk_mtime, "value": value}
         existing_cache[title] = entry
 
         dump_cache()
 
-    return entry['value']
+    return entry["value"]
+
+
+def prune_unused_hash():
+    import glob
+
+    from modules.paths_internal import extensions_dir
+
+    existing_cache = cache("extensions-git")
+    total_count = len(existing_cache)
+    with tqdm.tqdm(total=total_count, desc="pruning extensions") as progress:
+        for name in existing_cache:
+            if not os.path.isdir(os.path.join(extensions_dir, name)):
+                existing_cache.pop(name)
+            progress.update(1)
+
+    def file_exists(parent_dir, filename):
+        matches = glob.glob(os.path.join(parent_dir, "**", f"{filename}*"), recursive=True)
+        return len(matches) > 0
+
+    from modules.paths_internal import models_path
+    from modules.shared import cmd_opts
+
+    for db in ("hashes", "hashes-addnet", "safetensors-metadata"):
+        existing_cache = cache(db)
+        total_count = len(existing_cache)
+        with tqdm.tqdm(total=total_count, desc=f"pruning {db}") as progress:
+            for name in existing_cache:
+                if not "/" in name:
+                    progress.update(1)
+                    continue
+
+                category, filename = name.split("/", 1)
+                if category.lower() == "lora":
+                    exists = file_exists(os.path.join(models_path, "Lora"), filename)
+                elif category.lower() == "checkpoint":
+                    exists = file_exists(os.path.join(models_path, "Stable-diffusion"), filename)
+                elif category.lower() == "textual_inversion":
+                    exists = file_exists(cmd_opts.embeddings_dir, filename)
+                else:
+                    progress.update(1)
+                    continue
+
+                if not exists:
+                    del existing_cache[name]
+                progress.update(1)
+
+    print("Finish pruning hash")
