@@ -59,7 +59,8 @@ class Infotext:
         return f"ControlNet {unit_index}"
 
     def register_unit(self, unit_index: int, uigroup) -> None:
-        """Register the unit's UI group. By regsitering the unit, A1111 will be
+        """
+        Register the unit's UI group. By registering the unit, A1111 will be
         able to paste values from infotext to Component.
 
         Args:
@@ -69,7 +70,7 @@ class Infotext:
         unit_prefix = Infotext.unit_prefix(unit_index)
         for field in external_code.ControlNetUnit.infotext_fields():
             # Every field in ControlNetUnit should have a corresponding
-            # Component in ControlNetUiGroup.
+            # Component in ControlNetUiGroup
             io_component = getattr(uigroup, field)
             component_locator = f"{unit_prefix} {field}"
             self.infotext_fields.append((io_component, component_locator))
@@ -90,7 +91,7 @@ class Infotext:
 
     @staticmethod
     def on_infotext_pasted(infotext: str, results: dict) -> None:
-        """Parse ControlNet infotext string and write result to `results` dict."""
+        """Parse ControlNet infotext string and write result to `results` dict"""
         updates = {}
         for k, v in results.items():
             if not k.startswith("ControlNet"):

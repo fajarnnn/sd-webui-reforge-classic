@@ -21,10 +21,10 @@ from lib_controlnet import external_code
 try:
     from reportlab.graphics import renderPM
     from svglib.svglib import svg2rlg
-
-    svgSupport = True
 except ImportError:
     svgSupport = False
+else:
+    svgSupport = True
 
 
 def load_state_dict(ckpt_path, location="cpu"):
@@ -52,16 +52,16 @@ def ndarray_lru_cache(max_size: int = 128, typed: bool = False):
     arguments.
 
     `HashableNpArray` functions exactly the same way as `np.ndarray` except
-    having `__hash__` and `__eq__` overriden.
+    having `__hash__` and `__eq__` overridden.
     """
 
     def decorator(func: Callable):
-        """The actual decorator that accept function as input."""
+        """The actual decorator that accept function as input"""
 
         class HashableNpArray(np.ndarray):
             def __new__(cls, input_array):
-                # Input array is an instance of ndarray.
-                # The view makes the input array and returned array share the same data.
+                # Input array is an instance of ndarray
+                # The view makes the input array and returned array share the same data
                 obj = np.asarray(input_array).view(cls)
                 return obj
 
@@ -69,18 +69,18 @@ def ndarray_lru_cache(max_size: int = 128, typed: bool = False):
                 return np.array_equal(self, other)
 
             def __hash__(self):
-                # Hash the bytes representing the data of the array.
+                # Hash the bytes representing the data of the array
                 return hash(self.tobytes())
 
         @functools.lru_cache(maxsize=max_size, typed=typed)
         def cached_func(*args, **kwargs):
-            """This function only accepts `HashableNpArray` as input params."""
+            """This function only accepts `HashableNpArray` as input params"""
             return func(*args, **kwargs)
 
-        # Preserves original function.__name__ and __doc__.
+        # Preserves original function.__name__ and __doc__
         @functools.wraps(func)
         def decorated_func(*args, **kwargs):
-            """The decorated function that delegates the original function."""
+            """The decorated function that delegates the original function"""
 
             def convert_item(item):
                 if isinstance(item, np.ndarray):
@@ -99,7 +99,7 @@ def ndarray_lru_cache(max_size: int = 128, typed: bool = False):
 
 
 def timer_decorator(func):
-    """Time the decorated function and output the result to debug logger."""
+    """Time the decorated function and output the result to debug logger"""
     if logger.level != logging.DEBUG:
         return func
 
@@ -109,7 +109,7 @@ def timer_decorator(func):
         result = func(*args, **kwargs)
         end_time = time.time()
         duration = end_time - start_time
-        # Only report function that are significant enough.
+        # Only report function that are significant enough
         if duration > 1e-3:
             logger.debug(f"{func.__name__} ran in: {duration:.3f} sec")
         return result
@@ -152,6 +152,7 @@ def svg_preprocess(inputs: dict, preprocess: Callable):
         base64_str = str(encoded_string, "utf-8")
         base64_str = "data:image/png;base64," + base64_str
         inputs["image"] = base64_str
+
     if inputs.get("mask", None) is None:
         inputs["mask"] = _blank_mask()
 
@@ -168,33 +169,12 @@ def get_unique_axis0(data):
     return arr[unique_idxs]
 
 
-def read_image(img_path: str) -> str:
-    """Read image from specified path and return a base64 string."""
-    img = cv2.imread(img_path)
-    _, bytes = cv2.imencode(".png", img)
-    encoded_image = base64.b64encode(bytes).decode("utf-8")
-    return encoded_image
-
-
-def read_image_dir(
-    img_dir: str, suffixes=(".png", ".jpg", ".jpeg", ".webp")
-) -> list[str]:
-    """Try read all images in given img_dir."""
-    images = []
-    for filename in os.listdir(img_dir):
-        if filename.endswith(suffixes):
-            img_path = os.path.join(img_dir, filename)
-            try:
-                images.append(read_image(img_path))
-            except IOError:
-                logger.error(f"Error opening {img_path}")
-    return images
-
-
 def align_dim_latent(x: int) -> int:
-    """Align the pixel dimension (w/h) to latent dimension.
-    Stable diffusion 1:8 ratio for latent/pixel, i.e.,
-    1 latent unit == 8 pixel unit."""
+    """
+    Align the pixel dimension (w/h) to latent dimension.
+    Stable diffusion 1:8 ratio for latent/pixel
+    i.e. 1 latent unit == 8 pixel unit
+    """
     return (x // 8) * 8
 
 
@@ -273,10 +253,8 @@ def set_numpy_seed(p: processing.StableDiffusionProcessing) -> Optional[int]:
 
 
 def safe_numpy(x):
-    # A very safe method to make sure that Apple/Mac works
+    """A very safe method to make sure that Mac works"""
     y = x
-
-    # below is very boring but do not change these. If you change these Apple or Mac may fail.
     y = y.copy()
     y = np.ascontiguousarray(y)
     y = y.copy()
@@ -284,8 +262,10 @@ def safe_numpy(x):
 
 
 def high_quality_resize(x, size):
-    # Written by lvmin
-    # Super high-quality control map up-scaling, considering binary, seg, and one-pixel edges
+    """
+    Written by lvmin
+    Super high-quality control map up-scaling, considering binary, seg, and one-pixel edges
+    """
 
     if x.shape[0] != size[1] or x.shape[1] != size[0]:
         new_size_is_smaller = (size[0] * size[1]) < (x.shape[0] * x.shape[1])
@@ -308,9 +288,8 @@ def high_quality_resize(x, size):
         elif new_size_is_smaller:
             interpolation = cv2.INTER_AREA
         else:
-            interpolation = (
-                cv2.INTER_CUBIC
-            )  # Must be CUBIC because we now use nms. NEVER CHANGE THIS
+            # Must be CUBIC because we now use nms
+            interpolation = cv2.INTER_CUBIC  # NEVER CHANGE THIS
 
         y = cv2.resize(x, size, interpolation=interpolation)
 
