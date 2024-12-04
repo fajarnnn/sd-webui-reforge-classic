@@ -13,6 +13,8 @@ import ldm_patched.modules.ops
 from enum import Enum
 from . import utils
 
+from modules.shared import opts
+
 class ModelType(Enum):
     EPS = 1
     V_PREDICTION = 2
@@ -49,7 +51,10 @@ class BaseModel(torch.nn.Module):
         self.manual_cast_dtype = model_config.manual_cast_dtype
 
         if not unet_config.get("disable_unet_model_creation", False):
-            if self.manual_cast_dtype is not None:
+            if getattr(opts, "fp8_fast", False):
+                print("using fast fp8 ops")
+                operations = ldm_patched.modules.ops.fp8_ops
+            elif self.manual_cast_dtype is not None:
                 operations = ldm_patched.modules.ops.manual_cast
             else:
                 operations = ldm_patched.modules.ops.disable_weight_init
