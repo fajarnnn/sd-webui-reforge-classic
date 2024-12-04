@@ -99,9 +99,10 @@ def load_checkpoint_guess_config(sd, output_vae=True, output_clip=True, output_c
             clipvision = ldm_patched.modules.clip_vision.load_clipvision_from_sd(sd, model_config.clip_vision_prefix, True)
 
     if output_model:
-        inital_load_device = model_management.unet_inital_load_device(parameters, unet_dtype)
+        initial_load_device = model_management.unet_initial_load_device(parameters, unet_dtype)
         offload_device = model_management.unet_offload_device()
-        model = model_config.get_model(sd, "model.diffusion_model.", device=inital_load_device)
+        print("UNet dtype:", unet_dtype)
+        model = model_config.get_model(sd, "model.diffusion_model.", device=initial_load_device)
         model.load_model_weights(sd, "model.diffusion_model.")
 
     if output_vae:
@@ -123,8 +124,8 @@ def load_checkpoint_guess_config(sd, output_vae=True, output_clip=True, output_c
         print("left over keys:", left_over)
 
     if output_model:
-        model_patcher = UnetPatcher(model, load_device=load_device, offload_device=model_management.unet_offload_device(), current_device=inital_load_device)
-        if inital_load_device != torch.device("cpu"):
+        model_patcher = UnetPatcher(model, load_device=load_device, offload_device=model_management.unet_offload_device(), current_device=initial_load_device)
+        if initial_load_device != torch.device("cpu"):
             print("loaded straight to GPU")
             model_management.load_model_gpu(model_patcher)
 

@@ -181,6 +181,7 @@ For img2img, VAE is used to process user's input image before the sampling, and 
     "sd_vae_checkpoint_cache": OptionInfo(0, "VAE Checkpoints to cache in RAM", gr.Slider, {"minimum": 0, "maximum": 10, "step": 1}),
     "sd_vae": OptionInfo("Automatic", "SD VAE", gr.Dropdown, lambda: {"choices": shared_items.sd_vae_items()}, refresh=shared_items.refresh_vae_list, infotext='VAE').info("choose VAE model: Automatic = use one with same filename as checkpoint; None = use VAE from checkpoint"),
     "sd_vae_overrides_per_model_preferences": OptionInfo(True, "Selected VAE overrides per-model preferences").info("you can set per-model VAE either by editing user metadata for checkpoints, or by making the VAE have same name as checkpoint"),
+    "prefer_vae_precision_float16": OptionInfo(False, "Prefer VAE in float16 precision").info("most VAE at half precision produces NaNs; <b>enable with caution</b>"),
     "auto_vae_precision_bfloat16": OptionInfo(False, "Automatically convert VAE to bfloat16").info("triggers when a tensor with NaNs is produced in VAE; disabling the option in this case will result in a black square image; if enabled, overrides the option below"),
     "auto_vae_precision": OptionInfo(True, "Automatically revert VAE to 32-bit floats").info("triggers when a tensor with NaNs is produced in VAE; disabling the option in this case will result in a black square image"),
     "sd_vae_encode_method": OptionInfo("Full", "VAE type for encode", gr.Radio, {"choices": ["Full", "TAESD"]}, infotext='VAE Encoder').info("method to encode image to latent (use in img2img, hires-fix or inpaint mask)"),
@@ -215,9 +216,9 @@ options_templates.update(options_section(('optimizations', "Optimizations", "sd"
     "pad_cond_uncond_v0": OptionInfo(False, "Pad prompt/negative prompt (v0)", infotext='Pad conds v0').info("alternative implementation for the above; used prior to 1.6.0 for DDIM sampler; overrides the above if set; WARNING: truncates negative prompt if it's too long; changes seeds"),
     "persistent_cond_cache": OptionInfo(True, "Persistent cond cache").info("do not recalculate conds from prompts if prompts have not changed since previous calculation"),
     "batch_cond_uncond": OptionInfo(True, "Batch cond/uncond").info("do both conditional and unconditional denoising in one batch; uses a bit more VRAM during sampling, but improves speed; previously this was controlled by --always-batch-cond-uncond commandline argument"),
-    "fp8_storage": OptionInfo("Disable", "FP8 weight", gr.Radio, {"choices": ["Disable", "Enable for SDXL", "Enable"]}).info("Use FP8 to store Linear/Conv layers' weight. Require pytorch>=2.1.0."),
-    "fp8_fast": OptionInfo(False, "Use fast fp8 operation").info("requires RTX 40+").needs_reload_ui(),
-    "cache_fp16_weight": OptionInfo(False, "Cache FP16 weight for LoRA").info("Cache fp16 weight when enabling FP8, will increase the quality of LoRA. Use more system ram."),
+    "fp8_storage": OptionInfo("Disable", "fp8 weight", gr.Radio, {"choices": ["Disable", "Enable"]}).info("Use fp8 to store UNet's weights; Require pytorch>=2.1.0."),
+    "fp8_fast": OptionInfo(False, "Use fast fp8 operation").info("Requires <b>fp8 weight</b>; Requires <b>RTX 40+</b>").needs_reload_ui(),
+    "cache_fp16_weight": OptionInfo(False, "Cache fp16 weight for LoRA").info("Cache fp16 weight when enabling fp8 to increase the quality of LoRA; Use more system ram."),
 }))
 
 options_templates.update(options_section(('compatibility', "Compatibility", "sd"), {

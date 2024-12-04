@@ -284,8 +284,6 @@ if 'rtx' in torch_device_name.lower():
     if not args.cuda_stream:
         print('Hint: your device supports --cuda-stream for potential speed improvements.')
 
-print("VAE dtype:", VAE_DTYPE)
-
 current_loaded_models = []
 
 def module_size(module, exclude_device=None):
@@ -490,7 +488,7 @@ def load_models_gpu(models, memory_required=0):
 
         if vram_set_state == VRAMState.NO_VRAM:
             async_kept_memory = 0
-        
+
         loaded_model.model_load(async_kept_memory)
         current_loaded_models.insert(0, loaded_model)
 
@@ -533,7 +531,7 @@ def unet_offload_device():
     else:
         return torch.device("cpu")
 
-def unet_inital_load_device(parameters, dtype):
+def unet_initial_load_device(parameters, dtype):
     torch_dev = get_torch_device()
     if vram_state == VRAMState.HIGH_VRAM:
         return torch_dev
@@ -551,12 +549,19 @@ def unet_inital_load_device(parameters, dtype):
     else:
         return cpu_dev
 
+def check_fp8():
+    if get_torch_device() in ("mps", "cpu"):
+        return False
+
+    from modules.shared import opts
+    return opts.fp8_storage == "Enable"
+
 def unet_dtype(device=None, model_params=0):
     if args.unet_in_bf16:
         return torch.bfloat16
     if args.unet_in_fp16:
         return torch.float16
-    if args.unet_in_fp8_e4m3fn:
+    if check_fp8() or args.unet_in_fp8_e4m3fn:
         return torch.float8_e4m3fn
     if args.unet_in_fp8_e5m2:
         return torch.float8_e5m2
@@ -630,8 +635,17 @@ def vae_offload_device():
     else:
         return torch.device("cpu")
 
+def check_fp16():
+    if get_torch_device() in ("mps", "cpu"):
+        return False
+
+    from modules.shared import opts
+    return opts.prefer_vae_precision_float16
+
 def vae_dtype():
     global VAE_DTYPE
+    if VAE_DTYPE == torch.bfloat16 and check_fp16():
+        return torch.float16
     return VAE_DTYPE
 
 def get_autocast_device(dev):

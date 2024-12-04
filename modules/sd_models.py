@@ -354,20 +354,6 @@ class SkipWritingToConfig:
         SkipWritingToConfig.skip = self.previous
 
 
-def check_fp8(model):
-    if model is None:
-        return None
-    if devices.get_optimal_device_name() == "mps":
-        enable_fp8 = False
-    elif shared.opts.fp8_storage == "Enable":
-        enable_fp8 = True
-    elif getattr(model, "is_sdxl", False) and shared.opts.fp8_storage == "Enable for SDXL":
-        enable_fp8 = True
-    else:
-        enable_fp8 = False
-    return enable_fp8
-
-
 def load_model_weights(model, checkpoint_info: CheckpointInfo, state_dict, timer):
     sd_model_hash = checkpoint_info.calculate_shorthash()
     timer.record("calculate hash")
