@@ -1,6 +1,6 @@
-from modules import shared, script_callbacks
 from modules.ui_components import FormRow
 from modules_forge.forge_util import HWC3
+from modules import shared
 
 from dataclasses import dataclass
 from typing import Optional
@@ -676,15 +676,15 @@ class ControlNetUiGroup:
             if self.prevent_next_n_module_update > 0:
                 self.prevent_next_n_module_update -= 1
                 return [
-                    gr.Dropdown.update(choices=filtered_preprocessor_list),
-                    gr.Dropdown.update(choices=filtered_controlnet_names),
+                    gr.update(choices=filtered_preprocessor_list),
+                    gr.update(choices=filtered_controlnet_names),
                 ]
             else:
                 return [
-                    gr.Dropdown.update(
+                    gr.update(
                         value=default_preprocessor, choices=filtered_preprocessor_list
                     ),
-                    gr.Dropdown.update(
+                    gr.update(
                         value=default_controlnet_name, choices=filtered_controlnet_names
                     ),
                 ]
@@ -811,22 +811,20 @@ class ControlNetUiGroup:
 
     def register_create_canvas(self):
         self.open_new_canvas_button.click(
-            lambda: gr.Accordion.update(visible=True),
+            lambda: gr.update(visible=True),
             inputs=None,
             outputs=self.create_canvas,
             show_progress=False,
         )
         self.canvas_cancel_button.click(
-            lambda: gr.Accordion.update(visible=False),
+            lambda: gr.update(visible=False),
             inputs=None,
             outputs=self.create_canvas,
             show_progress=False,
         )
 
         def fn_canvas(h, w):
-            return np.zeros(shape=(h, w, 3), dtype=np.uint8), gr.Accordion.update(
-                visible=False
-            )
+            return np.zeros(shape=(h, w, 3), dtype=np.uint8), gr.update(visible=False)
 
         self.canvas_create_button.click(
             fn=fn_canvas,
@@ -857,9 +855,6 @@ class ControlNetUiGroup:
             ],
             show_progress=False,
         )
-
-    def register_shift_crop_input_image(self):
-        return
 
     def register_shift_hr_options(self):
         ControlNetUiGroup.a1111_context.txt2img_enable_hr.change(
@@ -901,7 +896,7 @@ class ControlNetUiGroup:
     def register_clear_preview(self):
         def clear_preview(x):
             if x:
-                logger.info("Preview as input is cancelled")
+                logger.info("Preview as Input is disabled")
             return gr.update(value=False), gr.update(value=None)
 
         event_subscribers = []
@@ -960,40 +955,6 @@ class ControlNetUiGroup:
         if self.is_img2img:
             self.register_img2img_same_input()
 
-    def register_sd_model_changed(self):
-        def sd_version_changed(
-            type_filter: str, current_model: str, setting_value: str, setting_name: str
-        ):
-            """When SD version changes, update model dropdown choices"""
-            if setting_name != "sd_model_checkpoint":
-                return gr.skip()
-
-            filtered_model_list = global_state.get_filtered_controlnet_names(
-                type_filter
-            )
-            assert len(filtered_model_list) > 0
-            default_model = (
-                filtered_model_list[1]
-                if len(filtered_model_list) > 1
-                else filtered_model_list[0]
-            )
-            return gr.Dropdown.update(
-                choices=filtered_model_list,
-                value=(
-                    current_model
-                    if current_model in filtered_model_list
-                    else default_model
-                ),
-            )
-
-        script_callbacks.on_setting_updated_subscriber(
-            dict(
-                fn=sd_version_changed,
-                inputs=[self.type_filter, self.model],
-                outputs=[self.model],
-            )
-        )
-
     def register_callbacks(self):
         """Register callbacks that involves A1111 context gradio components"""
         # Prevent recursion
@@ -1004,10 +965,7 @@ class ControlNetUiGroup:
         self.register_send_dimensions()
         self.register_run_annotator()
         self.register_shift_upload_mask()
-        self.register_sd_model_changed()
-        if self.is_img2img:
-            self.register_shift_crop_input_image()
-        else:
+        if not self.is_img2img:
             self.register_shift_hr_options()
 
     @staticmethod
