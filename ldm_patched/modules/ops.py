@@ -234,7 +234,7 @@ class manual_cast(disable_weight_init):
 
 def fp8_linear(self, input):
     dtype = self.weight.dtype
-    if dtype not in [torch.float8_e4m3fn]:
+    if dtype is not torch.float8_e4m3fn:
         return None
 
     tensor_2d = False
@@ -257,7 +257,7 @@ def fp8_linear(self, input):
 
         if scale_input is None:
             scale_input = torch.ones((), device=input.device, dtype=torch.float32)
-            inn = input.reshape(-1, input.shape[2]).to(dtype)
+            inn = torch.clamp(input, min=-448, max=448).reshape(-1, input.shape[2]).to(dtype)
         else:
             scale_input = scale_input.to(input.device)
             inn = (

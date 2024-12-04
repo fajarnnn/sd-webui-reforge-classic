@@ -217,7 +217,7 @@ options_templates.update(options_section(('optimizations', "Optimizations", "sd"
     "persistent_cond_cache": OptionInfo(True, "Persistent cond cache").info("do not recalculate conds from prompts if prompts have not changed since previous calculation"),
     "batch_cond_uncond": OptionInfo(True, "Batch cond/uncond").info("do both conditional and unconditional denoising in one batch; uses a bit more VRAM during sampling, but improves speed; previously this was controlled by --always-batch-cond-uncond commandline argument"),
     "fp8_storage": OptionInfo("Disable", "fp8 weight", gr.Radio, {"choices": ["Disable", "Enable"]}).info("Use fp8 to store UNet weights"),
-    "fp8_fast": OptionInfo(False, "Use fast fp8 operation").info("Requires <b>fp8 weight</b>; Requires <b>RTX 40+</b>; does <b>not</b> work on all checkpoints").needs_reload_ui(),
+    "fp8_fast": OptionInfo(False, "Use fast fp8 operation").info("Requires <b>fp8 weight</b>; Requires <b>RTX 40+</b>").needs_reload_ui(),
     "cache_fp16_weight": OptionInfo(False, "Cache fp16 weight for LoRA").info("Cache the weight in fp16 when enabling fp8 weight, to increase the quality of LoRA; Use more system RAM"),
 }))
 
