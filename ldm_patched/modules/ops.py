@@ -9,7 +9,7 @@ https://github.com/comfyanonymous/ComfyUI
 import contextlib
 import torch
 
-from ldm_patched.modules.model_management import device_supports_non_blocking
+from ldm_patched.modules.model_management import cast_to_device
 from modules_forge import stream
 
 
@@ -41,35 +41,26 @@ def cast_bias_weight(s, input=None, dtype=None, device=None, bias_dtype=None):
         if device is None:
             device = input.device
 
-    weight, bias, signal = None, None, None
-    non_blocking = device_supports_non_blocking(input.device)
+    bias, signal = None, None
 
-    if stream.using_stream:
-        with stream.stream_context()(stream.mover_stream):
-            if s.bias is not None:
-                bias = s.bias.to(
-                    device=device,
-                    dtype=dtype,
-                    non_blocking=non_blocking,
-                )
-            weight = s.weight.to(
-                device=device,
-                dtype=dtype,
-                non_blocking=non_blocking,
-            )
-            signal = stream.mover_stream.record_event()
-    else:
+    with (
+        stream.stream_context()(stream.mover_stream)
+        if stream.using_stream
+        else contextlib.nullcontext()
+    ):
         if s.bias is not None:
-            bias = s.bias.to(
+            bias = cast_to_device(
+                s.bias,
                 device=device,
-                dtype=dtype,
-                non_blocking=non_blocking,
+                dtype=bias_dtype,
             )
-        weight = s.weight.to(
+        weight = cast_to_device(
+            s.weight,
             device=device,
             dtype=dtype,
-            non_blocking=non_blocking,
         )
+        if stream.using_stream:
+            signal = stream.mover_stream.record_event()
 
     return weight, bias, signal
 
@@ -252,7 +243,9 @@ def fp8_linear(self, input):
         input = input.unsqueeze(1)
 
     if len(input.shape) == 3:
-        w, bias, _ = cast_bias_weight(self, input, dtype=dtype, bias_dtype=input.dtype)
+        w, bias, signal = cast_bias_weight(
+            self, input, dtype=dtype, bias_dtype=input.dtype
+        )
         w = w.t()
 
         scale_weight = self.scale_weight
@@ -273,19 +266,24 @@ def fp8_linear(self, input):
                 .to(dtype)
             )
 
-        if bias is not None:
-            o = torch._scaled_mm(
-                inn,
-                w,
-                out_dtype=input.dtype,
-                bias=bias,
-                scale_a=scale_input,
-                scale_b=scale_weight,
-            )
-        else:
-            o = torch._scaled_mm(
-                inn, w, out_dtype=input.dtype, scale_a=scale_input, scale_b=scale_weight
-            )
+        with main_stream_worker(w, bias, signal):
+            if bias is not None:
+                o = torch._scaled_mm(
+                    inn,
+                    w,
+                    out_dtype=input.dtype,
+                    bias=bias,
+                    scale_a=scale_input,
+                    scale_b=scale_weight,
+                )
+            else:
+                o = torch._scaled_mm(
+                    inn,
+                    w,
+                    out_dtype=input.dtype,
+                    scale_a=scale_input,
+                    scale_b=scale_weight,
+                )
 
         if isinstance(o, tuple):
             o = o[0]
