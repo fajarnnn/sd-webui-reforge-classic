@@ -36,8 +36,9 @@ class FrozenCLIPEmbedderWithCustomWordsBase(torch.nn.Module):
         super().__init__()
 
         self.wrapped = wrapped
-        """Original FrozenCLIPEmbedder module; can also be FrozenOpenCLIPEmbedder or xlmr.BertSeriesModelWithTransformation,
-        depending on model."""
+        """
+        Original FrozenCLIPEmbedder or FrozenOpenCLIPEmbedder module
+        """
 
         self.hijack: sd_hijack.StableDiffusionModelHijack = hijack
         self.chunk_length = 75
