@@ -19,7 +19,7 @@ stash = {}
 
 @contextlib.contextmanager
 def use_patched_ops(operations):
-    names = ("Linear", "Conv2d", "Conv3d", "GroupNorm", "LayerNorm")
+    names = ("Linear", "Conv1d", "Conv2d", "Conv3d", "GroupNorm", "LayerNorm")
     backups = {name: getattr(torch.nn, name) for name in names}
 
     try:
@@ -119,7 +119,7 @@ class disable_weight_init:
             else:
                 return super().forward(*args, **kwargs)
 
-    class Conv1d(torch.nn.Conv2d, CastWeightBiasOp):
+    class Conv1d(torch.nn.Conv1d, CastWeightBiasOp):
         def reset_parameters(self):
             return None
 
