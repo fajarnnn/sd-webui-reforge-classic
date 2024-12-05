@@ -13,7 +13,6 @@ from ldm_patched.modules.model_management import cast_to_device
 from modules_forge import stream
 
 
-# https://github.com/AUTOMATIC1111/stable-diffusion-webui/pull/14855/files
 stash = {}
 
 
@@ -204,12 +203,15 @@ class disable_weight_init:
 
     @classmethod
     def conv_nd(s, dims, *args, **kwargs):
-        if dims == 2:
-            return s.Conv2d(*args, **kwargs)
-        elif dims == 3:
-            return s.Conv3d(*args, **kwargs)
-        else:
-            raise ValueError(f"unsupported dimensions: {dims}")
+        match dims:
+            case 1:
+                return s.Conv1d(*args, **kwargs)
+            case 2:
+                return s.Conv2d(*args, **kwargs)
+            case 3:
+                return s.Conv3d(*args, **kwargs)
+            case _:
+                raise ValueError(f"unsupported dimensions: {dims}")
 
 
 class manual_cast(disable_weight_init):
@@ -257,7 +259,11 @@ def fp8_linear(self, input):
 
         if scale_input is None:
             scale_input = torch.ones((), device=input.device, dtype=torch.float32)
-            inn = torch.clamp(input, min=-448, max=448).reshape(-1, input.shape[2]).to(dtype)
+            inn = (
+                torch.clamp(input, min=-448, max=448)
+                .reshape(-1, input.shape[2])
+                .to(dtype)
+            )
         else:
             scale_input = scale_input.to(input.device)
             inn = (
@@ -267,23 +273,14 @@ def fp8_linear(self, input):
             )
 
         with main_stream_worker(w, bias, signal):
-            if bias is not None:
-                o = torch._scaled_mm(
-                    inn,
-                    w,
-                    out_dtype=input.dtype,
-                    bias=bias,
-                    scale_a=scale_input,
-                    scale_b=scale_weight,
-                )
-            else:
-                o = torch._scaled_mm(
-                    inn,
-                    w,
-                    out_dtype=input.dtype,
-                    scale_a=scale_input,
-                    scale_b=scale_weight,
-                )
+            o = torch._scaled_mm(
+                input=inn,
+                mat2=w,
+                bias=bias,
+                out_dtype=input.dtype,
+                scale_a=scale_input,
+                scale_b=scale_weight,
+            )
 
         if isinstance(o, tuple):
             o = o[0]
