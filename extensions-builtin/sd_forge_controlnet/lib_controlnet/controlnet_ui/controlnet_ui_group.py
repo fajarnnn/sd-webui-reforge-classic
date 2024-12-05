@@ -59,20 +59,16 @@ class A1111Context:
 
     @property
     def ui_initialized(self) -> bool:
-        optional_components = {
-            # Optional components are only available after A1111 v1.7.0
-            "img2img_img2img_tab": "img2img_img2img_tab",
-            "img2img_img2img_sketch_tab": "img2img_img2img_sketch_tab",
-            "img2img_batch_tab": "img2img_batch_tab",
-            "img2img_inpaint_tab": "img2img_inpaint_tab",
-            "img2img_inpaint_sketch_tab": "img2img_inpaint_sketch_tab",
-            "img2img_inpaint_upload_tab": "img2img_inpaint_upload_tab",
-        }
-        return all(
-            c
-            for name, c in vars(self).items()
-            if name not in optional_components.values()
+        optional = (
+            "img2img_img2img_tab",
+            "img2img_img2img_sketch_tab",
+            "img2img_batch_tab",
+            "img2img_inpaint_tab",
+            "img2img_inpaint_sketch_tab",
+            "img2img_inpaint_upload_tab",
         )
+
+        return all(c for name, c in vars(self).items() if name not in optional)
 
     def set_component(self, component: gr.components.Component):
         elem_id = getattr(component, "elem_id", None)
@@ -104,8 +100,9 @@ class A1111Context:
 class ControlNetUiGroup:
     a1111_context = A1111Context()
 
-    # All ControlNetUiGroup instances created
+    all_callbacks_registered: bool = False
     all_ui_groups: list["ControlNetUiGroup"] = []
+    """All ControlNetUiGroup instances created"""
 
     refresh_symbol = "\U0001f504"  # 🔄
     camera_symbol = "\U0001F4F7"  # 📷
@@ -195,10 +192,6 @@ class ControlNetUiGroup:
 
         self.dummy_update_trigger = None
         """For components without event subscriber, update this counter to trigger a sync update of UiControlNetUnit"""
-
-        # Internal states for UI state pasting
-        self.prevent_next_n_module_update = 0
-        self.prevent_next_n_slider_value_update = 0
 
         ControlNetUiGroup.all_ui_groups.append(self)
 
@@ -398,7 +391,7 @@ class ControlNetUiGroup:
         with gr.Row(elem_classes=["controlnet_preprocessor_model", "controlnet_row"]):
             self.module = gr.Dropdown(
                 label="Preprocessor",
-                info="Set to [invert] if the image has black lines on white background",
+                info="Set to None if the image is already processed (eg. greyscale depth map)",
                 choices=global_state.get_all_preprocessor_names(),
                 value=self.default_unit.module,
                 elem_id=f"{elem_id_tabname}_{tabname}_controlnet_preprocessor_dropdown",
@@ -412,7 +405,7 @@ class ControlNetUiGroup:
             )
             self.model = gr.Dropdown(
                 label="Model",
-                info="Make sure the model version matches the checkpoint version",
+                info="Ensure the model version matches the checkpoint version (SD1 / SDXL)",
                 choices=global_state.get_all_controlnet_names(),
                 value=self.default_unit.model,
                 elem_id=f"{elem_id_tabname}_{tabname}_controlnet_model_dropdown",
@@ -454,7 +447,7 @@ class ControlNetUiGroup:
 
         with gr.Column():
             self.processor_res = gr.Slider(
-                label="Preprocessor resolution",
+                label="Preprocessor Resolution",
                 value=self.default_unit.processor_res,
                 minimum=64,
                 maximum=2048,
@@ -612,24 +605,17 @@ class ControlNetUiGroup:
         )
 
     def register_build_sliders(self):
-        def build_sliders(module: str, pp: bool):
-
-            logger.debug(
-                f"Prevent update slider value: {self.prevent_next_n_slider_value_update}"
-            )
-            logger.debug(f"Build slider for module: {module} - {pp}")
-
+        def build_sliders(module: str, pixel_perfect: bool):
+            logger.debug(f'Building Sliders for Module "{module}"')
             preprocessor = global_state.get_preprocessor(module)
+            resolution_kwargs = preprocessor.slider_resolution.gradio_update_kwargs
 
-            slider_resolution_kwargs = (
-                preprocessor.slider_resolution.gradio_update_kwargs.copy()
-            )
+            if pixel_perfect:
+                resolution_kwargs = resolution_kwargs.copy()
+                resolution_kwargs["visible"] = False
 
-            if pp:
-                slider_resolution_kwargs["visible"] = False
-
-            grs = [
-                gr.update(**slider_resolution_kwargs),
+            return [
+                gr.update(**resolution_kwargs),
                 gr.update(**preprocessor.slider_1.gradio_update_kwargs.copy()),
                 gr.update(**preprocessor.slider_2.gradio_update_kwargs.copy()),
                 gr.update(visible=not preprocessor.do_not_need_model),
@@ -637,12 +623,7 @@ class ControlNetUiGroup:
                 gr.update(visible=preprocessor.show_control_mode),
             ]
 
-            return grs
-
-        inputs = [
-            self.module,
-            self.pixel_perfect,
-        ]
+        inputs = [self.module, self.pixel_perfect]
         outputs = [
             self.processor_res,
             self.threshold_a,
@@ -651,43 +632,41 @@ class ControlNetUiGroup:
             self.refresh_models,
             self.control_mode,
         ]
+
         self.module.change(
-            build_sliders, inputs=inputs, outputs=outputs, show_progress=False
+            fn=build_sliders,
+            inputs=inputs,
+            outputs=outputs,
+            show_progress=False,
         )
         self.pixel_perfect.change(
-            build_sliders, inputs=inputs, outputs=outputs, show_progress=False
+            fn=build_sliders,
+            inputs=inputs,
+            outputs=outputs,
+            show_progress=False,
         )
 
-        def filter_selected(k: str):
-            logger.debug(f"Prevent update {self.prevent_next_n_module_update}")
-            logger.debug(f"Switch to control type {k}")
+        def filter_selected(mode: str):
+            logger.debug(f'Switching to Control Type "{mode}"')
 
-            filtered_preprocessor_list = global_state.get_filtered_preprocessor_names(k)
-            filtered_controlnet_names = global_state.get_filtered_controlnet_names(k)
-            default_preprocessor = filtered_preprocessor_list[0]
-            default_controlnet_name = filtered_controlnet_names[0]
+            filtered_preprocessors = global_state.get_filtered_preprocessor_names(mode)
+            filtered_cnet_names = global_state.get_filtered_controlnet_names(mode)
 
-            if k != "All":
-                if len(filtered_preprocessor_list) > 1:
-                    default_preprocessor = filtered_preprocessor_list[1]
-                if len(filtered_controlnet_names) > 1:
-                    default_controlnet_name = filtered_controlnet_names[1]
-
-            if self.prevent_next_n_module_update > 0:
-                self.prevent_next_n_module_update -= 1
-                return [
-                    gr.update(choices=filtered_preprocessor_list),
-                    gr.update(choices=filtered_controlnet_names),
-                ]
+            if mode == "All":
+                default_preprocessor = filtered_preprocessors[0]
+                default_controlnet_name = filtered_cnet_names[0]
             else:
-                return [
-                    gr.update(
-                        value=default_preprocessor, choices=filtered_preprocessor_list
-                    ),
-                    gr.update(
-                        value=default_controlnet_name, choices=filtered_controlnet_names
-                    ),
+                default_preprocessor = filtered_preprocessors[
+                    1 if len(filtered_preprocessors) > 1 else 0
                 ]
+                default_controlnet_name = filtered_cnet_names[
+                    1 if len(filtered_cnet_names) > 1 else 0
+                ]
+
+            return (
+                gr.update(value=default_preprocessor, choices=filtered_preprocessors),
+                gr.update(value=default_controlnet_name, choices=filtered_cnet_names),
+            )
 
         self.type_filter.change(
             fn=filter_selected,
@@ -697,8 +676,8 @@ class ControlNetUiGroup:
         )
 
     def register_run_annotator(self):
-        def run_annotator(image, module, pres, pthr_a, pthr_b, t2i_w, t2i_h, pp, rm):
-            if image is None:
+        def run_annotator(image, module, p_res, a, b, w, h, pp, rm):
+            if (image is None) or (module == "None"):
                 return (
                     gr.update(value=None, visible=True),
                     gr.skip(),
@@ -708,46 +687,44 @@ class ControlNetUiGroup:
             img = HWC3(image["image"])
             mask = HWC3(image["mask"])
 
-            if not (mask > 5).any():
+            if not (mask > 16).any():
                 mask = None
 
-            preprocessor = global_state.get_preprocessor(module)
-
             if pp:
-                pres = external_code.pixel_perfect_resolution(
+                p_res = external_code.pixel_perfect_resolution(
                     img,
-                    target_H=t2i_h,
-                    target_W=t2i_w,
+                    target_H=h,
+                    target_W=w,
                     resize_mode=external_code.resize_mode_from_value(rm),
                 )
 
-            class JsonAcceptor:
-                def __init__(self) -> None:
-                    self.value = ""
+            logger.info(f"Preview Resolution: {p_res}")
 
-                def accept(self, json_dict: dict) -> None:
-                    self.value = json.dumps(json_dict)
+            is_openpose = "openpose" in module
+            if is_openpose:
 
-            json_acceptor = JsonAcceptor()
+                # Only OpenPose Preprocessor returns a JSON
+                class JsonAcceptor:
+                    def __init__(self):
+                        self.value = ""
 
-            logger.info(f"Preview Resolution = {pres}")
+                    def accept(self, json_dict: dict):
+                        self.value = json.dumps(json_dict)
 
-            def is_openpose(module: str):
-                return "openpose" in module
+                json_acceptor = JsonAcceptor()
+                callback = json_acceptor.accept
 
-            # Only openpose preprocessor returns a JSON output, pass json_acceptor
-            # only when a JSON output is expected. This will make preprocessor cache
-            # work for all other preprocessors other than openpose ones. JSON acceptor
-            # instance are different every call, which means cache will never take effect.
+            else:
+                callback = None
+
+            preprocessor = global_state.get_preprocessor(module)
             result = preprocessor(
                 input_image=img,
-                resolution=pres,
-                slider_1=pthr_a,
-                slider_2=pthr_b,
+                resolution=p_res,
+                slider_1=a,
+                slider_2=b,
                 input_mask=mask,
-                json_pose_callback=(
-                    json_acceptor.accept if is_openpose(module) else None
-                ),
+                json_pose_callback=callback,
             )
 
             is_image = judge_image_type(result)
@@ -756,12 +733,11 @@ class ControlNetUiGroup:
 
             result = external_code.visualize_inpaint_mask(result)
             return (
-                # Update to `generated_image`
                 gr.update(value=result, visible=True, interactive=False),
-                # preprocessor_preview
                 gr.update(value=True),
-                # openpose editor
-                *self.openpose_editor.update(json_acceptor.value),
+                *self.openpose_editor.update(
+                    json_acceptor.value if is_openpose else ""
+                ),
             )
 
         self.trigger_preprocessor.click(
@@ -787,13 +763,9 @@ class ControlNetUiGroup:
     def register_shift_preview(self):
         def shift_preview(is_on):
             return (
-                # generated_image
                 gr.skip() if is_on else gr.update(value=None),
-                # generated_image_group
                 gr.update(visible=is_on),
-                # use_preview_as_input,
-                gr.update(visible=False),  # Now this is automatically managed
-                # download_pose_link
+                gr.update(visible=False),
                 gr.skip() if is_on else gr.update(value=None),
             )
 
@@ -812,19 +784,20 @@ class ControlNetUiGroup:
     def register_create_canvas(self):
         self.open_new_canvas_button.click(
             lambda: gr.update(visible=True),
-            inputs=None,
             outputs=self.create_canvas,
             show_progress=False,
         )
         self.canvas_cancel_button.click(
             lambda: gr.update(visible=False),
-            inputs=None,
             outputs=self.create_canvas,
             show_progress=False,
         )
 
         def fn_canvas(h, w):
-            return np.zeros(shape=(h, w, 3), dtype=np.uint8), gr.update(visible=False)
+            return (
+                gr.update(value=np.zeros(shape=(h, w, 3), dtype=np.uint8)),
+                gr.update(visible=False),
+            )
 
         self.canvas_create_button.click(
             fn=fn_canvas,
@@ -867,15 +840,13 @@ class ControlNetUiGroup:
     def register_shift_upload_mask(self):
         """Controls whether the upload mask input should be visible"""
 
-        def on_checkbox_click(checked: bool, canvas_height: int, canvas_width: int):
+        def on_checkbox_click(checked: bool, h: int, w: int):
             if not checked:
                 # Clear mask_image if unchecked
                 return (gr.update(visible=False), gr.update(value=None))
             else:
                 # Init an empty canvas the same size as the generation target
-                empty_canvas = np.zeros(
-                    shape=(canvas_height, canvas_width, 3), dtype=np.uint8
-                )
+                empty_canvas = np.zeros(shape=(h, w, 3), dtype=np.uint8)
                 return (gr.update(visible=True), gr.update(value=empty_canvas))
 
         self.mask_upload.change(
@@ -894,8 +865,8 @@ class ControlNetUiGroup:
             )
 
     def register_clear_preview(self):
-        def clear_preview(x):
-            if x:
+        def clear_preview(preview_as_input):
+            if preview_as_input:
                 logger.info("Preview as Input is disabled")
             return gr.update(value=False), gr.update(value=None)
 
@@ -971,28 +942,29 @@ class ControlNetUiGroup:
     @staticmethod
     def reset():
         ControlNetUiGroup.a1111_context = A1111Context()
+        ControlNetUiGroup.callbacks_registered = False
         ControlNetUiGroup.all_ui_groups = []
 
     @staticmethod
     def try_register_all_callbacks():
         unit_count = shared.opts.data.get("control_net_unit_count", 3)
-        all_unit_count = unit_count * 2  # txt2img + img2img
-        if (
-            # All A1111 components ControlNet units care about are all registered
-            ControlNetUiGroup.a1111_context.ui_initialized
-            and all_unit_count == len(ControlNetUiGroup.all_ui_groups)
-            and all(
-                g.ui_initialized and (not g.callbacks_registered)
-                for g in ControlNetUiGroup.all_ui_groups
-            )
+        total = unit_count * 2  # txt2img + img2img
+        if (total == len(ControlNetUiGroup.all_ui_groups)) and all(
+            ((g.ui_initialized) and (not g.callbacks_registered))
+            for g in ControlNetUiGroup.all_ui_groups
         ):
             for ui_group in ControlNetUiGroup.all_ui_groups:
                 ui_group.register_callbacks()
 
             logger.info("ControlNet UI callback registered")
+            ControlNetUiGroup.all_callbacks_registered = True
 
     @staticmethod
     def on_after_component(component, **kwargs):
         """Register the A1111 component"""
         ControlNetUiGroup.a1111_context.set_component(component)
-        ControlNetUiGroup.try_register_all_callbacks()
+        if (
+            ControlNetUiGroup.a1111_context.ui_initialized
+            and not ControlNetUiGroup.all_callbacks_registered
+        ):
+            ControlNetUiGroup.try_register_all_callbacks()
