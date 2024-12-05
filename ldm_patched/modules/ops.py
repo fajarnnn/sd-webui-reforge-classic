@@ -261,14 +261,14 @@ def fp8_linear(self, input):
             scale_input = torch.ones((), device=input.device, dtype=torch.float32)
             inn = (
                 torch.clamp(input, min=-448, max=448)
-                .reshape(-1, input.shape[2])
+                .view(-1, input.shape[2])
                 .to(dtype)
             )
         else:
             scale_input = scale_input.to(input.device)
             inn = (
                 (input * (1.0 / scale_input).to(input.dtype))
-                .reshape(-1, input.shape[2])
+                .view(-1, input.shape[2])
                 .to(dtype)
             )
 
@@ -286,9 +286,9 @@ def fp8_linear(self, input):
             o = o[0]
 
         if tensor_2d:
-            return o.reshape(input.shape[0], -1)
+            return o.view(input.shape[0], -1)
 
-        return o.reshape((-1, input.shape[1], self.weight.shape[0]))
+        return o.view((-1, input.shape[1], self.weight.shape[0]))
 
     return None
 
