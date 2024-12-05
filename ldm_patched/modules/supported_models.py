@@ -167,7 +167,7 @@ class SDXL(supported_models_base.BASE):
     latent_format = latent_formats.SDXL
 
     def model_type(self, state_dict, prefix=""):
-        if "v_pred" in state_dict:
+        if state_dict.pop("v_pred", None) is not None:
             return model_base.ModelType.V_PREDICTION
         else:
             return model_base.ModelType.EPS

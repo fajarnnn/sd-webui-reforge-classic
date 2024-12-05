@@ -76,8 +76,7 @@ def guess_model_config_from_state_dict(sd, filename):
         if diffusion_model_input.shape[1] == 9:
             return config_sdxl_inpainting
         else:
-            if ('v_pred' in sd):
-                del sd['v_pred']
+            if 'v_pred' in sd:
                 return config_sdxlv
             return config_sdxl
     if sd.get('conditioner.embedders.0.model.ln_final.weight', None) is not None:
