@@ -277,12 +277,12 @@ except:
     print("Could not pick default device.")
 
 if 'rtx' in torch_device_name.lower():
-    if not args.pin_shared_memory:
-        print('Hint: your device supports --pin-shared-memory for potential speed improvements.')
     if not args.cuda_malloc:
         print('Hint: your device supports --cuda-malloc for potential speed improvements.')
-    if not args.cuda_stream:
-        print('Hint: your device supports --cuda-stream for potential speed improvements.')
+        if not args.cuda_stream:
+            print('Hint: your device supports --cuda-stream for potential speed improvements.')
+            if not args.pin_shared_memory:
+                print('Hint: your device supports --pin-shared-memory for potential speed improvements.')
 
 current_loaded_models = []
 
