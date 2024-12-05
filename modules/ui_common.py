@@ -221,7 +221,6 @@ Requested path was: {f}
                     'img2img': ToolButton('🖼️', elem_id=f'{tabname}_send_to_img2img', tooltip="Send image and generation parameters to img2img tab."),
                     'inpaint': ToolButton('🎨️', elem_id=f'{tabname}_send_to_inpaint', tooltip="Send image and generation parameters to img2img inpaint tab."),
                     'extras': ToolButton('📐', elem_id=f'{tabname}_send_to_extras', tooltip="Send image and generation parameters to extras tab."),
-                    'svd': ToolButton('🎬', elem_id=f'{tabname}_send_to_svd', tooltip="Send image and generation parameters to SVD tab."),
                 }
 
                 if tabname == 'txt2img':

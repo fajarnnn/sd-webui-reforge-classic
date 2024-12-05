@@ -230,56 +230,6 @@ class Segmind_Vega(SDXL):
         "use_temporal_attention": False,
     }
 
-class SVD_img2vid(supported_models_base.BASE):
-    unet_config = {
-        "model_channels": 320,
-        "in_channels": 8,
-        "use_linear_in_transformer": True,
-        "transformer_depth": [1, 1, 1, 1, 1, 1, 0, 0],
-        "context_dim": 1024,
-        "adm_in_channels": 768,
-        "use_temporal_attention": True,
-        "use_temporal_resblock": True
-    }
-
-    clip_vision_prefix = "conditioner.embedders.0.open_clip.model.visual."
-
-    latent_format = latent_formats.SD15
-
-    sampling_settings = {"sigma_max": 700.0, "sigma_min": 0.002}
-
-    def get_model(self, state_dict, prefix="", device=None):
-        out = model_base.SVD_img2vid(self, device=device)
-        return out
-
-    def clip_target(self):
-        return None
-
-class Stable_Zero123(supported_models_base.BASE):
-    unet_config = {
-        "context_dim": 768,
-        "model_channels": 320,
-        "use_linear_in_transformer": False,
-        "adm_in_channels": None,
-        "use_temporal_attention": False,
-        "in_channels": 8,
-    }
-
-    unet_extra_config = {
-        "num_heads": 8,
-        "num_head_channels": -1,
-    }
-
-    clip_vision_prefix = "cond_stage_model.model.visual."
-
-    latent_format = latent_formats.SD15
-
-    def get_model(self, state_dict, prefix="", device=None):
-        out = model_base.Stable_Zero123(self, device=device, cc_projection_weight=state_dict["cc_projection.weight"], cc_projection_bias=state_dict["cc_projection.bias"])
-        return out
-
-    def clip_target(self):
-        return None
 
 class SD_X4Upscaler(SD20):
     unet_config = {
@@ -309,5 +259,4 @@ class SD_X4Upscaler(SD20):
         out = model_base.SD_X4Upscaler(self, device=device)
         return out
 
-models = [Stable_Zero123, SD15, SD20, SD21UnclipL, SD21UnclipH, SDXLRefiner, SDXL, SSD1B, Segmind_Vega, SD_X4Upscaler]
-models += [SVD_img2vid]
+models = [SD15, SD20, SD21UnclipL, SD21UnclipH, SDXLRefiner, SDXL, SSD1B, Segmind_Vega, SD_X4Upscaler]
