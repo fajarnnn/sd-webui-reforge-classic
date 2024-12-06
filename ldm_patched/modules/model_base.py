@@ -51,7 +51,7 @@ class BaseModel(torch.nn.Module):
         self.manual_cast_dtype = model_config.manual_cast_dtype
 
         if not unet_config.get("disable_unet_model_creation", False):
-            if getattr(opts, "fp8_fast", False):
+            if getattr(opts, "fp8_fast", False) and ldm_patched.modules.model_management.support_fp8():
                 print("using fast fp8 ops")
                 operations = ldm_patched.modules.ops.fp8_ops
             elif self.manual_cast_dtype is not None:

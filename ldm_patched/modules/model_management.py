@@ -5,6 +5,7 @@
 import time
 import psutil
 from enum import Enum
+from functools import lru_cache
 from ldm_patched.modules.args_parser import args
 from modules_forge import stream
 import ldm_patched.modules.utils
@@ -74,6 +75,7 @@ def is_intel_xpu():
             return True
     return False
 
+@lru_cache(maxsize=1)
 def get_torch_device():
     global directml_enabled
     global cpu_state
@@ -549,19 +551,36 @@ def unet_initial_load_device(parameters, dtype):
     else:
         return cpu_dev
 
-def check_fp8():
-    if get_torch_device() in ("mps", "cpu"):
+def prefer_fp8():
+    if not torch.cuda.is_available():
+        return False
+
+    if not is_nvidia():
         return False
 
     from modules.shared import opts
     return opts.fp8_storage == "Enable"
+
+def support_fp8():
+    if not prefer_fp8():
+        return False
+
+    if int(torch_version[0]) < 2 or int(torch_version[2]) < 4:
+        return False
+
+    device = get_torch_device()
+    props = torch.cuda.get_device_properties(device)
+    if props.major < 8 or props.minor < 9:
+        return False
+
+    return True
 
 def unet_dtype(device=None, model_params=0):
     if args.unet_in_bf16:
         return torch.bfloat16
     if args.unet_in_fp16:
         return torch.float16
-    if check_fp8() or args.unet_in_fp8_e4m3fn:
+    if prefer_fp8() or args.unet_in_fp8_e4m3fn:
         return torch.float8_e4m3fn
     if args.unet_in_fp8_e5m2:
         return torch.float8_e5m2
