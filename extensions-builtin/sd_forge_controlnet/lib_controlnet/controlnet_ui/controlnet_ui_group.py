@@ -12,7 +12,7 @@ import json
 from lib_controlnet.logging import logger
 from lib_controlnet.controlnet_ui.tool_button import ToolButton
 from lib_controlnet.controlnet_ui.openpose_editor import OpenposeEditor
-from lib_controlnet.controlnet_ui.preset import ControlNetPresetUI
+from lib_controlnet.controlnet_ui.preset import ControlNetPresetUI, NEW_PRESET
 from lib_controlnet.utils import svg_preprocess, judge_image_type
 from lib_controlnet.enums import InputMode, HiResFixOption
 from lib_controlnet.external_code import UiControlNetUnit
@@ -604,28 +604,33 @@ class ControlNetUiGroup:
         )
 
     def register_build_sliders(self):
-        def build_sliders(module: str, pixel_perfect: bool):
+        def build_sliders(preset: str, module: str, pixel_perfect: bool):
             logger.debug(f'Building Sliders for Module "{module}"')
-            preprocessor = global_state.get_preprocessor(module)
-            resolution_kwargs = preprocessor.slider_resolution.gradio_update_kwargs
+            module = global_state.get_preprocessor(module)
+            resolution_kwargs = module.slider_resolution.gradio_update_kwargs.copy()
+            slider1_kwargs = module.slider_1.gradio_update_kwargs.copy()
+            slider2_kwargs = module.slider_2.gradio_update_kwargs.copy()
 
             if pixel_perfect:
-                resolution_kwargs = resolution_kwargs.copy()
-                resolution_kwargs["visible"] = False
+                resolution_kwargs["interactive"] = False
+            if preset != NEW_PRESET:
+                resolution_kwargs.pop("value", None)
+                slider1_kwargs.pop("value", None)
+                slider2_kwargs.pop("value", None)
 
             return [
                 gr.update(**resolution_kwargs),
-                gr.update(**preprocessor.slider_1.gradio_update_kwargs.copy()),
-                gr.update(**preprocessor.slider_2.gradio_update_kwargs.copy()),
+                gr.update(**slider1_kwargs),
+                gr.update(**slider2_kwargs),
                 (
                     gr.update(value="None", interactive=False)
-                    if preprocessor.do_not_need_model
+                    if module.do_not_need_model
                     else gr.update(interactive=True)
                 ),
-                gr.update(interactive=preprocessor.show_control_mode),
+                gr.update(interactive=module.show_control_mode),
             ]
 
-        inputs = [self.module, self.pixel_perfect]
+        inputs = [self.preset_panel.dropdown, self.module, self.pixel_perfect]
         outputs = [
             self.processor_res,
             self.threshold_a,
@@ -647,11 +652,17 @@ class ControlNetUiGroup:
             show_progress=False,
         )
 
-        def filter_selected(mode: str):
+        def filter_selected(preset: str, mode: str):
             logger.debug(f'Switching to Control Type "{mode}"')
 
             filtered_preprocessors = global_state.get_filtered_preprocessor_names(mode)
             filtered_cnet_names = global_state.get_filtered_controlnet_names(mode)
+
+            if preset != NEW_PRESET:
+                return (
+                    gr.update(choices=filtered_preprocessors),
+                    gr.update(choices=filtered_cnet_names),
+                )
 
             if mode == "All":
                 default_preprocessor = filtered_preprocessors[0]
@@ -671,7 +682,7 @@ class ControlNetUiGroup:
 
         self.type_filter.change(
             fn=filter_selected,
-            inputs=[self.type_filter],
+            inputs=[self.preset_panel.dropdown, self.type_filter],
             outputs=[self.module, self.model],
             show_progress=False,
         )

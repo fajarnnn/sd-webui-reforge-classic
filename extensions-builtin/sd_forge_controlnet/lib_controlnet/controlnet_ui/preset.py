@@ -135,6 +135,10 @@ class ControlNetPresetUI:
                 inputs=[self.dropdown, *ui_states],
                 outputs=[control_type, *ui_states],
                 show_progress="hidden",
+            ).success(
+                fn=lambda: NEW_PRESET,
+                outputs=[self.dropdown],
+                show_progress="hidden",
             )
 
         def on_save_preset(name: str) -> dict:
