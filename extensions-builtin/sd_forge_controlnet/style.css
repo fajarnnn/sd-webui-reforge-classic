@@ -67,6 +67,14 @@
     height: 100%;
 }
 
+.controlnet_preprocessor_model input:disabled {
+    filter: brightness(0.75);
+}
+
+.controlnet_control_mode_radio label.disabled {
+    filter: brightness(0.75);
+}
+
 #cnet-preset-dialog-row {
     background: var(--body-background-fill);
     border-color: var(--block-border-color);

@@ -601,7 +601,6 @@ class ControlNetUiGroup:
         self.refresh_models.click(
             refresh_all_models,
             outputs=[self.model],
-            show_progress=False,
         )
 
     def register_build_sliders(self):
@@ -618,9 +617,12 @@ class ControlNetUiGroup:
                 gr.update(**resolution_kwargs),
                 gr.update(**preprocessor.slider_1.gradio_update_kwargs.copy()),
                 gr.update(**preprocessor.slider_2.gradio_update_kwargs.copy()),
-                gr.update(visible=not preprocessor.do_not_need_model),
-                gr.update(visible=not preprocessor.do_not_need_model),
-                gr.update(visible=preprocessor.show_control_mode),
+                (
+                    gr.update(value="None", interactive=False)
+                    if preprocessor.do_not_need_model
+                    else gr.update(interactive=True)
+                ),
+                gr.update(interactive=preprocessor.show_control_mode),
             ]
 
         inputs = [self.module, self.pixel_perfect]
@@ -629,7 +631,6 @@ class ControlNetUiGroup:
             self.threshold_a,
             self.threshold_b,
             self.model,
-            self.refresh_models,
             self.control_mode,
         ]
 

@@ -8,7 +8,7 @@ import os
 
 CNET_MODEL_EXTS = (".pt", ".pth", ".ckpt", ".safetensors", ".bin")
 
-controlnet_filename_dict: dict[str, str] = {"None": "model.safetensors"}
+controlnet_filename_dict: dict[str, str] = {"None": None}
 controlnet_names: list[str] = ["None"]
 
 
@@ -38,9 +38,7 @@ def get_all_models(path: str, sort_by: str, filter_by: None | str = None) -> dic
 
 def update_controlnet_filenames():
     global controlnet_filename_dict, controlnet_names
-
-    controlnet_filename_dict = {"None": "model.safetensors"}
-    controlnet_names = ["None"]
+    controlnet_filename_dict = {"None": None}
 
     ext_dirs = (
         shared.opts.data.get("control_net_models_path", None),
@@ -68,16 +66,16 @@ def get_controlnet_filename(controlnet_name: str) -> str:
 
 
 def get_filtered_controlnet_names(tag: str) -> list[str]:
+    filename_filters = ["union", "promax"]
+
     filtered_preprocessors = get_filtered_preprocessors(tag)
-    model_filename_filters = ["union", "promax"]
     for p in filtered_preprocessors.values():
-        model_filename_filters.extend(p.model_filename_filters)
+        filename_filters.extend(p.model_filename_filters)
 
     return [
-        x
-        for x in controlnet_names
-        if x == "None"
-        or any(f.lower() in x.lower() for f in model_filename_filters if f.strip())
+        cnet
+        for cnet in controlnet_names
+        if cnet == "None" or any(f.lower() in cnet.lower() for f in filename_filters)
     ]
 
 
@@ -90,7 +88,7 @@ def get_all_preprocessor_tags() -> list[str]:
 
 
 def get_preprocessor(name: str):
-    return supported_preprocessors.get(name, None)
+    return supported_preprocessors[name]
 
 
 def get_sorted_preprocessors() -> dict:
