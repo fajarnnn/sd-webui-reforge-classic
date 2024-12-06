@@ -124,14 +124,9 @@ def progressapi(req: ProgressRequest):
                 buffered = io.BytesIO()
 
                 if opts.live_previews_image_format == "png":
-                    # using optimize for large images takes an enormous amount of time
-                    if max(*image.size) <= 256:
-                        save_kwargs = {"optimize": True}
-                    else:
-                        save_kwargs = {"optimize": False, "compress_level": 1}
-
+                    save_kwargs = {"optimize": False, "compress_level": 1}
                 else:
-                    save_kwargs = {}
+                    save_kwargs = {"quality": 50}
 
                 image.save(buffered, format=opts.live_previews_image_format, **save_kwargs)
                 base64_image = base64.b64encode(buffered.getvalue()).decode('ascii')

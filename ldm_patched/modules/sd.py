@@ -181,9 +181,11 @@ class VAE:
                 decoder_config = encoder_config.copy()
                 decoder_config["video_kernel_size"] = [3, 1, 1]
                 decoder_config["alpha"] = 0.0
-                self.first_stage_model = AutoencodingEngine(regularizer_config={'target': "ldm_patched.ldm.models.autoencoder.DiagonalGaussianRegularizer"},
-                                                            encoder_config={'target': "ldm_patched.ldm.modules.diffusionmodules.model.Encoder", 'params': encoder_config},
-                                                            decoder_config={'target': "ldm_patched.ldm.modules.temporal_ae.VideoDecoder", 'params': decoder_config})
+                self.first_stage_model = AutoencodingEngine(
+                    regularizer_config={'target': "ldm_patched.ldm.models.autoencoder.DiagonalGaussianRegularizer"},
+                    encoder_config={'target': "ldm_patched.ldm.modules.diffusionmodules.model.Encoder", 'params': encoder_config},
+                    decoder_config={'target': "ldm_patched.ldm.modules.temporal_ae.VideoDecoder", 'params': decoder_config}
+                )
             elif "taesd_decoder.1.weight" in sd:
                 self.first_stage_model = ldm_patched.taesd.taesd.TAESD()
             else:

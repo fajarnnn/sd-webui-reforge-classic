@@ -1,5 +1,7 @@
 import inspect
 from collections import namedtuple
+from typing import Callable
+from functools import lru_cache
 import numpy as np
 import torch
 from PIL import Image
@@ -36,27 +38,45 @@ def setup_img2img_steps(p, steps=None):
 approximation_indexes = {"Full": 0, "Approx NN": 1, "Approx cheap": 2, "TAESD": 3}
 
 
+@lru_cache(maxsize=(shared.opts.sd_vae_checkpoint_cache), typed=False)
+def get_decoder(approximation:int, compile=False) -> Callable:
+    match approximation:
+        case 1:
+            vae = sd_vae_approx.model()
+        case 2:
+            vae = sd_vae_approx.cheap_approximation
+        case 3:
+            vae = sd_vae_taesd.decoder_model()
+        case _:
+            return None
+    
+    if compile:
+        return torch.compile(vae)
+    else:
+        return vae
+
+
 def samples_to_images_tensor(sample, approximation=None, model=None):
     """Transforms 4-channel latent space images into 3-channel RGB image tensors, with values in range [-1, 1]."""
 
     if approximation is None or (shared.state.interrupted and opts.live_preview_fast_interrupt):
-        approximation = approximation_indexes.get(opts.show_progress_type, 0)
+        approximation = approximation_indexes.get(opts.show_progress_type, 3)
         if approximation == 0:
             approximation = 1
 
-    if approximation == 2:
-        x_sample = sd_vae_approx.cheap_approximation(sample)
-    elif approximation == 1:
-        x_sample = sd_vae_approx.model()(sample.to(devices.device, devices.dtype)).detach()
-    elif approximation == 3:
-        x_sample = sd_vae_taesd.decoder_model()(sample.to(devices.device, devices.dtype)).detach()
-        x_sample = x_sample * 2 - 1
-    else:
-        if model is None:
-            model = shared.sd_model
-        x_sample = model.decode_first_stage(sample)
+    vae = get_decoder(approximation)
 
-    return x_sample
+    if vae is None:
+        return (model or shared.sd_model).decode_first_stage(sample)
+    
+    match approximation:
+        case 1:
+            return vae(sample.to(devices.device, devices.dtype)).detach()
+        case 2:
+            return vae(sample)
+        case 3:
+            x_sample = vae(sample.to(devices.device, devices.dtype)).detach()
+            return x_sample * 2 - 1
 
 
 def single_sample_to_image(sample, approximation=None):
@@ -112,7 +132,11 @@ def images_tensor_to_samples(image, approximation=None, model=None):
 def store_latent(decoded):
     state.current_latent = decoded
 
-    if opts.live_previews_enable and opts.show_progress_every_n_steps > 0 and shared.state.sampling_step % opts.show_progress_every_n_steps == 0:
+    if (
+        (opts.live_previews_enable and opts.show_progress_every_n_steps > 0) and 
+        (shared.state.sampling_steps - shared.state.sampling_step > opts.show_progress_every_n_steps) and
+        (shared.state.sampling_step % opts.show_progress_every_n_steps == 0)
+    ):
         if not shared.parallel_processing_allowed:
             shared.state.assign_current_image(sample_to_image(decoded))
 
