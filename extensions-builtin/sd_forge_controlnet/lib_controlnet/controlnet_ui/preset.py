@@ -50,28 +50,28 @@ class ControlNetPresetUI:
             )
             self.reset_button = ToolButton(
                 value=reset_symbol,
-                elem_id="cnet-preset-reset",
+                elem_id=f"{id_prefix}cnet-preset-reset",
                 tooltip="Apply preset",
                 visible=True,
                 interactive=False,
             )
             self.save_button = ToolButton(
                 value=save_symbol,
-                elem_id="cnet-preset-save",
+                elem_id=f"{id_prefix}cnet-preset-save",
                 tooltip="Save preset",
                 visible=True,
                 interactive=True,
             )
             self.delete_button = ToolButton(
                 value=delete_symbol,
-                elem_id="cnet-preset-delete",
+                elem_id=f"{id_prefix}cnet-preset-delete",
                 tooltip="Delete preset",
                 visible=True,
                 interactive=False,
             )
             self.refresh_button = ToolButton(
                 value=refresh_symbol,
-                elem_id="cnet-preset-refresh",
+                elem_id=f"{id_prefix}cnet-preset-refresh",
                 tooltip="Refresh preset",
                 visible=True,
                 interactive=True,
@@ -79,7 +79,7 @@ class ControlNetPresetUI:
 
         with gr.Group(
             visible=False,
-            elem_id=f"{id_prefix}_cnet_preset_enter_name",
+            elem_id=f"{id_prefix}cnet_preset_enter_name",
             elem_classes=["popup-dialog", "cnet-preset-enter-name"],
         ) as self.name_dialog:
             with gr.Row(elem_id="cnet-preset-dialog-row"):
@@ -92,11 +92,11 @@ class ControlNetPresetUI:
                 )
                 self.confirm_preset_name = ToolButton(
                     value=save_symbol,
-                    elem_id="cnet-preset-confirm-name",
+                    elem_id=f"{id_prefix}cnet-preset-confirm-name",
                     tooltip="Save preset",
                 )
 
-    def register_callbacks(self, control_type: gr.Radio, *ui_states):
+    def register_callbacks(self, ui_group, control_type: gr.Radio, *ui_states):
         """Interactions with the main ControlNet tab"""
 
         def apply_preset(name: str, *ui_states) -> tuple[dict]:
@@ -110,15 +110,21 @@ class ControlNetPresetUI:
 
             preset_unit.image = None
             current_unit.image = None
-            new_control_type = self.infer_control_type(preset_unit.module)
+            preset_control_type = self.infer_control_type(preset_unit.module)
+            current_control_type = self.infer_control_type(current_unit.module)
 
             # Do not compare module param that are not used in preset
             for module_param in ("processor_res", "threshold_a", "threshold_b"):
                 if getattr(preset_unit, module_param) == -1:
                     setattr(current_unit, module_param, -1)
 
+            if preset_control_type != current_control_type:
+                ui_group.applying_preset_module = True
+            if preset_unit.module != current_unit.module:
+                ui_group.applying_preset_sliders = True
+
             return (
-                gr.update(value=new_control_type),
+                gr.update(value=preset_control_type),
                 *[
                     gr.update(value=value) if value is not None else gr.skip()
                     for field in ControlNetUnit.infotext_fields()
@@ -134,10 +140,6 @@ class ControlNetPresetUI:
                 fn=apply_preset,
                 inputs=[self.dropdown, *ui_states],
                 outputs=[control_type, *ui_states],
-                show_progress="hidden",
-            ).success(
-                fn=lambda: NEW_PRESET,
-                outputs=[self.dropdown],
                 show_progress="hidden",
             )
 
@@ -251,6 +253,9 @@ class ControlNetPresetUI:
 
     @staticmethod
     def infer_control_type(module: str) -> str:
+        if module is None or module == "None":
+            return "All"
+
         preprocessor: Preprocessor = get_preprocessor(module)
         if preprocessor is None:
             return "All"

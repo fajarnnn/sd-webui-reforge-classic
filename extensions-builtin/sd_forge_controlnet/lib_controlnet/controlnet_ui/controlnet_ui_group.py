@@ -193,6 +193,9 @@ class ControlNetUiGroup:
         self.dummy_update_trigger = None
         """For components without event subscriber, update this counter to trigger a sync update of UiControlNetUnit"""
 
+        self.applying_preset_module = False
+        self.applying_preset_sliders = False
+
         ControlNetUiGroup.all_ui_groups.append(self)
 
     def render(self, tabname: str, elem_id_tabname: str):
@@ -604,7 +607,7 @@ class ControlNetUiGroup:
         )
 
     def register_build_sliders(self):
-        def build_sliders(preset: str, module: str, pixel_perfect: bool):
+        def build_sliders(module: str, pixel_perfect: bool):
             logger.debug(f'Building Sliders for Module "{module}"')
             module = global_state.get_preprocessor(module)
             resolution_kwargs = module.slider_resolution.gradio_update_kwargs.copy()
@@ -613,7 +616,8 @@ class ControlNetUiGroup:
 
             if pixel_perfect:
                 resolution_kwargs["interactive"] = False
-            if preset != NEW_PRESET:
+            if self.applying_preset_sliders:
+                self.applying_preset_sliders = False
                 resolution_kwargs.pop("value", None)
                 slider1_kwargs.pop("value", None)
                 slider2_kwargs.pop("value", None)
@@ -630,7 +634,7 @@ class ControlNetUiGroup:
                 gr.update(interactive=module.show_control_mode),
             ]
 
-        inputs = [self.preset_panel.dropdown, self.module, self.pixel_perfect]
+        inputs = [self.module, self.pixel_perfect]
         outputs = [
             self.processor_res,
             self.threshold_a,
@@ -652,16 +656,18 @@ class ControlNetUiGroup:
             show_progress=False,
         )
 
-        def filter_selected(preset: str, mode: str):
+        def filter_selected(mode: str):
             logger.debug(f'Switching to Control Type "{mode}"')
 
             filtered_preprocessors = global_state.get_filtered_preprocessor_names(mode)
             filtered_cnet_names = global_state.get_filtered_controlnet_names(mode)
 
-            if preset != NEW_PRESET:
+            if self.applying_preset_module:
+                self.applying_preset_module = False
                 return (
                     gr.update(choices=filtered_preprocessors),
                     gr.update(choices=filtered_cnet_names),
+                    gr.skip(),
                 )
 
             if mode == "All":
@@ -678,12 +684,13 @@ class ControlNetUiGroup:
             return (
                 gr.update(value=default_preprocessor, choices=filtered_preprocessors),
                 gr.update(value=default_controlnet_name, choices=filtered_cnet_names),
+                gr.update(value=NEW_PRESET),
             )
 
         self.type_filter.change(
             fn=filter_selected,
-            inputs=[self.preset_panel.dropdown, self.type_filter],
-            outputs=[self.module, self.model],
+            inputs=[self.type_filter],
+            outputs=[self.module, self.model, self.preset_panel.dropdown],
             show_progress=False,
         )
 
@@ -929,6 +936,7 @@ class ControlNetUiGroup:
         )
         assert self.type_filter is not None
         self.preset_panel.register_callbacks(
+            self,
             self.type_filter,
             *[
                 getattr(self, key)
