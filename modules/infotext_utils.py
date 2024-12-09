@@ -8,7 +8,7 @@ import sys
 
 import gradio as gr
 from modules.paths import data_path
-from modules import shared, ui_tempdir, script_callbacks, processing, infotext_versions
+from modules import shared, ui_tempdir, script_callbacks, processing, infotext_versions, prompt_parser
 from PIL import Image
 
 sys.modules['modules.generation_parameters_copypaste'] = sys.modules[__name__]  # alias for old name
@@ -359,7 +359,12 @@ Steps: 20, Sampler: Euler a, CFG scale: 7, Seed: 965400086, Size: 512x512, Model
         res["Cache FP16 weight for LoRA"] = False
 
     if "Emphasis" not in res:
-        res["Emphasis"] = "Original"
+        p_attention = prompt_parser.parse_prompt_attention(prompt)
+        n_attention = prompt_parser.parse_prompt_attention(negative_prompt)
+        prompt_attention = [*p_attention, *n_attention]
+        prompt_with_attention = [p for p in prompt_attention if p[1] == 1.0 or p[0] == 'BREAK']
+        if len(prompt_attention) != len(prompt_with_attention):
+            res["Emphasis"] = "Original"
 
     infotext_versions.backcompat(res)
 
