@@ -4,6 +4,7 @@ from modules import scripts, sd_models
 from modules.infotext_utils import PasteField
 from modules.ui_common import create_refresh_button
 from modules.ui_components import InputAccordion
+from modules.shared import opts
 
 
 class ScriptRefiner(scripts.ScriptBuiltinUI):
@@ -17,7 +18,7 @@ class ScriptRefiner(scripts.ScriptBuiltinUI):
         return "Refiner"
 
     def show(self, is_img2img):
-        return scripts.AlwaysVisible
+        return scripts.AlwaysVisible if opts.show_refiner else None
 
     def ui(self, is_img2img):
         with InputAccordion(False, label="Refiner", elem_id=self.elem_id("enable")) as enable_refiner:
