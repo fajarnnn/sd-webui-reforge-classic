@@ -73,7 +73,7 @@ class CFGDenoiserKDiffusion(sd_samplers_cfg_denoiser.CFGDenoiser):
     def inner_model(self):
         if self.model_wrap is None:
             denoiser = k_diffusion.external.CompVisVDenoiser if shared.sd_model.parameterization == "v" else k_diffusion.external.CompVisDenoiser
-            self.model_wrap = denoiser(shared.sd_model, quantize=shared.opts.enable_quantization)
+            self.model_wrap = denoiser(shared.sd_model, quantize=True)
 
         return self.model_wrap
 
