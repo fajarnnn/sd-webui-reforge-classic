@@ -180,7 +180,6 @@ def configure_opts_onchange():
     shared.opts.onchange("cross_attention_optimization", wrap_queued_call(lambda: sd_hijack.model_hijack.redo_hijack(shared.sd_model)), call=False)
     shared.opts.onchange("fp8_storage", wrap_queued_call(lambda: sd_models.reload_model_weights(forced_reload=True)), call=False)
     shared.opts.onchange("fp8_fast", wrap_queued_call(lambda: sd_models.reload_model_weights(forced_reload=True)), call=False)
-    shared.opts.onchange("cache_fp16_weight", wrap_queued_call(lambda: sd_models.reload_model_weights(forced_reload=True)), call=False)
     startup_timer.record("opts onchange")
 
 
