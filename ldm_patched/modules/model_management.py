@@ -575,6 +575,7 @@ def support_fp8():
 
     return True
 
+@lru_cache(maxsize=4)
 def unet_dtype(device=None, model_params=0):
     if args.unet_in_bf16:
         return torch.bfloat16

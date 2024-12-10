@@ -48,7 +48,7 @@ def enable_tf32():
 
 
 cpu: torch.device = torch.device("cpu")
-fp8: bool = False
+fp8: bool = model_management.unet_dtype() == torch.float8_e4m3fn
 device: torch.device = model_management.get_torch_device()
 device_gfpgan: torch.device = model_management.get_torch_device()  # will be managed by memory management system
 device_esrgan: torch.device = model_management.get_torch_device()  # will be managed by memory management system

@@ -96,14 +96,10 @@ def cleanup_cache():
     return
 
 
-class CastWeightBiasOp:
-    ldm_patched_cast_weights = False
-    weight_function = None
-    bias_function = None
-
-
 class disable_weight_init:
-    class Linear(torch.nn.Linear, CastWeightBiasOp):
+    class Linear(torch.nn.Linear):
+        ldm_patched_cast_weights = False
+
         def reset_parameters(self):
             return None
 
@@ -118,7 +114,9 @@ class disable_weight_init:
             else:
                 return super().forward(*args, **kwargs)
 
-    class Conv1d(torch.nn.Conv1d, CastWeightBiasOp):
+    class Conv1d(torch.nn.Conv1d):
+        ldm_patched_cast_weights = False
+
         def reset_parameters(self):
             return None
 
@@ -133,7 +131,9 @@ class disable_weight_init:
             else:
                 return super().forward(*args, **kwargs)
 
-    class Conv2d(torch.nn.Conv2d, CastWeightBiasOp):
+    class Conv2d(torch.nn.Conv2d):
+        ldm_patched_cast_weights = False
+
         def reset_parameters(self):
             return None
 
@@ -148,7 +148,9 @@ class disable_weight_init:
             else:
                 return super().forward(*args, **kwargs)
 
-    class Conv3d(torch.nn.Conv3d, CastWeightBiasOp):
+    class Conv3d(torch.nn.Conv3d):
+        ldm_patched_cast_weights = False
+
         def reset_parameters(self):
             return None
 
@@ -163,7 +165,9 @@ class disable_weight_init:
             else:
                 return super().forward(*args, **kwargs)
 
-    class GroupNorm(torch.nn.GroupNorm, CastWeightBiasOp):
+    class GroupNorm(torch.nn.GroupNorm):
+        ldm_patched_cast_weights = False
+
         def reset_parameters(self):
             return None
 
@@ -184,7 +188,9 @@ class disable_weight_init:
             else:
                 return super().forward(*args, **kwargs)
 
-    class LayerNorm(torch.nn.LayerNorm, CastWeightBiasOp):
+    class LayerNorm(torch.nn.LayerNorm):
+        ldm_patched_cast_weights = False
+
         def reset_parameters(self):
             return None
 
@@ -259,18 +265,10 @@ def fp8_linear(self, input):
 
         if scale_input is None:
             scale_input = torch.ones((), device=input.device, dtype=torch.float32)
-            inn = (
-                torch.clamp(input, min=-448, max=448)
-                .view(-1, input.shape[2])
-                .to(dtype)
-            )
+            inn = torch.clamp(input, min=-448, max=448).view(-1, input.shape[2]).to(dtype)
         else:
             scale_input = scale_input.to(input.device)
-            inn = (
-                (input * (1.0 / scale_input).to(input.dtype))
-                .view(-1, input.shape[2])
-                .to(dtype)
-            )
+            inn = (input * (1.0 / scale_input).to(input.dtype)).view(-1, input.shape[2]).to(dtype)
 
         with main_stream_worker(w, bias, signal):
             o = torch._scaled_mm(
