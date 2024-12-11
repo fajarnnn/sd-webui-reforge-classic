@@ -6,22 +6,17 @@ import threading
 import torch
 import re
 import safetensors.torch
-from omegaconf import OmegaConf, ListConfig
+from omegaconf import ListConfig
 from os import mkdir
 from urllib import request
 import ldm.modules.midas as midas
 import gc
 
-from ldm.util import instantiate_from_config
-
-from modules import paths, shared, modelloader, devices, script_callbacks, sd_vae, sd_disable_initialization, errors, hashes, sd_models_config, sd_unet, sd_models_xl, cache, extra_networks, processing, lowvram, sd_hijack, patches
+from modules import paths, shared, modelloader, devices, script_callbacks, sd_vae, errors, hashes, cache, extra_networks, processing, patches
 from modules.timer import Timer
 import numpy as np
 from modules_forge import forge_loader
-import modules_forge.ops as forge_ops
-from ldm_patched.modules.ops import manual_cast
 from ldm_patched.modules import model_management as model_management
-import ldm_patched.modules.model_patcher
 
 
 model_dir = "Stable-diffusion"
@@ -29,7 +24,6 @@ model_path = os.path.abspath(os.path.join(paths.models_path, model_dir))
 
 checkpoints_list = {}
 checkpoint_aliases = {}
-checkpoint_alisases = checkpoint_aliases  # for compatibility with old name
 checkpoints_loaded = collections.OrderedDict()
 
 
@@ -632,11 +626,8 @@ def apply_token_merging(sd_model, token_merging_ratio):
 
     print(f'token_merging_ratio = {token_merging_ratio}')
 
-    from ldm_patched.contrib.external_tomesd import TomePatcher
-
-    sd_model.forge_objects.unet = TomePatcher().patch(
+    from ldm_patched.modules.tomesd import TomePatcher
+    sd_model.forge_objects.unet = TomePatcher.patch(
         model=sd_model.forge_objects.unet,
         ratio=token_merging_ratio
     )
-
-    return
