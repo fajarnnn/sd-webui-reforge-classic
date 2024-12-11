@@ -10,15 +10,15 @@ import contextlib
 import torch
 
 from ldm_patched.modules.model_management import cast_to_device
+from ldm_patched.modules.lora_patch import merge_lora_to_weight
 from modules_forge import stream
-
 
 stash = {}
 
 
 @contextlib.contextmanager
 def use_patched_ops(operations):
-    names = ("Linear", "Conv1d", "Conv2d", "Conv3d", "GroupNorm", "LayerNorm")
+    names = ("Linear", "Conv2d", "Conv3d", "GroupNorm", "LayerNorm")
     backups = {name: getattr(torch.nn, name) for name in names}
 
     try:
@@ -40,6 +40,14 @@ def cast_bias_weight(s, input=None, dtype=None, device=None, bias_dtype=None):
         if device is None:
             device = input.device
 
+    patches = getattr(s, "forge_online_loras", None)
+    if patches is not None:
+        weight_patches = patches.get("weight", None)
+        bias_patches = patches.get("bias", None)
+    else:
+        weight_patches = None
+        bias_patches = None
+
     bias, signal = None, None
 
     with (
@@ -48,16 +56,38 @@ def cast_bias_weight(s, input=None, dtype=None, device=None, bias_dtype=None):
         else contextlib.nullcontext()
     ):
         if s.bias is not None:
+            bias = s.bias
+
+            if bias_patches is not None:
+                bias = merge_lora_to_weight(
+                    patches=bias_patches,
+                    weight=bias,
+                    key="fp16 lora bias",
+                    computation_dtype=bias.dtype,
+                )
+
             bias = cast_to_device(
-                s.bias,
+                bias,
                 device=device,
                 dtype=bias_dtype,
             )
+
+        weight = s.weight
+
+        if weight_patches is not None:
+            weight = merge_lora_to_weight(
+                patches=weight_patches,
+                weight=weight,
+                key="fp16 lora weight",
+                computation_dtype=weight.dtype,
+            )
+
         weight = cast_to_device(
-            s.weight,
+            weight,
             device=device,
             dtype=dtype,
         )
+
         if stream.using_stream:
             signal = stream.mover_stream.record_event()
 
@@ -107,23 +137,6 @@ class disable_weight_init:
             weight, bias, signal = cast_bias_weight(self, input)
             with main_stream_worker(weight, bias, signal):
                 return torch.nn.functional.linear(input, weight, bias)
-
-        def forward(self, *args, **kwargs):
-            if self.ldm_patched_cast_weights:
-                return self.forward_ldm_patched_cast_weights(*args, **kwargs)
-            else:
-                return super().forward(*args, **kwargs)
-
-    class Conv1d(torch.nn.Conv1d):
-        ldm_patched_cast_weights = False
-
-        def reset_parameters(self):
-            return None
-
-        def forward_ldm_patched_cast_weights(self, input):
-            weight, bias, signal = cast_bias_weight(self, input)
-            with main_stream_worker(weight, bias, signal):
-                return self._conv_forward(input, weight, bias)
 
         def forward(self, *args, **kwargs):
             if self.ldm_patched_cast_weights:
@@ -210,8 +223,6 @@ class disable_weight_init:
     @classmethod
     def conv_nd(s, dims, *args, **kwargs):
         match dims:
-            case 1:
-                return s.Conv1d(*args, **kwargs)
             case 2:
                 return s.Conv2d(*args, **kwargs)
             case 3:
@@ -222,9 +233,6 @@ class disable_weight_init:
 
 class manual_cast(disable_weight_init):
     class Linear(disable_weight_init.Linear):
-        ldm_patched_cast_weights = True
-
-    class Conv1d(disable_weight_init.Conv1d):
         ldm_patched_cast_weights = True
 
     class Conv2d(disable_weight_init.Conv2d):
@@ -241,9 +249,7 @@ class manual_cast(disable_weight_init):
 
 
 def fp8_linear(self, input):
-    dtype = self.weight.dtype
-    if dtype is not torch.float8_e4m3fn:
-        return None
+    dtype = torch.float8_e4m3fn
 
     tensor_2d = False
     if len(input.shape) == 2:

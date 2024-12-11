@@ -51,13 +51,18 @@ class BaseModel(torch.nn.Module):
         self.manual_cast_dtype = model_config.manual_cast_dtype
 
         if not unet_config.get("disable_unet_model_creation", False):
-            if getattr(opts, "fp8_fast", False) and ldm_patched.modules.model_management.support_fp8():
-                print("using fast fp8 ops")
-                operations = ldm_patched.modules.ops.fp8_ops
-            elif self.manual_cast_dtype is not None:
-                operations = ldm_patched.modules.ops.manual_cast
-            else:
-                operations = ldm_patched.modules.ops.disable_weight_init
+            operations = None
+            if getattr(opts, "fp8_fast", False):
+                if ldm_patched.modules.model_management.support_fp8():
+                    print("using fast fp8 ops")
+                    operations = ldm_patched.modules.ops.fp8_ops
+                else:
+                    print("\n\nWARNING: fast fp8 ops is not supported\n\n")
+            if operations is None:
+                if self.manual_cast_dtype is not None:
+                    operations = ldm_patched.modules.ops.manual_cast
+                else:
+                    operations = ldm_patched.modules.ops.disable_weight_init
             self.diffusion_model = UNetModel(**unet_config, device=device, operations=operations)
         self.model_type = model_type
         self.model_sampling = model_sampling(model_config, model_type)

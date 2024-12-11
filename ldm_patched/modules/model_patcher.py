@@ -19,6 +19,7 @@ class ModelPatcher:
         self.model = model
         self.patches = {}
         self.backup = {}
+        self.online_backup = set()
         self.object_patches = {}
         self.object_patches_backup = {}
         self.model_options = {"transformer_options":{}}
@@ -154,14 +155,15 @@ class ModelPatcher:
         if hasattr(self.model, "get_dtype"):
             return self.model.get_dtype()
 
-    def add_patches(self, patches, strength_patch=1.0, strength_model=1.0):
+    def add_patches(self, patches, strength_patch=1.0, strength_model=1.0, fp16_mode=False):
         p = set()
         for k in patches:
             if k in self.model_keys:
-                p.add(k)
-                current_patches = self.patches.get(k, [])
+                k_id = f"{k}_fp16" if fp16_mode else k
+                current_patches = self.patches.get(k_id, [])
                 current_patches.append((strength_patch, patches[k], strength_model))
-                self.patches[k] = current_patches
+                self.patches[k_id] = current_patches
+                p.add(k)
 
         return list(p)
 
@@ -195,11 +197,38 @@ class ModelPatcher:
                 self.object_patches_backup[k] = old
             ldm_patched.modules.utils.set_attr_raw(self.model, k, self.object_patches[k])
 
+        for layer in self.online_backup:
+            del layer.forge_online_loras
+
+        self.online_backup.clear()
+
         if patch_weights:
             model_sd = self.model_state_dict()
             for key in self.patches:
+                patch = self.patches[key]
+                fp16_mode = "_fp16" in key
+                key = key.rsplit("_fp16", 1)[0]
+
                 if key not in model_sd:
-                    print("could not patch. key doesn't exist in model:", key)
+                    print(f'Could not patch as "{key}" does not exist in model...')
+                    continue
+
+                if fp16_mode:
+                    try:
+                        (
+                            parent_layer,
+                            child_key,
+                            weight
+                        ) = ldm_patched.modules.utils.get_attr_with_parent(self.model, key)
+                        assert isinstance(weight, torch.nn.Parameter)
+                    except Exception:
+                        raise ValueError(f"Invalid LoRA Key: {key}")
+
+                    if not hasattr(parent_layer, 'forge_online_loras'):
+                        parent_layer.forge_online_loras = {}
+
+                    parent_layer.forge_online_loras[child_key] = patch
+                    self.online_backup.add(parent_layer)
                     continue
 
                 weight = model_sd[key]
@@ -213,7 +242,7 @@ class ModelPatcher:
                     temp_weight = ldm_patched.modules.model_management.cast_to_device(weight, device_to, torch.float32, copy=True)
                 else:
                     temp_weight = weight.to(torch.float32, copy=True)
-                out_weight = self.calculate_weight(self.patches[key], temp_weight, key).to(weight.dtype)
+                out_weight = self.calculate_weight(patch, temp_weight, key).to(weight.dtype)
                 if inplace_update:
                     ldm_patched.modules.utils.copy_to_param(self.model, key, out_weight)
                 else:
@@ -370,6 +399,10 @@ class ModelPatcher:
             for k in keys:
                 ldm_patched.modules.utils.set_attr(self.model, k, self.backup[k])
 
+        for layer in self.online_backup:
+            del layer.forge_online_loras
+
+        self.online_backup.clear()
         self.backup = {}
 
         if device_to is not None:

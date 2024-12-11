@@ -56,7 +56,10 @@ def load_clip_weights(model, sd):
     return load_model_weights(model, sd)
 
 
-def load_lora_for_models(model, clip, lora, strength_model, strength_clip, filename='default'):
+def load_lora_for_models(model, clip, lora, strength_model, strength_clip, filename='default', fp16_mode=False):
+    if fp16_mode:
+        print("[LORA] Loading in fp16")
+
     model_flag = type(model.model).__name__ if model is not None else 'default'
 
     unet_keys = ldm_patched.modules.lora.model_lora_keys_unet(model.model) if model is not None else {}
@@ -77,7 +80,7 @@ def load_lora_for_models(model, clip, lora, strength_model, strength_clip, filen
     new_clip = clip.clone() if clip is not None else None
 
     if new_model is not None and len(lora_unet) > 0:
-        loaded_keys = new_model.add_patches(lora_unet, strength_model)
+        loaded_keys = new_model.add_patches(lora_unet, strength_model, fp16_mode=fp16_mode)
         skipped_keys = [item for item in lora_unet if item not in loaded_keys]
         if len(skipped_keys) > 12:
             print(f'[LORA] Mismatch {filename} for {model_flag}-UNet with {len(skipped_keys)} keys mismatched in {len(loaded_keys)} keys')
@@ -86,7 +89,7 @@ def load_lora_for_models(model, clip, lora, strength_model, strength_clip, filen
             model = new_model
 
     if new_clip is not None and len(lora_clip) > 0:
-        loaded_keys = new_clip.add_patches(lora_clip, strength_clip)
+        loaded_keys = new_clip.add_patches(lora_clip, strength_clip, fp16_mode=fp16_mode)
         skipped_keys = [item for item in lora_clip if item not in loaded_keys]
         if len(skipped_keys) > 12:
             print(f'[LORA] Mismatch {filename} for {model_flag}-CLIP with {len(skipped_keys)} keys mismatched in {len(loaded_keys)} keys')
@@ -124,8 +127,8 @@ class CLIP:
         n.layer_idx = self.layer_idx
         return n
 
-    def add_patches(self, patches, strength_patch=1.0, strength_model=1.0):
-        return self.patcher.add_patches(patches, strength_patch, strength_model)
+    def add_patches(self, patches, strength_patch=1.0, strength_model=1.0, fp16_mode=False):
+        return self.patcher.add_patches(patches, strength_patch, strength_model, fp16_mode=fp16_mode)
 
     def clip_layer(self, layer_idx):
         self.layer_idx = layer_idx

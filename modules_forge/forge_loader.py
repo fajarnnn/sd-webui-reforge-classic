@@ -73,7 +73,6 @@ def no_clip():
 
 
 def load_checkpoint_guess_config(sd, output_vae=True, output_clip=True, output_clipvision=False, embedding_directory=None, output_model=True):
-    sd_keys = sd.keys()
     clip = None
     clipvision = None
     vae = None
@@ -89,11 +88,17 @@ def load_checkpoint_guess_config(sd, output_vae=True, output_clip=True, output_c
     class WeightsLoader(torch.nn.Module):
         pass
 
+    if shared.opts.cache_fp16_weight and shared.opts.fp8_storage:
+        if not shared.opts.fp8_fast:
+            print("\n\nWARNING: cache_fp16_weight is meant for fp8_fast\n\n")
+        else:
+            unet_dtype = torch.float16
+
     model_config = model_detection.model_config_from_unet(sd, "model.diffusion_model.", unet_dtype)
     model_config.set_manual_cast(manual_cast_dtype)
 
     if model_config is None:
-        raise RuntimeError("ERROR: Could not detect model type")
+        raise RuntimeError("Could not detect model type")
 
     if model_config.clip_vision_prefix is not None:
         if output_clipvision:
@@ -101,7 +106,6 @@ def load_checkpoint_guess_config(sd, output_vae=True, output_clip=True, output_c
 
     if output_model:
         initial_load_device = model_management.unet_initial_load_device(parameters, unet_dtype)
-        offload_device = model_management.unet_offload_device()
         print("UNet dtype:", unet_dtype)
         model = model_config.get_model(sd, "model.diffusion_model.", device=initial_load_device)
         model.load_model_weights(sd, "model.diffusion_model.")

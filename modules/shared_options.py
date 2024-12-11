@@ -215,8 +215,12 @@ options_templates.update(options_section(('optimizations', "Optimizations", "sd"
     "pad_cond_uncond_v0": OptionInfo(False, "Pad prompt/negative prompt (v0)", infotext='Pad conds v0').info("alternative implementation for the above; used prior to 1.6.0 for DDIM sampler; overrides the above if set; WARNING: truncates negative prompt if it's too long; changes seeds"),
     "persistent_cond_cache": OptionInfo(True, "Persistent cond cache").info("do not recalculate conds from prompts if prompts have not changed since previous calculation"),
     "batch_cond_uncond": OptionInfo(True, "Batch cond/uncond").info("do both conditional and unconditional denoising in one batch; uses a bit more VRAM during sampling, but improves speed; previously this was controlled by --always-batch-cond-uncond commandline argument"),
-    "fp8_storage": OptionInfo("Disable", "fp8 weight", gr.Radio, {"choices": ["Disable", "Enable"]}).info("Use fp8 to store UNet weights"),
-    "fp8_fast": OptionInfo(False, "Use fast fp8 operation").info("Requires <b>fp8 weight</b>; Requires <b>RTX 40+</b>").needs_reload_ui(),
+}))
+
+options_templates.update(options_section(('fp8', "fp8", "sd"), {
+    "fp8_storage": OptionInfo(False, "Store UNet Weights in fp8").info("store the weights in fp8; inference in fp16; reduce memory usage; reduce speed; reduce quality").needs_restart(),
+    "fp8_fast": OptionInfo(False, "Inference UNet in fast fp8 operations").info("inference in fp8 using <b>torch._scaled_mm</b>; increase speed; reduce quality; require <b>RTX 40</b> or later").needs_restart(),
+    "cache_fp16_weight": OptionInfo(False, "Cache UNet Weights in fp16").info("patch the LoRA weights in fp16 before inferencing in fp8; increase LoRA quality; increase memory usage").needs_restart(),
 }))
 
 options_templates.update(options_section(('compatibility', "Compatibility", "sd"), {

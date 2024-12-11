@@ -559,7 +559,7 @@ def prefer_fp8():
         return False
 
     from modules.shared import opts
-    return opts.fp8_storage == "Enable"
+    return opts.fp8_storage
 
 def support_fp8():
     if not prefer_fp8():
