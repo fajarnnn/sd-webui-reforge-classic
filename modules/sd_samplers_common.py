@@ -39,7 +39,7 @@ approximation_indexes = {"Full": 0, "Approx NN": 1, "Approx cheap": 2, "TAESD": 
 
 
 @lru_cache(maxsize=(shared.opts.sd_vae_checkpoint_cache), typed=False)
-def get_decoder(approximation:int, compile=False) -> Callable:
+def get_decoder(approximation:int) -> Callable:
     match approximation:
         case 1:
             vae = sd_vae_approx.model()
@@ -49,11 +49,8 @@ def get_decoder(approximation:int, compile=False) -> Callable:
             vae = sd_vae_taesd.decoder_model()
         case _:
             return None
-    
-    if compile:
-        return torch.compile(vae)
-    else:
-        return vae
+
+    return vae
 
 
 def samples_to_images_tensor(sample, approximation=None, model=None):
@@ -68,7 +65,7 @@ def samples_to_images_tensor(sample, approximation=None, model=None):
 
     if vae is None:
         return (model or shared.sd_model).decode_first_stage(sample)
-    
+
     match approximation:
         case 1:
             return vae(sample.to(devices.device, devices.dtype)).detach()
@@ -133,7 +130,7 @@ def store_latent(decoded):
     state.current_latent = decoded
 
     if (
-        (opts.live_previews_enable and opts.show_progress_every_n_steps > 0) and 
+        (opts.live_previews_enable and opts.show_progress_every_n_steps > 0) and
         (shared.state.sampling_steps - shared.state.sampling_step > opts.show_progress_every_n_steps) and
         (shared.state.sampling_step % opts.show_progress_every_n_steps == 0)
     ):
