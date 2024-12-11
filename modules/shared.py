@@ -10,7 +10,6 @@ from modules import util
 cmd_opts = shared_cmd_options.cmd_opts
 parser = shared_cmd_options.parser
 
-batch_cond_uncond = True  # old field, unused now in favor of shared.opts.batch_cond_uncond
 parallel_processing_allowed = True
 styles_filename = cmd_opts.styles_file = cmd_opts.styles_file if len(cmd_opts.styles_file) > 0 else [os.path.join(data_path, 'styles.csv')]
 config_filename = cmd_opts.ui_settings_file

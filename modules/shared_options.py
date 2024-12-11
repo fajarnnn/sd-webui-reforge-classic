@@ -213,10 +213,7 @@ options_templates.update(options_section(('optimizations', "Optimizations", "sd"
     "token_merging_ratio_hr": OptionInfo(0.0, "Token merging ratio for high-res pass", gr.Slider, {"minimum": 0.0, "maximum": 0.9, "step": 0.1}, infotext='Token merging ratio hr').info("only applies if non-zero and overrides above"),
     "token_merging_stride": OptionInfo(2, "Token merging - Stride", gr.Slider, {"minimum": 1, "maximum": 8, "step": 1}),
     "token_merging_downsample": OptionInfo(1, "Token merging - Max Downsample", gr.Slider, {"minimum": 1, "maximum": 4, "step": 1}),
-    "pad_cond_uncond": OptionInfo(False, "Pad prompt/negative prompt", infotext='Pad conds').info("improves performance when prompt and negative prompt have different lengths; changes seeds"),
-    "pad_cond_uncond_v0": OptionInfo(False, "Pad prompt/negative prompt (v0)", infotext='Pad conds v0').info("alternative implementation for the above; used prior to 1.6.0 for DDIM sampler; overrides the above if set; WARNING: truncates negative prompt if it's too long; changes seeds"),
     "persistent_cond_cache": OptionInfo(True, "Persistent cond cache").info("do not recalculate conds from prompts if prompts have not changed since previous calculation"),
-    "batch_cond_uncond": OptionInfo(True, "Batch cond/uncond").info("do both conditional and unconditional denoising in one batch; uses a bit more VRAM during sampling, but improves speed; previously this was controlled by --always-batch-cond-uncond commandline argument"),
 }))
 
 options_templates.update(options_section(('fp8', "fp8", "sd"), {
