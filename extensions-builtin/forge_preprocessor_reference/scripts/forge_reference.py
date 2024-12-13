@@ -10,7 +10,9 @@ def sdp(q, k, v, transformer_options):
     if q.shape[0] == 0:
         return q
 
-    return attention.optimized_attention(q, k, v, heads=transformer_options["n_heads"], mask=None)
+    return attention.optimized_attention(
+        q, k, v, heads=transformer_options["n_heads"], mask=None
+    )
 
 
 def adain(x, target_std, target_mean):
@@ -36,9 +38,16 @@ class PreprocessorReference(Preprocessor):
         self.use_attn = use_attn
         self.use_adain = use_adain
         self.sorting_priority = priority
-        self.tags = ['Reference']
+        self.tags = ["Reference"]
         self.slider_resolution = PreprocessorParameter(visible=False)
-        self.slider_1 = PreprocessorParameter(label='Style Fidelity', value=0.5, minimum=0.0, maximum=1.0, step=0.01, visible=True)
+        self.slider_1 = PreprocessorParameter(
+            label="Style Fidelity",
+            value=0.5,
+            minimum=0.0,
+            maximum=1.0,
+            step=0.01,
+            visible=True,
+        )
         self.show_control_mode = False
         self.corp_image_with_a1111_mask_when_in_img2img_inpaint_tab = False
         self.do_not_need_model = True
@@ -48,20 +57,26 @@ class PreprocessorReference(Preprocessor):
         self.recorded_h = {}
 
     def process_before_every_sampling(self, process, cond, mask, *args, **kwargs):
-        unit = kwargs['unit']
+        unit = kwargs["unit"]
         weight = float(unit.weight)
         style_fidelity = float(unit.threshold_a)
         start_percent = float(unit.guidance_start)
         end_percent = float(unit.guidance_end)
 
         if process.sd_model.is_sdxl:
-            style_fidelity = style_fidelity ** 3.0  # sdxl is very sensitive to reference so we lower the weights
+            style_fidelity = (
+                style_fidelity**3.0
+            )  # sdxl is very sensitive to reference so we lower the weights
 
         vae = process.sd_model.forge_objects.vae
         # This is a powerful VAE with integrated memory management, bf16, and tiled fallback.
 
         latent_image = vae.encode(cond.movedim(1, -1))
-        latent_image = process.sd_model.forge_objects.unet.model.latent_format.process_in(latent_image)
+        latent_image = (
+            process.sd_model.forge_objects.unet.model.latent_format.process_in(
+                latent_image
+            )
+        )
 
         gen_seed = process.seeds[0] + 1
         gen_cpu = torch.Generator().manual_seed(gen_seed)
@@ -73,14 +88,19 @@ class PreprocessorReference(Preprocessor):
         self.recorded_attn1 = {}
         self.recorded_h = {}
 
-        def conditioning_modifier(model, x, timestep, uncond, cond, cond_scale, model_options, seed):
+        def conditioning_modifier(
+            model, x, timestep, uncond, cond, cond_scale, model_options, seed
+        ):
             sigma = timestep[0].item()
             if not (sigma_min <= sigma <= sigma_max):
                 return model, x, timestep, uncond, cond, cond_scale, model_options, seed
 
             self.is_recording_style = True
 
-            xt = latent_image.to(x) + torch.randn(x.size(), dtype=x.dtype, generator=gen_cpu).to(x) * sigma
+            xt = (
+                latent_image.to(x)
+                + torch.randn(x.size(), dtype=x.dtype, generator=gen_cpu).to(x) * sigma
+            )
             sampling_function(model, xt, timestep, uncond, cond, 1, model_options, seed)
 
             self.is_recording_style = False
@@ -91,10 +111,10 @@ class PreprocessorReference(Preprocessor):
             if not self.use_adain:
                 return h
 
-            if flag != 'after':
+            if flag != "after":
                 return h
 
-            location = transformer_options['block']
+            location = transformer_options["block"]
 
             sigma = transformer_options["sigmas"][0].item()
             if not (sigma_min <= sigma <= sigma_max):
@@ -107,12 +127,14 @@ class PreprocessorReference(Preprocessor):
                 return h
 
             if self.is_recording_style:
-                self.recorded_h[location] = torch.std_mean(h, dim=(2, 3), keepdim=True, correction=0)
+                self.recorded_h[location] = torch.std_mean(
+                    h, dim=(2, 3), keepdim=True, correction=0
+                )
                 return h
             else:
-                cond_indices = transformer_options['cond_indices']
-                uncond_indices = transformer_options['uncond_indices']
-                cond_or_uncond = transformer_options['cond_or_uncond']
+                cond_indices = transformer_options["cond_indices"]
+                uncond_indices = transformer_options["uncond_indices"]
+                cond_or_uncond = transformer_options["cond_or_uncond"]
                 r_std, r_mean = self.recorded_h[location]
 
                 h_c = h[cond_indices]
@@ -141,8 +163,11 @@ class PreprocessorReference(Preprocessor):
             if not (sigma_min <= sigma <= sigma_max):
                 return sdp(q, k, v, transformer_options)
 
-            location = (transformer_options['block'][0], transformer_options['block'][1],
-                        transformer_options['block_index'])
+            location = (
+                transformer_options["block"][0],
+                transformer_options["block"][1],
+                transformer_options["block_index"],
+            )
 
             channel = int(q.shape[2])
             minimal_channel = 1500 - 1280 * weight
@@ -154,9 +179,9 @@ class PreprocessorReference(Preprocessor):
                 self.recorded_attn1[location] = (k, v)
                 return sdp(q, k, v, transformer_options)
             else:
-                cond_indices = transformer_options['cond_indices']
-                uncond_indices = transformer_options['uncond_indices']
-                cond_or_uncond = transformer_options['cond_or_uncond']
+                cond_indices = transformer_options["cond_indices"]
+                uncond_indices = transformer_options["uncond_indices"]
+                cond_or_uncond = transformer_options["cond_or_uncond"]
 
                 q_c = q[cond_indices]
                 q_uc = q[uncond_indices]
@@ -169,9 +194,19 @@ class PreprocessorReference(Preprocessor):
 
                 k_r, v_r = self.recorded_attn1[location]
 
-                o_c = sdp(q_c, zero_cat(k_c, k_r, dim=1), zero_cat(v_c, v_r, dim=1), transformer_options)
+                o_c = sdp(
+                    q_c,
+                    zero_cat(k_c, k_r, dim=1),
+                    zero_cat(v_c, v_r, dim=1),
+                    transformer_options,
+                )
                 o_uc_strong = sdp(q_uc, k_uc, v_uc, transformer_options)
-                o_uc_weak = sdp(q_uc, zero_cat(k_uc, k_r, dim=1), zero_cat(v_uc, v_r, dim=1), transformer_options)
+                o_uc_weak = sdp(
+                    q_uc,
+                    zero_cat(k_uc, k_r, dim=1),
+                    zero_cat(v_uc, v_r, dim=1),
+                    transformer_options,
+                )
                 o_uc = o_uc_weak + (o_uc_strong - o_uc_weak) * style_fidelity
 
                 recon = []
@@ -186,28 +221,23 @@ class PreprocessorReference(Preprocessor):
 
         unet.add_block_modifier(block_proc)
         unet.add_conditioning_modifier(conditioning_modifier)
-        unet.set_model_replace_all(attn1_proc, 'attn1')
+        unet.set_model_replace_all(attn1_proc, "attn1")
 
         process.sd_model.forge_objects.unet = unet
 
         return cond, mask
 
 
-add_supported_preprocessor(PreprocessorReference(
-    name='reference_only',
-    use_attn=True,
-    use_adain=False,
-    priority=100
-))
+add_supported_preprocessor(
+    PreprocessorReference(
+        name="reference_only", use_attn=True, use_adain=False, priority=100
+    )
+)
 
-add_supported_preprocessor(PreprocessorReference(
-    name='reference_adain',
-    use_attn=False,
-    use_adain=True
-))
+add_supported_preprocessor(
+    PreprocessorReference(name="reference_adain", use_attn=False, use_adain=True)
+)
 
-add_supported_preprocessor(PreprocessorReference(
-    name='reference_adain+attn',
-    use_attn=True,
-    use_adain=True
-))
+add_supported_preprocessor(
+    PreprocessorReference(name="reference_adain+attn", use_attn=True, use_adain=True)
+)
