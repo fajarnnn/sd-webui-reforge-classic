@@ -3,6 +3,7 @@ import os
 
 try:
     from lib_controlnet.logging import logger
+
     print = logger.info
 except ImportError:
     pass

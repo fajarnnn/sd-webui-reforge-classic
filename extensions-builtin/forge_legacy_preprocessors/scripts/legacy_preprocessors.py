@@ -78,7 +78,6 @@ class LegacyPreprocessor(Preprocessor):
             )
 
     def __call__(self, input_image, resolution, slider_1=None, slider_2=None, **kwargs):
-
         if self.unload_function is not None or self.managed_model is not None:
             context = automatic_memory_management
         else:
@@ -90,7 +89,7 @@ class LegacyPreprocessor(Preprocessor):
                 res=resolution,
                 thr_a=slider_1,
                 thr_b=slider_2,
-                **kwargs
+                **kwargs,
             )
 
         if is_image:

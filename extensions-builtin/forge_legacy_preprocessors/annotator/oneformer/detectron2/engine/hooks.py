@@ -52,7 +52,9 @@ class CallbackHook(HookBase):
     Create a hook using callback functions provided by the user.
     """
 
-    def __init__(self, *, before_train=None, after_train=None, before_step=None, after_step=None):
+    def __init__(
+        self, *, before_train=None, after_train=None, before_step=None, after_step=None
+    ):
         """
         Each argument is a function that takes one argument: the trainer.
         """
@@ -116,7 +118,9 @@ class IterationTimer(HookBase):
         total_time_minus_hooks = self._total_timer.seconds()
         hook_time = total_time - total_time_minus_hooks
 
-        num_iter = self.trainer.storage.iter + 1 - self.trainer.start_iter - self._warmup_iter
+        num_iter = (
+            self.trainer.storage.iter + 1 - self.trainer.start_iter - self._warmup_iter
+        )
 
         if num_iter > 0 and total_time_minus_hooks > 0:
             # Speed is meaningful only after warmup
@@ -235,10 +239,13 @@ class BestCheckpointer(HookBase):
         self._logger = logging.getLogger(__name__)
         self._period = eval_period
         self._val_metric = val_metric
-        assert mode in [
-            "max",
-            "min",
-        ], f'Mode "{mode}" to `BestCheckpointer` is unknown. It should be one of {"max", "min"}.'
+        assert (
+            mode
+            in [
+                "max",
+                "min",
+            ]
+        ), f'Mode "{mode}" to `BestCheckpointer` is unknown. It should be one of {"max", "min"}.'
         if mode == "max":
             self._compare = operator.gt
         else:
@@ -392,7 +399,9 @@ class TorchProfiler(HookBase):
     ``tensorboard --logdir OUTPUT_DIR/log``
     """
 
-    def __init__(self, enable_predicate, output_dir, *, activities=None, save_tensorboard=True):
+    def __init__(
+        self, enable_predicate, output_dir, *, activities=None, save_tensorboard=True
+    ):
         """
         Args:
             enable_predicate (callable[trainer -> bool]): a function which takes a trainer,
@@ -623,7 +632,9 @@ class PreciseBN(HookBase):
             for num_iter in itertools.count(1):
                 if num_iter % 100 == 0:
                     self._logger.info(
-                        "Running precise-BN ... {}/{} iterations.".format(num_iter, self._num_iter)
+                        "Running precise-BN ... {}/{} iterations.".format(
+                            num_iter, self._num_iter
+                        )
                     )
                 # This way we can reuse the same iterator
                 yield next(self._data_iter)
