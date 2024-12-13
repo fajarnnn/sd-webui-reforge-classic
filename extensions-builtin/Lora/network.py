@@ -1,16 +1,24 @@
 from __future__ import annotations
-import os
 from collections import namedtuple
 import enum
+import os
 
-import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn as nn
 
 from modules import sd_models, cache, errors, hashes, shared
 
-NetworkWeights = namedtuple('NetworkWeights', ['network_key', 'sd_key', 'w', 'sd_module'])
+NetworkWeights = namedtuple(
+    "NetworkWeights", ["network_key", "sd_key", "w", "sd_module"]
+)
 
-metadata_tags_order = {"ss_sd_model_name": 1, "ss_resolution": 2, "ss_clip_skip": 3, "ss_num_train_images": 10, "ss_tag_frequency": 20}
+metadata_tags_order = {
+    "ss_sd_model_name": 1,
+    "ss_resolution": 2,
+    "ss_clip_skip": 3,
+    "ss_num_train_images": 10,
+    "ss_tag_frequency": 20,
+}
 
 
 class SdVersion(enum.Enum):
@@ -29,39 +37,45 @@ class NetworkOnDisk:
 
         def read_metadata():
             metadata = sd_models.read_metadata_from_safetensors(filename)
-            metadata.pop('ssmd_cover_images', None)  # those are cover images, and they are too big to display in UI as text
+            metadata.pop("ssmd_cover_images", None)  # cover images are too big to display in UI
 
             return metadata
 
         if self.is_safetensors:
             try:
-                self.metadata = cache.cached_data_for_file('safetensors-metadata', "lora/" + self.name, filename, read_metadata)
+                self.metadata = cache.cached_data_for_file(
+                    "safetensors-metadata", "lora/" + self.name, filename, read_metadata
+                )
             except Exception as e:
                 errors.display(e, f"reading lora {filename}")
 
         if self.metadata:
             m = {}
-            for k, v in sorted(self.metadata.items(), key=lambda x: metadata_tags_order.get(x[0], 999)):
+            for k, v in sorted(
+                self.metadata.items(), key=lambda x: metadata_tags_order.get(x[0], 999)
+            ):
                 m[k] = v
 
             self.metadata = m
 
-        self.alias = self.metadata.get('ss_output_name', self.name)
+        self.alias = self.metadata.get("ss_output_name", self.name)
 
         self.hash = None
         self.shorthash = None
         self.set_hash(
-            self.metadata.get('sshs_model_hash') or
-            hashes.sha256_from_cache(self.filename, "lora/" + self.name, use_addnet_hash=self.is_safetensors) or
-            ''
+            self.metadata.get("sshs_model_hash")
+            or hashes.sha256_from_cache(
+                self.filename, "lora/" + self.name, use_addnet_hash=self.is_safetensors
+            )
+            or ""
         )
 
         self.sd_version = self.detect_version()
 
     def detect_version(self):
-        if str(self.metadata.get('ss_base_model_version', "")).startswith("sdxl_"):
+        if str(self.metadata.get("ss_base_model_version", "")).startswith("sdxl_"):
             return SdVersion.SDXL
-        elif str(self.metadata.get('ss_v2', "")) == "True":
+        elif str(self.metadata.get("ss_v2", "")) == "True":
             return SdVersion.SD2
         elif len(self.metadata):
             return SdVersion.SD1
@@ -74,15 +88,27 @@ class NetworkOnDisk:
 
         if self.shorthash:
             import networks
+
             networks.available_network_hash_lookup[self.shorthash] = self
 
     def read_hash(self):
         if not self.hash:
-            self.set_hash(hashes.sha256(self.filename, "lora/" + self.name, use_addnet_hash=self.is_safetensors) or '')
+            self.set_hash(
+                hashes.sha256(
+                    self.filename,
+                    "lora/" + self.name,
+                    use_addnet_hash=self.is_safetensors,
+                )
+                or ""
+            )
 
     def get_alias(self):
         import networks
-        if shared.opts.lora_preferred_name == "Filename" or self.alias.lower() in networks.forbidden_network_aliases:
+
+        if (
+            shared.opts.lora_preferred_name == "Filename"
+            or self.alias.lower() in networks.forbidden_network_aliases
+        ):
             return self.name
         else:
             return self.alias
@@ -115,7 +141,7 @@ class NetworkModule:
         self.sd_key = weights.sd_key
         self.sd_module = weights.sd_module
 
-        if hasattr(self.sd_module, 'weight'):
+        if hasattr(self.sd_module, "weight"):
             self.shape = self.sd_module.weight.shape
 
         self.ops = None
@@ -123,22 +149,22 @@ class NetworkModule:
         if isinstance(self.sd_module, nn.Conv2d):
             self.ops = F.conv2d
             self.extra_kwargs = {
-                'stride': self.sd_module.stride,
-                'padding': self.sd_module.padding
+                "stride": self.sd_module.stride,
+                "padding": self.sd_module.padding,
             }
         elif isinstance(self.sd_module, nn.Linear):
             self.ops = F.linear
         elif isinstance(self.sd_module, nn.LayerNorm):
             self.ops = F.layer_norm
             self.extra_kwargs = {
-                'normalized_shape': self.sd_module.normalized_shape,
-                'eps': self.sd_module.eps
+                "normalized_shape": self.sd_module.normalized_shape,
+                "eps": self.sd_module.eps,
             }
         elif isinstance(self.sd_module, nn.GroupNorm):
             self.ops = F.group_norm
             self.extra_kwargs = {
-                'num_groups': self.sd_module.num_groups,
-                'eps': self.sd_module.eps
+                "num_groups": self.sd_module.num_groups,
+                "eps": self.sd_module.eps,
             }
 
         self.dim = None
@@ -147,7 +173,7 @@ class NetworkModule:
         self.scale = weights.w["scale"].item() if "scale" in weights.w else None
 
     def multiplier(self):
-        if 'transformer' in self.sd_key[:20]:
+        if "transformer" in self.sd_key[:20]:
             return self.network.te_multiplier
         else:
             return self.network.unet_multiplier
@@ -187,4 +213,3 @@ class NetworkModule:
         else:
             updown, ex_bias = self.calc_updown(self.sd_module.weight)
             return y + self.ops(x, weight=updown, bias=ex_bias, **self.extra_kwargs)
-

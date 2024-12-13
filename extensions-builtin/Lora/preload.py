@@ -1,6 +1,6 @@
-import os
-from modules import paths
 from modules.paths_internal import normalized_filepath
+from modules import paths
+import os
 
 
 def preload(parser):

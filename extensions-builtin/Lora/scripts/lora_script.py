@@ -1,15 +1,15 @@
+from modules import script_callbacks, ui_extra_networks, extra_networks, shared
+
+from fastapi import FastAPI
+import gradio as gr
+import networks
+import network
 import re
 
-import gradio as gr
-from fastapi import FastAPI
-
-import network
-import networks
-import lora  # noqa:F401
-import lora_patches
-import extra_networks_lora
 import ui_extra_networks_lora
-from modules import script_callbacks, ui_extra_networks, extra_networks, shared
+import extra_networks_lora
+import lora_patches
+import lora  # noqa:F401
 
 
 def unload():
@@ -43,9 +43,17 @@ shared.options_templates.update(shared.options_section(('extra_networks', "Extra
 }))
 
 
-shared.options_templates.update(shared.options_section(('compatibility', "Compatibility"), {
-    "lora_functional": shared.OptionInfo(False, "Lora/Networks: use old method that takes longer when you have multiple Loras active and produces same results as kohya-ss/sd-webui-additional-networks extension"),
-}))
+shared.options_templates.update(
+    shared.options_section(
+        ("compatibility", "Compatibility"),
+        {
+            "lora_functional": shared.OptionInfo(
+                False,
+                "Lora/Networks: use old method that takes longer when you have multiple Loras active and produces same results as kohya-ss/sd-webui-additional-networks extension",
+            ),
+        },
+    )
+)
 
 
 def create_lora_json(obj: network.NetworkOnDisk):
@@ -77,7 +85,7 @@ def infotext_pasted(infotext, d):
     if not hashes:
         return
 
-    hashes = [x.strip().split(':', 1) for x in hashes.split(",")]
+    hashes = [x.strip().split(":", 1) for x in hashes.split(",")]
     hashes = {x[0].strip().replace(",", ""): x[1].strip() for x in hashes}
 
     def network_replacement(m):
@@ -90,7 +98,7 @@ def infotext_pasted(infotext, d):
         if network_on_disk is None:
             return m.group(0)
 
-        return f'<lora:{network_on_disk.get_alias()}:'
+        return f"<lora:{network_on_disk.get_alias()}:"
 
     d["Prompt"] = re.sub(re_lora, network_replacement, d["Prompt"])
 
