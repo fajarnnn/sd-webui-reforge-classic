@@ -1,22 +1,22 @@
 function inputAccordionChecked(id, checked) {
-    var accordion = gradioApp().getElementById(id);
+    let accordion = gradioApp().getElementById(id);
     accordion.visibleCheckbox.checked = checked;
     accordion.onVisibleCheckboxChange();
 }
 
 function setupAccordion(accordion) {
-    var labelWrap = accordion.querySelector('.label-wrap');
-    var gradioCheckbox = gradioApp().querySelector('#' + accordion.id + "-checkbox input");
-    var extra = gradioApp().querySelector('#' + accordion.id + "-extra");
-    var span = labelWrap.querySelector('span');
-    var linked = true;
+    let labelWrap = accordion.querySelector('.label-wrap');
+    let gradioCheckbox = gradioApp().querySelector('#' + accordion.id + "-checkbox input");
+    let extra = gradioApp().querySelector('#' + accordion.id + "-extra");
+    let span = labelWrap.querySelector('span');
+    let linked = true;
 
-    var isOpen = function() {
+    let isOpen = function () {
         return labelWrap.classList.contains('open');
     };
 
-    var observerAccordionOpen = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutationRecord) {
+    let observerAccordionOpen = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutationRecord) {
             accordion.classList.toggle('input-accordion-open', isOpen());
 
             if (linked) {
@@ -25,19 +25,19 @@ function setupAccordion(accordion) {
             }
         });
     });
-    observerAccordionOpen.observe(labelWrap, {attributes: true, attributeFilter: ['class']});
+    observerAccordionOpen.observe(labelWrap, { attributes: true, attributeFilter: ['class'] });
 
     if (extra) {
         labelWrap.insertBefore(extra, labelWrap.lastElementChild);
     }
 
-    accordion.onChecked = function(checked) {
+    accordion.onChecked = function (checked) {
         if (isOpen() != checked) {
             labelWrap.click();
         }
     };
 
-    var visibleCheckbox = document.createElement('INPUT');
+    let visibleCheckbox = document.createElement('INPUT');
     visibleCheckbox.type = 'checkbox';
     visibleCheckbox.checked = isOpen();
     visibleCheckbox.id = accordion.id + "-visible-checkbox";
@@ -45,7 +45,7 @@ function setupAccordion(accordion) {
     span.insertBefore(visibleCheckbox, span.firstChild);
 
     accordion.visibleCheckbox = visibleCheckbox;
-    accordion.onVisibleCheckboxChange = function() {
+    accordion.onVisibleCheckboxChange = function () {
         if (linked && isOpen() != visibleCheckbox.checked) {
             labelWrap.click();
         }
@@ -54,15 +54,15 @@ function setupAccordion(accordion) {
         updateInput(gradioCheckbox);
     };
 
-    visibleCheckbox.addEventListener('click', function(event) {
+    visibleCheckbox.addEventListener('click', function (event) {
         linked = false;
         event.stopPropagation();
     });
     visibleCheckbox.addEventListener('input', accordion.onVisibleCheckboxChange);
 }
 
-onUiLoaded(function() {
-    for (var accordion of gradioApp().querySelectorAll('.input-accordion')) {
+onUiLoaded(function () {
+    for (const accordion of gradioApp().querySelectorAll('.input-accordion')) {
         setupAccordion(accordion);
     }
 });

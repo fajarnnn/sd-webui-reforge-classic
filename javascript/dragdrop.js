@@ -29,7 +29,7 @@ function dropReplaceImage(imgWrap, files) {
     if (imgWrap.closest('#pnginfo_image')) {
         // special treatment for PNG Info tab, wait for fetch request to finish
         const oldFetch = window.fetch;
-        window.fetch = async(input, options) => {
+        window.fetch = async (input, options) => {
             const response = await oldFetch(input, options);
             if ('api/predict/' === input) {
                 const content = await response.text();

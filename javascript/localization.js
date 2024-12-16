@@ -18,18 +18,18 @@ var ignore_ids_for_localization = {
     extras_upscaler_2: 'OPTION',
 };
 
-var re_num = /^[.\d]+$/;
-var re_emoji = /[\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}\u{1F9B0}-\u{1F9B3}]/u;
+const re_num = /^[.\d]+$/;
+const re_emoji = /[\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}\u{1F9B0}-\u{1F9B3}]/u;
 
-var original_lines = {};
-var translated_lines = {};
+const original_lines = {};
+const translated_lines = {};
 
 function hasLocalization() {
     return window.localization && Object.keys(window.localization).length > 0;
 }
 
 function textNodesUnder(el) {
-    var n, a = [], walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+    let n, a = [], walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
     while ((n = walk.nextNode())) a.push(n);
     return a;
 }
@@ -38,12 +38,12 @@ function canBeTranslated(node, text) {
     if (!text) return false;
     if (!node.parentElement) return false;
 
-    var parentType = node.parentElement.nodeName;
+    let parentType = node.parentElement.nodeName;
     if (parentType == 'SCRIPT' || parentType == 'STYLE' || parentType == 'TEXTAREA') return false;
 
     if (parentType == 'OPTION' || parentType == 'SPAN') {
-        var pnode = node;
-        for (var level = 0; level < 4; level++) {
+        let pnode = node;
+        for (let level = 0; level < 4; level++) {
             pnode = pnode.parentElement;
             if (!pnode) break;
 
@@ -63,7 +63,7 @@ function getTranslation(text) {
         original_lines[text] = 1;
     }
 
-    var tl = localization[text];
+    let tl = localization[text];
     if (tl !== undefined) {
         translated_lines[tl] = 1;
     }
@@ -72,11 +72,11 @@ function getTranslation(text) {
 }
 
 function processTextNode(node) {
-    var text = node.textContent.trim();
+    let text = node.textContent.trim();
 
     if (!canBeTranslated(node, text)) return;
 
-    var tl = getTranslation(text);
+    let tl = getTranslation(text);
     if (tl !== undefined) {
         node.textContent = tl;
     }
@@ -102,7 +102,7 @@ function processNode(node) {
         }
     }
 
-    textNodesUnder(node).forEach(function(node) {
+    textNodesUnder(node).forEach(function (node) {
         processTextNode(node);
     });
 }
@@ -111,11 +111,11 @@ function localizeWholePage() {
     processNode(gradioApp());
 
     function elem(comp) {
-        var elem_id = comp.props.elem_id ? comp.props.elem_id : "component-" + comp.id;
+        let elem_id = comp.props.elem_id ? comp.props.elem_id : "component-" + comp.id;
         return gradioApp().getElementById(elem_id);
     }
 
-    for (var comp of window.gradio_config.components) {
+    for (let comp of window.gradio_config.components) {
         if (comp.props.webui_tooltip) {
             let e = elem(comp);
 
@@ -143,7 +143,7 @@ function dumpTranslations() {
         // original_lines, so do that now.
         localizeWholePage();
     }
-    var dumped = {};
+    let dumped = {};
     if (localization.rtl) {
         dumped.rtl = true;
     }
@@ -157,9 +157,9 @@ function dumpTranslations() {
 }
 
 function download_localization() {
-    var text = JSON.stringify(dumpTranslations(), null, 4);
+    let text = JSON.stringify(dumpTranslations(), null, 4);
 
-    var element = document.createElement('a');
+    let element = document.createElement('a');
     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
     element.setAttribute('download', "localization.json");
     element.style.display = 'none';
@@ -170,14 +170,14 @@ function download_localization() {
     document.body.removeChild(element);
 }
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     if (!hasLocalization()) {
         return;
     }
 
-    onUiUpdate(function(m) {
-        m.forEach(function(mutation) {
-            mutation.addedNodes.forEach(function(node) {
+    onUiUpdate(function (m) {
+        m.forEach(function (mutation) {
+            mutation.addedNodes.forEach(function (node) {
                 processNode(node);
             });
         });
@@ -200,6 +200,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 });
             });
-        })).observe(gradioApp(), {childList: true});
+        })).observe(gradioApp(), { childList: true });
     }
 });

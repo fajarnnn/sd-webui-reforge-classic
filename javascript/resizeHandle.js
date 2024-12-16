@@ -1,4 +1,4 @@
-(function() {
+(function () {
     const GRADIO_MIN_WIDTH = 320;
     const PAD = 16;
     const DEBOUNCE_TIME = 100;
@@ -148,7 +148,7 @@
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
 
-        resizeTimer = setTimeout(function() {
+        resizeTimer = setTimeout(function () {
             for (const parent of parents) {
                 afterResize(parent);
             }
@@ -156,12 +156,12 @@
     });
 
     setupResizeHandle = setup;
-})();
 
-onUiLoaded(function() {
-    for (var elem of gradioApp().querySelectorAll('.resize-handle-row')) {
-        if (!elem.querySelector('.resize-handle')) {
-            setupResizeHandle(elem);
+    onUiLoaded(function () {
+        for (const elem of gradioApp().querySelectorAll('.resize-handle-row')) {
+            if (!elem.querySelector('.resize-handle')) {
+                setupResizeHandle(elem);
+            }
         }
-    }
-});
+    });
+})();

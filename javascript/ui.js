@@ -405,7 +405,6 @@ function switchWidthHeight(tabname) {
     return [];
 }
 
-
 var onEditTimers = {};
 
 // calls func after afterMs milliseconds has passed since the input elem has been enited by user

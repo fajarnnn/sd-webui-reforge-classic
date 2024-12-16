@@ -44,9 +44,9 @@ function recalculate_prompts_img2img() {
 }
 
 function setupTokenCounting(id, id_counter, id_button) {
-    var prompt = gradioApp().getElementById(id);
-    var counter = gradioApp().getElementById(id_counter);
-    var textarea = gradioApp().querySelector(`#${id} > label > textarea`);
+    let prompt = gradioApp().getElementById(id);
+    let counter = gradioApp().getElementById(id_counter);
+    let textarea = gradioApp().querySelector(`#${id} > label > textarea`);
 
     if (counter.parentElement == prompt.parentElement) {
         return;
@@ -55,7 +55,7 @@ function setupTokenCounting(id, id_counter, id_button) {
     prompt.parentElement.insertBefore(counter, prompt);
     prompt.parentElement.style.position = "relative";
 
-    var func = onEdit(id, textarea, 800, function() {
+    let func = onEdit(id, textarea, 800, function () {
         if (counter.classList.contains("token-counter-visible")) {
             gradioApp().getElementById(id_button)?.click();
         }
@@ -65,7 +65,7 @@ function setupTokenCounting(id, id_counter, id_button) {
 }
 
 function toggleTokenCountingVisibility(id, id_counter, id_button) {
-    var counter = gradioApp().getElementById(id_counter);
+    let counter = gradioApp().getElementById(id_counter);
 
     counter.style.display = opts.disable_token_counters ? "none" : "block";
     counter.classList.toggle("token-counter-visible", !opts.disable_token_counters);
@@ -78,10 +78,10 @@ function runCodeForTokenCounters(fun) {
     fun('img2img_neg_prompt', 'img2img_negative_token_counter', 'img2img_negative_token_button');
 }
 
-onUiLoaded(function() {
+onUiLoaded(function () {
     runCodeForTokenCounters(setupTokenCounting);
 });
 
-onOptionsChanged(function() {
+onOptionsChanged(function () {
     runCodeForTokenCounters(toggleTokenCountingVisibility);
 });

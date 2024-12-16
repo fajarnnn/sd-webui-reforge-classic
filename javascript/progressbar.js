@@ -1,22 +1,17 @@
 // code related to showing and updating progressbar shown as the image is being made
 
-function rememberGallerySelection() {
-
-}
-
-function getGallerySelectedIndex() {
-
-}
+function rememberGallerySelection() { }
+function getGallerySelectedIndex() { }
 
 function request(url, data, handler, errorHandler) {
-    var xhr = new XMLHttpRequest();
+    let xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
     xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.onreadystatechange = function() {
+    xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
                 try {
-                    var js = JSON.parse(xhr.responseText);
+                    let js = JSON.parse(xhr.responseText);
                     handler(js);
                 } catch (error) {
                     console.error(error);
@@ -27,7 +22,7 @@ function request(url, data, handler, errorHandler) {
             }
         }
     };
-    var js = JSON.stringify(data);
+    let js = JSON.stringify(data);
     xhr.send(js);
 }
 
@@ -45,15 +40,14 @@ function formatTime(secs) {
     }
 }
 
-
 var originalAppTitle = undefined;
 
-onUiLoaded(function() {
+onUiLoaded(function () {
     originalAppTitle = document.title;
 });
 
 function setTitle(progress) {
-    var title = originalAppTitle;
+    let title = originalAppTitle;
 
     if (opts.show_progress_in_title && progress) {
         title = '[' + progress.trim() + '] ' + title;
@@ -73,22 +67,22 @@ function randomId() {
 // preview inside gallery element. Cleans up all created stuff when the task is over and calls atEnd.
 // calls onProgress every time there is a progress update
 function requestProgress(id_task, progressbarContainer, gallery, atEnd, onProgress, inactivityTimeout = 40) {
-    var dateStart = new Date();
-    var wasEverActive = false;
-    var parentProgressbar = progressbarContainer.parentNode;
+    let dateStart = new Date();
+    let wasEverActive = false;
+    let parentProgressbar = progressbarContainer.parentNode;
 
-    var divProgress = document.createElement('div');
+    let divProgress = document.createElement('div');
     divProgress.className = 'progressDiv';
     divProgress.style.display = opts.show_progressbar ? "block" : "none";
-    var divInner = document.createElement('div');
+    let divInner = document.createElement('div');
     divInner.className = 'progress';
 
     divProgress.appendChild(divInner);
     parentProgressbar.insertBefore(divProgress, progressbarContainer);
 
-    var livePreview = null;
+    let livePreview = null;
 
-    var removeProgressBar = function() {
+    let removeProgressBar = function () {
         if (!divProgress) return;
 
         setTitle("");
@@ -99,8 +93,8 @@ function requestProgress(id_task, progressbarContainer, gallery, atEnd, onProgre
         divProgress = null;
     };
 
-    var funProgress = function(id_task) {
-        request("./internal/progress", {id_task: id_task, live_preview: false}, function(res) {
+    let funProgress = function (id_task) {
+        request("./internal/progress", { id_task: id_task, live_preview: false }, function (res) {
             if (res.completed) {
                 removeProgressBar();
                 return;
@@ -127,7 +121,7 @@ function requestProgress(id_task, progressbarContainer, gallery, atEnd, onProgre
 
             divInner.textContent = progressText;
 
-            var elapsedFromStart = (new Date() - dateStart) / 1000;
+            let elapsedFromStart = (new Date() - dateStart) / 1000;
 
             if (res.active) wasEverActive = true;
 
@@ -148,20 +142,20 @@ function requestProgress(id_task, progressbarContainer, gallery, atEnd, onProgre
             setTimeout(() => {
                 funProgress(id_task, res.id_live_preview);
             }, opts.live_preview_refresh_period || 500);
-        }, function() {
+        }, function () {
             removeProgressBar();
         });
     };
 
-    var funLivePreview = function(id_task, id_live_preview) {
-        request("./internal/progress", {id_task: id_task, id_live_preview: id_live_preview}, function(res) {
+    let funLivePreview = function (id_task, id_live_preview) {
+        request("./internal/progress", { id_task: id_task, id_live_preview: id_live_preview }, function (res) {
             if (!divProgress) {
                 return;
             }
 
             if (res.live_preview && gallery) {
-                var img = new Image();
-                img.onload = function() {
+                let img = new Image();
+                img.onload = function () {
                     if (!livePreview) {
                         livePreview = document.createElement('div');
                         livePreview.className = 'livePreview';
@@ -179,7 +173,7 @@ function requestProgress(id_task, progressbarContainer, gallery, atEnd, onProgre
             setTimeout(() => {
                 funLivePreview(id_task, res.id_live_preview);
             }, opts.live_preview_refresh_period || 500);
-        }, function() {
+        }, function () {
             removeProgressBar();
         });
     };

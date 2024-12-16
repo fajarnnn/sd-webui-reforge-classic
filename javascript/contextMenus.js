@@ -1,9 +1,9 @@
 
-var contextMenuInit = function() {
+const contextMenuInit = function () {
     let eventListenerApplied = false;
     let menuSpecs = new Map();
 
-    const uid = function() {
+    const uid = function () {
         return Date.now().toString(36) + Math.random().toString(36).substring(2);
     };
 
@@ -26,20 +26,17 @@ var contextMenuInit = function() {
         contextMenu.style.top = posy + 'px';
         contextMenu.style.left = posx + 'px';
 
-
-
         const contextMenuList = document.createElement('ul');
         contextMenuList.className = 'context-menu-items';
         contextMenu.append(contextMenuList);
 
-        menuEntries.forEach(function(entry) {
+        menuEntries.forEach(function (entry) {
             let contextMenuEntry = document.createElement('a');
             contextMenuEntry.innerHTML = entry['name'];
-            contextMenuEntry.addEventListener("click", function() {
+            contextMenuEntry.addEventListener("click", function () {
                 entry['func']();
             });
             contextMenuList.append(contextMenuEntry);
-
         });
 
         gradioApp().appendChild(contextMenu);
@@ -57,12 +54,11 @@ var contextMenuInit = function() {
         if ((windowHeight - posy) < menuHeight) {
             contextMenu.style.top = windowHeight - menuHeight + "px";
         }
-
     }
 
     function appendContextMenuOption(targetElementSelector, entryName, entryFunction) {
 
-        var currentItems = menuSpecs.get(targetElementSelector);
+        let currentItems = menuSpecs.get(targetElementSelector);
 
         if (!currentItems) {
             currentItems = [];
@@ -80,9 +76,9 @@ var contextMenuInit = function() {
     }
 
     function removeContextMenuOption(uid) {
-        menuSpecs.forEach(function(v) {
+        menuSpecs.forEach(function (v) {
             let index = -1;
-            v.forEach(function(e, ei) {
+            v.forEach(function (e, ei) {
                 if (e['id'] == uid) {
                     index = ei;
                 }
@@ -97,7 +93,7 @@ var contextMenuInit = function() {
         if (eventListenerApplied) {
             return;
         }
-        gradioApp().addEventListener("click", function(e) {
+        gradioApp().addEventListener("click", function (e) {
             if (!e.isTrusted) {
                 return;
             }
@@ -107,12 +103,12 @@ var contextMenuInit = function() {
                 oldMenu.remove();
             }
         });
-        gradioApp().addEventListener("contextmenu", function(e) {
+        gradioApp().addEventListener("contextmenu", function (e) {
             let oldMenu = gradioApp().querySelector('#context-menu');
             if (oldMenu) {
                 oldMenu.remove();
             }
-            menuSpecs.forEach(function(v, k) {
+            menuSpecs.forEach(function (v, k) {
                 if (e.composedPath()[0].matches(k)) {
                     showContextMenu(e, e.composedPath()[0], v);
                     e.preventDefault();
@@ -120,7 +116,6 @@ var contextMenuInit = function() {
             });
         });
         eventListenerApplied = true;
-
     }
 
     return [appendContextMenuOption, removeContextMenuOption, addContextMenuEventListener];
@@ -131,28 +126,27 @@ var appendContextMenuOption = initResponse[0];
 var removeContextMenuOption = initResponse[1];
 var addContextMenuEventListener = initResponse[2];
 
-(function() {
+(function () {
     //Start example Context Menu Items
-    let generateOnRepeat = function(genbuttonid, interruptbuttonid) {
+    let generateOnRepeat = function (genbuttonid, interruptbuttonid) {
         let genbutton = gradioApp().querySelector(genbuttonid);
         let interruptbutton = gradioApp().querySelector(interruptbuttonid);
         if (!interruptbutton.offsetParent) {
             genbutton.click();
         }
         clearInterval(window.generateOnRepeatInterval);
-        window.generateOnRepeatInterval = setInterval(function() {
+        window.generateOnRepeatInterval = setInterval(function () {
             if (!interruptbutton.offsetParent) {
                 genbutton.click();
             }
-        },
-        500);
+        }, 500);
     };
 
-    let generateOnRepeat_txt2img = function() {
+    let generateOnRepeat_txt2img = function () {
         generateOnRepeat('#txt2img_generate', '#txt2img_interrupt');
     };
 
-    let generateOnRepeat_img2img = function() {
+    let generateOnRepeat_img2img = function () {
         generateOnRepeat('#img2img_generate', '#img2img_interrupt');
     };
 
@@ -161,7 +155,7 @@ var addContextMenuEventListener = initResponse[2];
     appendContextMenuOption('#img2img_generate', 'Generate forever', generateOnRepeat_img2img);
     appendContextMenuOption('#img2img_interrupt', 'Generate forever', generateOnRepeat_img2img);
 
-    let cancelGenerateForever = function() {
+    let cancelGenerateForever = function () {
         clearInterval(window.generateOnRepeatInterval);
     };
 

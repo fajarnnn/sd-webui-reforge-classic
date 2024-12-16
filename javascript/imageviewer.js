@@ -48,20 +48,20 @@ function updateOnBackgroundChange() {
 }
 
 function modalImageSwitch(offset) {
-    var galleryButtons = all_gallery_buttons();
+    let galleryButtons = all_gallery_buttons();
 
     if (galleryButtons.length > 1) {
-        var currentButton = selected_gallery_button();
+        let currentButton = selected_gallery_button();
 
-        var result = -1;
-        galleryButtons.forEach(function(v, i) {
+        let result = -1;
+        galleryButtons.forEach(function (v, i) {
             if (v == currentButton) {
                 result = i;
             }
         });
 
         if (result != -1) {
-            var nextButton = galleryButtons[negmod((result + offset), galleryButtons.length)];
+            let nextButton = galleryButtons[negmod((result + offset), galleryButtons.length)];
             nextButton.click();
             const modalImage = gradioApp().getElementById("modalImage");
             const modal = gradioApp().getElementById("lightboxModal");
@@ -69,7 +69,7 @@ function modalImageSwitch(offset) {
             if (modalImage.style.display === 'none') {
                 modal.style.setProperty('background-image', `url(${modalImage.src})`);
             }
-            setTimeout(function() {
+            setTimeout(function () {
                 modal.focus();
             }, 10);
         }
@@ -107,18 +107,18 @@ function modalPrevImage(event) {
 
 function modalKeyHandler(event) {
     switch (event.key) {
-    case "s":
-        saveImage();
-        break;
-    case "ArrowLeft":
-        modalPrevImage(event);
-        break;
-    case "ArrowRight":
-        modalNextImage(event);
-        break;
-    case "Escape":
-        closeModal();
-        break;
+        case "s":
+            saveImage();
+            break;
+        case "ArrowLeft":
+            modalPrevImage(event);
+            break;
+        case "ArrowRight":
+            modalNextImage(event);
+            break;
+        case "Escape":
+            closeModal();
+            break;
     }
 }
 
@@ -131,14 +131,14 @@ function setupImageForLightbox(e) {
     e.style.cursor = 'pointer';
     e.style.userSelect = 'none';
 
-    var isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+    let isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
 
     // For Firefox, listening on click first switched to next image then shows the lightbox.
     // If you know how to fix this without switching to mousedown event, please.
     // For other browsers the event is click to make it possiblr to drag picture.
-    var event = isFirefox ? 'mousedown' : 'click';
+    let event = isFirefox ? 'mousedown' : 'click';
 
-    e.addEventListener(event, function(evt) {
+    e.addEventListener(event, function (evt) {
         if (evt.button == 1) {
             open(evt.target.src);
             evt.preventDefault();
@@ -158,7 +158,7 @@ function modalZoomSet(modalImage, enable) {
 }
 
 function modalZoomToggle(event) {
-    var modalImage = gradioApp().getElementById("modalImage");
+    let modalImage = gradioApp().getElementById("modalImage");
     modalZoomSet(modalImage, !modalImage.classList.contains('modalImageFullscreen'));
     event.stopPropagation();
 }
@@ -178,15 +178,15 @@ function modalTileImageToggle(event) {
     event.stopPropagation();
 }
 
-onAfterUiUpdate(function() {
-    var fullImg_preview = gradioApp().querySelectorAll('.gradio-gallery > div > img');
+onAfterUiUpdate(function () {
+    let fullImg_preview = gradioApp().querySelectorAll('.gradio-gallery > div > img');
     if (fullImg_preview != null) {
         fullImg_preview.forEach(setupImageForLightbox);
     }
     updateOnBackgroundChange();
 });
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     //const modalFragment = document.createDocumentFragment();
     const modal = document.createElement('div');
     modal.onclick = closeModal;

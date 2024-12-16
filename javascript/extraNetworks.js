@@ -1,5 +1,5 @@
 function toggleCss(key, css, enable) {
-    var style = document.getElementById(key);
+    let style = document.getElementById(key);
     if (enable && !style) {
         style = document.createElement('style');
         style.id = key;
@@ -17,46 +17,46 @@ function toggleCss(key, css, enable) {
 
 function setupExtraNetworksForTab(tabname) {
     function registerPrompt(tabname, id) {
-        var textarea = gradioApp().querySelector("#" + id + " > label > textarea");
+        let textarea = gradioApp().querySelector("#" + id + " > label > textarea");
 
         if (!activePromptTextarea[tabname]) {
             activePromptTextarea[tabname] = textarea;
         }
 
-        textarea.addEventListener("focus", function() {
+        textarea.addEventListener("focus", function () {
             activePromptTextarea[tabname] = textarea;
         });
     }
 
-    var tabnav = gradioApp().querySelector('#' + tabname + '_extra_tabs > div.tab-nav');
-    var controlsDiv = document.createElement('DIV');
+    let tabnav = gradioApp().querySelector('#' + tabname + '_extra_tabs > div.tab-nav');
+    let controlsDiv = document.createElement('DIV');
     controlsDiv.classList.add('extra-networks-controls-div');
     tabnav.appendChild(controlsDiv);
     tabnav.insertBefore(controlsDiv, null);
 
-    var this_tab = gradioApp().querySelector('#' + tabname + '_extra_tabs');
-    this_tab.querySelectorAll(":scope > [id^='" + tabname + "_']").forEach(function(elem) {
+    let this_tab = gradioApp().querySelector('#' + tabname + '_extra_tabs');
+    this_tab.querySelectorAll(":scope > [id^='" + tabname + "_']").forEach(function (elem) {
         // tabname_full = {tabname}_{extra_networks_tabname}
-        var tabname_full = elem.id;
-        var search = gradioApp().querySelector("#" + tabname_full + "_extra_search");
-        var sort_mode = gradioApp().querySelector("#" + tabname_full + "_extra_sort");
-        var sort_dir = gradioApp().querySelector("#" + tabname_full + "_extra_sort_dir");
-        var refresh = gradioApp().querySelector("#" + tabname_full + "_extra_refresh");
+        let tabname_full = elem.id;
+        let search = gradioApp().querySelector("#" + tabname_full + "_extra_search");
+        let sort_mode = gradioApp().querySelector("#" + tabname_full + "_extra_sort");
+        let sort_dir = gradioApp().querySelector("#" + tabname_full + "_extra_sort_dir");
+        let refresh = gradioApp().querySelector("#" + tabname_full + "_extra_refresh");
 
         // If any of the buttons above don't exist, we want to skip this iteration of the loop.
         if (!search || !sort_mode || !sort_dir || !refresh) {
             return; // `return` is equivalent of `continue` but for forEach loops.
         }
 
-        var applyFilter = function(force) {
-            var searchTerm = search.value.toLowerCase();
-            gradioApp().querySelectorAll('#' + tabname + '_extra_tabs div.card').forEach(function(elem) {
-                var searchOnly = elem.querySelector('.search_only');
-                var text = Array.prototype.map.call(elem.querySelectorAll('.search_terms'), function(t) {
+        let applyFilter = function (force) {
+            let searchTerm = search.value.toLowerCase();
+            gradioApp().querySelectorAll('#' + tabname + '_extra_tabs div.card').forEach(function (elem) {
+                let searchOnly = elem.querySelector('.search_only');
+                let text = Array.prototype.map.call(elem.querySelectorAll('.search_terms'), function (t) {
                     return t.textContent.toLowerCase();
                 }).join(" ");
 
-                var visible = text.indexOf(searchTerm) != -1;
+                let visible = text.indexOf(searchTerm) != -1;
                 if (searchOnly && searchTerm.length < 4) {
                     visible = false;
                 }
@@ -70,25 +70,25 @@ function setupExtraNetworksForTab(tabname) {
             applySort(force);
         };
 
-        var applySort = function(force) {
-            var cards = gradioApp().querySelectorAll('#' + tabname + '_extra_tabs div.card');
-            var reverse = sort_dir.dataset.sortdir == "Descending";
-            var sortKey = sort_mode.dataset.sortmode.toLowerCase().replace("sort", "").replaceAll(" ", "_").replace(/_+$/, "").trim() || "name";
+        let applySort = function (force) {
+            let cards = gradioApp().querySelectorAll('#' + tabname + '_extra_tabs div.card');
+            let reverse = sort_dir.dataset.sortdir == "Descending";
+            let sortKey = sort_mode.dataset.sortmode.toLowerCase().replace("sort", "").replaceAll(" ", "_").replace(/_+$/, "").trim() || "name";
             sortKey = "sort" + sortKey.charAt(0).toUpperCase() + sortKey.slice(1);
-            var sortKeyStore = sortKey + "-" + (reverse ? "Descending" : "Ascending") + "-" + cards.length;
+            let sortKeyStore = sortKey + "-" + (reverse ? "Descending" : "Ascending") + "-" + cards.length;
 
             if (sortKeyStore == sort_mode.dataset.sortkey && !force) {
                 return;
             }
             sort_mode.dataset.sortkey = sortKeyStore;
 
-            cards.forEach(function(card) {
+            cards.forEach(function (card) {
                 card.originalParentElement = card.parentElement;
             });
-            var sortedCards = Array.from(cards);
-            sortedCards.sort(function(cardA, cardB) {
-                var a = cardA.dataset[sortKey];
-                var b = cardB.dataset[sortKey];
+            let sortedCards = Array.from(cards);
+            sortedCards.sort(function (cardA, cardB) {
+                let a = cardA.dataset[sortKey];
+                let b = cardB.dataset[sortKey];
                 if (!isNaN(a) && !isNaN(b)) {
                     return parseInt(a) - parseInt(b);
                 }
@@ -98,10 +98,10 @@ function setupExtraNetworksForTab(tabname) {
             if (reverse) {
                 sortedCards.reverse();
             }
-            cards.forEach(function(card) {
+            cards.forEach(function (card) {
                 card.remove();
             });
-            sortedCards.forEach(function(card) {
+            sortedCards.forEach(function (card) {
                 card.originalParentElement.appendChild(card);
             });
         };
@@ -112,7 +112,7 @@ function setupExtraNetworksForTab(tabname) {
         extraNetworksApplySort[tabname_full] = applySort;
         extraNetworksApplyFilter[tabname_full] = applyFilter;
 
-        var controls = gradioApp().querySelector("#" + tabname_full + "_controls");
+        let controls = gradioApp().querySelector("#" + tabname_full + "_controls");
         controlsDiv.insertBefore(controls, null);
 
         if (elem.style.display != "none") {
@@ -127,10 +127,10 @@ function setupExtraNetworksForTab(tabname) {
 function extraNetworksMovePromptToTab(tabname, id, showPrompt, showNegativePrompt) {
     if (!gradioApp().querySelector('.toprow-compact-tools')) return; // only applicable for compact prompt layout
 
-    var promptContainer = gradioApp().getElementById(tabname + '_prompt_container');
-    var prompt = gradioApp().getElementById(tabname + '_prompt_row');
-    var negPrompt = gradioApp().getElementById(tabname + '_neg_prompt_row');
-    var elem = id ? gradioApp().getElementById(id) : null;
+    let promptContainer = gradioApp().getElementById(tabname + '_prompt_container');
+    let prompt = gradioApp().getElementById(tabname + '_prompt_row');
+    let negPrompt = gradioApp().getElementById(tabname + '_neg_prompt_row');
+    let elem = id ? gradioApp().getElementById(id) : null;
 
     if (showNegativePrompt && elem) {
         elem.insertBefore(negPrompt, elem.firstChild);
@@ -151,8 +151,8 @@ function extraNetworksMovePromptToTab(tabname, id, showPrompt, showNegativePromp
 
 
 function extraNetworksShowControlsForPage(tabname, tabname_full) {
-    gradioApp().querySelectorAll('#' + tabname + '_extra_tabs .extra-networks-controls-div > div').forEach(function(elem) {
-        var targetId = tabname_full + "_controls";
+    gradioApp().querySelectorAll('#' + tabname + '_extra_tabs .extra-networks-controls-div > div').forEach(function (elem) {
+        let targetId = tabname_full + "_controls";
         elem.style.display = elem.id == targetId ? "" : "none";
     });
 }
@@ -171,8 +171,8 @@ function extraNetworksTabSelected(tabname, id, showPrompt, showNegativePrompt, t
 }
 
 function applyExtraNetworkFilter(tabname_full) {
-    var doFilter = function() {
-        var applyFunction = extraNetworksApplyFilter[tabname_full];
+    let doFilter = function () {
+        let applyFunction = extraNetworksApplyFilter[tabname_full];
 
         if (applyFunction) {
             applyFunction(true);
@@ -182,36 +182,37 @@ function applyExtraNetworkFilter(tabname_full) {
 }
 
 function applyExtraNetworkSort(tabname_full) {
-    var doSort = function() {
+    let doSort = function () {
         extraNetworksApplySort[tabname_full](true);
     };
     setTimeout(doSort, 1);
 }
 
-var extraNetworksApplyFilter = {};
-var extraNetworksApplySort = {};
-var activePromptTextarea = {};
+const extraNetworksApplyFilter = {};
+const extraNetworksApplySort = {};
+const activePromptTextarea = {};
 
 function setupExtraNetworks() {
     setupExtraNetworksForTab('txt2img');
     setupExtraNetworksForTab('img2img');
 }
 
-var re_extranet = /<([^:^>]+:[^:]+):[\d.]+>(.*)/;
-var re_extranet_g = /<([^:^>]+:[^:]+):[\d.]+>/g;
+const re_extranet = /<([^:^>]+:[^:]+):[\d.]+>(.*)/;
+const re_extranet_g = /<([^:^>]+:[^:]+):[\d.]+>/g;
 
-var re_extranet_neg = /\(([^:^>]+:[\d.]+)\)/;
-var re_extranet_g_neg = /\(([^:^>]+:[\d.]+)\)/g;
+const re_extranet_neg = /\(([^:^>]+:[\d.]+)\)/;
+const re_extranet_g_neg = /\(([^:^>]+:[\d.]+)\)/g;
+
 function tryToRemoveExtraNetworkFromPrompt(textarea, text, isNeg) {
-    var m = text.match(isNeg ? re_extranet_neg : re_extranet);
-    var replaced = false;
-    var newTextareaText;
-    var extraTextBeforeNet = opts.extra_networks_add_text_separator;
+    let m = text.match(isNeg ? re_extranet_neg : re_extranet);
+    let replaced = false;
+    let newTextareaText;
+    let extraTextBeforeNet = opts.extra_networks_add_text_separator;
     if (m) {
-        var extraTextAfterNet = m[2];
-        var partToSearch = m[1];
-        var foundAtPosition = -1;
-        newTextareaText = textarea.value.replaceAll(isNeg ? re_extranet_g_neg : re_extranet_g, function(found, net, pos) {
+        let extraTextAfterNet = m[2];
+        let partToSearch = m[1];
+        let foundAtPosition = -1;
+        newTextareaText = textarea.value.replaceAll(isNeg ? re_extranet_g_neg : re_extranet_g, function (found, net, pos) {
             m = found.match(isNeg ? re_extranet_neg : re_extranet);
             if (m[1] == partToSearch) {
                 replaced = true;
@@ -254,14 +255,14 @@ function cardClicked(tabname, textToAdd, textToAddNegative, allowNegativePrompt)
         updatePromptArea(textToAdd, gradioApp().querySelector("#" + tabname + "_prompt > label > textarea"));
         updatePromptArea(textToAddNegative, gradioApp().querySelector("#" + tabname + "_neg_prompt > label > textarea"), true);
     } else {
-        var textarea = allowNegativePrompt ? activePromptTextarea[tabname] : gradioApp().querySelector("#" + tabname + "_prompt > label > textarea");
+        let textarea = allowNegativePrompt ? activePromptTextarea[tabname] : gradioApp().querySelector("#" + tabname + "_prompt > label > textarea");
         updatePromptArea(textToAdd, textarea);
     }
 }
 
 function saveCardPreview(event, tabname, filename) {
-    var textarea = gradioApp().querySelector("#" + tabname + '_preview_filename  > label > textarea');
-    var button = gradioApp().getElementById(tabname + '_save_preview');
+    let textarea = gradioApp().querySelector("#" + tabname + '_preview_filename  > label > textarea');
+    let button = gradioApp().getElementById(tabname + '_save_preview');
 
     textarea.value = filename;
     updateInput(textarea);
@@ -290,7 +291,7 @@ function extraNetworksTreeProcessDirectoryClick(event, btn, tabname, extra_netwo
      * Processes `onclick` events when user clicks on directories in tree.
      *
      * Here is how the tree reacts to clicks for various states:
-     * unselected unopened directory: Diretory is selected and expanded.
+     * unselected unopened directory: Directory is selected and expanded.
      * unselected opened directory: Directory is selected.
      * selected opened directory: Directory is collapsed and deselected.
      * chevron is clicked: Directory is expanded or collapsed. Selected state unchanged.
@@ -300,10 +301,10 @@ function extraNetworksTreeProcessDirectoryClick(event, btn, tabname, extra_netwo
      * @param tabname                   The name of the active tab in the sd webui. Ex: txt2img, img2img, etc.
      * @param extra_networks_tabname    The id of the active extraNetworks tab. Ex: lora, checkpoints, etc.
      */
-    var ul = btn.nextElementSibling;
+    let ul = btn.nextElementSibling;
     // This is the actual target that the user clicked on within the target button.
     // We use this to detect if the chevron was clicked.
-    var true_targ = event.target;
+    let true_targ = event.target;
 
     function _expand_or_collapse(_ul, _btn) {
         // Expands <ul> if it is collapsed, collapses otherwise. Updates button attributes.
@@ -318,7 +319,7 @@ function extraNetworksTreeProcessDirectoryClick(event, btn, tabname, extra_netwo
 
     function _remove_selected_from_all() {
         // Removes the `selected` attribute from all buttons.
-        var sels = document.querySelectorAll("div.tree-list-content");
+        let sels = document.querySelectorAll("div.tree-list-content");
         [...sels].forEach(el => {
             delete el.dataset.selected;
         });
@@ -332,7 +333,7 @@ function extraNetworksTreeProcessDirectoryClick(event, btn, tabname, extra_netwo
 
     function _update_search(_tabname, _extra_networks_tabname, _search_text) {
         // Update search input with select button's path.
-        var search_input_elem = gradioApp().querySelector("#" + tabname + "_" + extra_networks_tabname + "_extra_search");
+        let search_input_elem = gradioApp().querySelector("#" + tabname + "_" + extra_networks_tabname + "_extra_search");
         search_input_elem.value = _search_text;
         updateInput(search_input_elem);
     }
@@ -373,8 +374,8 @@ function extraNetworksTreeOnClick(event, tabname, extra_networks_tabname) {
      * @param tabname                   The name of the active tab in the sd webui. Ex: txt2img, img2img, etc.
      * @param extra_networks_tabname    The id of the active extraNetworks tab. Ex: lora, checkpoints, etc.
      */
-    var btn = event.currentTarget;
-    var par = btn.parentElement;
+    let btn = event.currentTarget;
+    let par = btn.parentElement;
     if (par.dataset.treeEntryType === "file") {
         extraNetworksTreeProcessFileClick(event, btn, tabname, extra_networks_tabname);
     } else {
@@ -393,9 +394,9 @@ function extraNetworksControlSortOnClick(event, tabname, extra_networks_tabname)
      * @param tabname                   The name of the active tab in the sd webui. Ex: txt2img, img2img, etc.
      * @param extra_networks_tabname    The id of the active extraNetworks tab. Ex: lora, checkpoints, etc.
      */
-    var curr_mode = event.currentTarget.dataset.sortmode;
-    var el_sort_dir = gradioApp().querySelector("#" + tabname + "_" + extra_networks_tabname + "_extra_sort_dir");
-    var sort_dir = el_sort_dir.dataset.sortdir;
+    let curr_mode = event.currentTarget.dataset.sortmode;
+    let el_sort_dir = gradioApp().querySelector("#" + tabname + "_" + extra_networks_tabname + "_extra_sort_dir");
+    let sort_dir = el_sort_dir.dataset.sortdir;
     if (curr_mode == "path") {
         event.currentTarget.dataset.sortmode = "name";
         event.currentTarget.dataset.sortkey = "sortName-" + sort_dir + "-640";
@@ -464,7 +465,7 @@ function extraNetworksControlRefreshOnClick(event, tabname, extra_networks_tabna
      * @param tabname                   The name of the active tab in the sd webui. Ex: txt2img, img2img, etc.
      * @param extra_networks_tabname    The id of the active extraNetworks tab. Ex: lora, checkpoints, etc.
      */
-    var btn_refresh_internal = gradioApp().getElementById(tabname + "_" + extra_networks_tabname + "_extra_refresh_internal");
+    let btn_refresh_internal = gradioApp().getElementById(tabname + "_" + extra_networks_tabname + "_extra_refresh_internal");
     btn_refresh_internal.dispatchEvent(new Event("click"));
 }
 
@@ -481,7 +482,7 @@ function popup(contents) {
         globalPopup = document.createElement('div');
         globalPopup.classList.add('global-popup');
 
-        var close = document.createElement('div');
+        let close = document.createElement('div');
         close.classList.add('global-popup-close');
         close.addEventListener("click", closePopup);
         close.title = "Close";
@@ -500,7 +501,7 @@ function popup(contents) {
     globalPopup.style.display = "flex";
 }
 
-var storedPopupIds = {};
+const storedPopupIds = {};
 function popupId(id) {
     if (!storedPopupIds[id]) {
         storedPopupIds[id] = gradioApp().getElementById(id);
@@ -510,7 +511,7 @@ function popupId(id) {
 }
 
 function extraNetworksShowMetadata(text) {
-    var elem = document.createElement('pre');
+    let elem = document.createElement('pre');
     elem.classList.add('popup-metadata');
     elem.textContent = text;
 
@@ -518,17 +519,17 @@ function extraNetworksShowMetadata(text) {
 }
 
 function requestGet(url, data, handler, errorHandler) {
-    var xhr = new XMLHttpRequest();
-    var args = Object.keys(data).map(function(k) {
+    let xhr = new XMLHttpRequest();
+    let args = Object.keys(data).map(function (k) {
         return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]);
     }).join('&');
     xhr.open("GET", url + "?" + args, true);
 
-    xhr.onreadystatechange = function() {
+    xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {
                 try {
-                    var js = JSON.parse(xhr.responseText);
+                    let js = JSON.parse(xhr.responseText);
                     handler(js);
                 } catch (error) {
                     console.error(error);
@@ -539,7 +540,7 @@ function requestGet(url, data, handler, errorHandler) {
             }
         }
     };
-    var js = JSON.stringify(data);
+    let js = JSON.stringify(data);
     xhr.send(js);
 }
 
@@ -549,11 +550,11 @@ function extraNetworksCopyCardPath(event, path) {
 }
 
 function extraNetworksRequestMetadata(event, extraPage, cardName) {
-    var showError = function() {
+    let showError = function () {
         extraNetworksShowMetadata("there was an error getting metadata");
     };
 
-    requestGet("./sd_extra_networks/metadata", {page: extraPage, item: cardName}, function(data) {
+    requestGet("./sd_extra_networks/metadata", { page: extraPage, item: cardName }, function (data) {
         if (data && data.metadata) {
             extraNetworksShowMetadata(data.metadata);
         } else {
@@ -564,12 +565,12 @@ function extraNetworksRequestMetadata(event, extraPage, cardName) {
     event.stopPropagation();
 }
 
-var extraPageUserMetadataEditors = {};
+const extraPageUserMetadataEditors = {};
 
 function extraNetworksEditUserMetadata(event, tabname, extraPage, cardName) {
-    var id = tabname + '_' + extraPage + '_edit_user_metadata';
+    let id = tabname + '_' + extraPage + '_edit_user_metadata';
 
-    var editor = extraPageUserMetadataEditors[id];
+    let editor = extraPageUserMetadataEditors[id];
     if (!editor) {
         editor = {};
         editor.page = gradioApp().getElementById(id);
@@ -589,13 +590,13 @@ function extraNetworksEditUserMetadata(event, tabname, extraPage, cardName) {
 }
 
 function extraNetworksRefreshSingleCard(page, tabname, name) {
-    requestGet("./sd_extra_networks/get-single-card", {page: page, tabname: tabname, name: name}, function(data) {
+    requestGet("./sd_extra_networks/get-single-card", { page: page, tabname: tabname, name: name }, function (data) {
         if (data && data.html) {
-            var card = gradioApp().querySelector(`#${tabname}_${page.replace(" ", "_")}_cards > .card[data-name="${name}"]`);
+            let card = gradioApp().querySelector(`#${tabname}_${page.replace(" ", "_")}_cards > .card[data-name="${name}"]`);
 
-            var newDiv = document.createElement('DIV');
+            let newDiv = document.createElement('DIV');
             newDiv.innerHTML = data.html;
-            var newCard = newDiv.firstElementChild;
+            let newCard = newDiv.firstElementChild;
 
             newCard.style.display = '';
             card.parentElement.insertBefore(newCard, card);
@@ -604,7 +605,7 @@ function extraNetworksRefreshSingleCard(page, tabname, name) {
     });
 }
 
-window.addEventListener("keydown", function(event) {
+window.addEventListener("keydown", function (event) {
     if (event.key == "Escape") {
         closePopup();
     }
@@ -625,13 +626,13 @@ var executedAfterScripts = false;
 
 function scheduleAfterScriptsCallbacks() {
     clearTimeout(uiAfterScriptsTimeout);
-    uiAfterScriptsTimeout = setTimeout(function() {
+    uiAfterScriptsTimeout = setTimeout(function () {
         executeCallbacks(uiAfterScriptsCallbacks);
     }, 200);
 }
 
-onUiLoaded(function() {
-    var mutationObserver = new MutationObserver(function(m) {
+onUiLoaded(function () {
+    let mutationObserver = new MutationObserver(function (m) {
         let existingSearchfields = gradioApp().querySelectorAll("[id$='_extra_search']").length;
         let neededSearchfields = gradioApp().querySelectorAll("[id$='_extra_tabs'] > .tab-nav > button").length - 2;
 
@@ -641,7 +642,7 @@ onUiLoaded(function() {
             scheduleAfterScriptsCallbacks();
         }
     });
-    mutationObserver.observe(gradioApp(), {childList: true, subtree: true});
+    mutationObserver.observe(gradioApp(), { childList: true, subtree: true });
 });
 
 uiAfterScriptsCallbacks.push(setupExtraNetworks);
