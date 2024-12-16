@@ -214,12 +214,8 @@ options_templates.update(options_section(('optimizations', "Optimizations", "sd"
     "token_merging_stride": OptionInfo(2, "Token merging - Stride", gr.Slider, {"minimum": 1, "maximum": 8, "step": 1}),
     "token_merging_downsample": OptionInfo(1, "Token merging - Max Downsample", gr.Slider, {"minimum": 1, "maximum": 4, "step": 1}),
     "persistent_cond_cache": OptionInfo(True, "Persistent cond cache").info("do not recalculate conds from prompts if prompts have not changed since previous calculation"),
-}))
-
-options_templates.update(options_section(('fp8', "fp8", "sd"), {
     "fp8_storage": OptionInfo(False, "Store UNet Weights in fp8").info("store the weights in fp8; inference in fp16; reduce memory usage; reduce speed; reduce quality").needs_restart(),
     "fp8_fast": OptionInfo(False, "Inference UNet in fast fp8 operations").info("inference in fp8 using <b>torch._scaled_mm</b>; increase speed; reduce quality; require <b>RTX 40</b> or later").needs_restart(),
-    "cache_fp16_weight": OptionInfo(False, "Cache UNet Weights in fp16").info("patch the LoRA weights in fp16 before inferencing in fp8; increase LoRA quality; increase memory usage").needs_restart(),
 }))
 
 options_templates.update(options_section(('compatibility', "Compatibility", "sd"), {

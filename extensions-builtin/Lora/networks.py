@@ -97,7 +97,6 @@ def load_networks(names, te_multipliers=None, unet_multipliers=None, dyn_dims=No
                 strength_model,
                 strength_clip,
                 filename,
-                fp16_mode=(shared.opts.fp8_storage and shared.opts.cache_fp16_weight),
             )
         )
 

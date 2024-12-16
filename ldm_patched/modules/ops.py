@@ -10,7 +10,6 @@ import contextlib
 import torch
 
 from ldm_patched.modules.model_management import cast_to_device
-from ldm_patched.modules.lora_patch import merge_lora_to_weight
 from modules_forge import stream
 
 stash = {}
@@ -40,14 +39,6 @@ def cast_bias_weight(s, input=None, dtype=None, device=None, bias_dtype=None):
         if device is None:
             device = input.device
 
-    patches = getattr(s, "forge_online_loras", None)
-    if patches is not None:
-        weight_patches = patches.get("weight", None)
-        bias_patches = patches.get("bias", None)
-    else:
-        weight_patches = None
-        bias_patches = None
-
     bias, signal = None, None
 
     with (
@@ -56,34 +47,14 @@ def cast_bias_weight(s, input=None, dtype=None, device=None, bias_dtype=None):
         else contextlib.nullcontext()
     ):
         if s.bias is not None:
-            bias = s.bias
-
-            if bias_patches is not None:
-                bias = merge_lora_to_weight(
-                    patches=bias_patches,
-                    weight=bias,
-                    key="fp16 lora bias",
-                    computation_dtype=bias.dtype,
-                )
-
             bias = cast_to_device(
-                bias,
+                s.bias,
                 device=device,
                 dtype=bias_dtype,
             )
 
-        weight = s.weight
-
-        if weight_patches is not None:
-            weight = merge_lora_to_weight(
-                patches=weight_patches,
-                weight=weight,
-                key="fp16 lora weight",
-                computation_dtype=weight.dtype,
-            )
-
         weight = cast_to_device(
-            weight,
+            s.weight,
             device=device,
             dtype=dtype,
         )
@@ -249,7 +220,9 @@ class manual_cast(disable_weight_init):
 
 
 def fp8_linear(self, input):
-    dtype = torch.float8_e4m3fn
+    dtype = self.weight.dtype
+    if dtype is not torch.float8_e4m3fn:
+        return None
 
     tensor_2d = False
     if len(input.shape) == 2:
@@ -274,7 +247,11 @@ def fp8_linear(self, input):
             inn = torch.clamp(input, min=-448, max=448).view(-1, input.shape[2]).to(dtype)
         else:
             scale_input = scale_input.to(input.device)
-            inn = (input * (1.0 / scale_input).to(input.dtype)).view(-1, input.shape[2]).to(dtype)
+            inn = (
+                (input * (1.0 / scale_input).to(input.dtype))
+                .view(-1, input.shape[2])
+                .to(dtype)
+            )
 
         with main_stream_worker(w, bias, signal):
             o = torch._scaled_mm(

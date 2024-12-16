@@ -306,15 +306,6 @@ def get_attr(obj, attr):
         obj = getattr(obj, name)
     return obj
 
-def get_attr_with_parent(obj, attr):
-    attrs = attr.split(".")
-    parent = obj
-    name = None
-    for name in attrs:
-        parent = obj
-        obj = getattr(obj, name)
-    return parent, name, obj
-
 def bislerp(samples, width, height):
     def slerp(b1, b2, r):
         '''slerps batches b1, b2 according to ratio r, batches should be flat e.g. NxC'''

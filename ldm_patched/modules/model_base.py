@@ -54,8 +54,8 @@ class BaseModel(torch.nn.Module):
             operations = None
             if getattr(opts, "fp8_fast", False):
                 if ldm_patched.modules.model_management.support_fp8():
-                    print("using fast fp8 ops")
                     operations = ldm_patched.modules.ops.fp8_ops
+                    print("using fast fp8 ops")
                 else:
                     print("\n\nWARNING: fast fp8 ops is not supported\n\n")
             if operations is None:
@@ -64,6 +64,7 @@ class BaseModel(torch.nn.Module):
                 else:
                     operations = ldm_patched.modules.ops.disable_weight_init
             self.diffusion_model = UNetModel(**unet_config, device=device, operations=operations)
+
         self.model_type = model_type
         self.model_sampling = model_sampling(model_config, model_type)
 
