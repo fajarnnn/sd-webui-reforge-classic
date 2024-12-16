@@ -283,6 +283,7 @@ def create_ui():
                     elif category == "cfg":
                         with gr.Row():
                             cfg_scale = gr.Slider(minimum=1.0, maximum=30.0, step=0.5, label='CFG Scale', value=7.0, elem_id="txt2img_cfg_scale")
+                            scripts.scripts_txt2img.setup_ui_for_section(category)
 
                     elif category == "checkboxes":
                         with FormRow(elem_classes="checkboxes-row", variant="compact"):
@@ -335,7 +336,7 @@ def create_ui():
                         with FormGroup(elem_id="txt2img_script_container"):
                             custom_inputs = scripts.scripts_txt2img.setup_ui()
 
-                    if category not in {"accordions"}:
+                    if category not in ("accordions", "cfg"):
                         scripts.scripts_txt2img.setup_ui_for_section(category)
 
             hr_resolution_preview_inputs = [enable_hr, width, height, hr_scale, hr_resize_x, hr_resize_y]
@@ -642,7 +643,8 @@ def create_ui():
                     elif category == "cfg":
                         with gr.Row():
                             cfg_scale = gr.Slider(minimum=1.0, maximum=30.0, step=0.5, label='CFG Scale', value=7.0, elem_id="img2img_cfg_scale")
-                            image_cfg_scale = gr.Slider(minimum=0, maximum=3.0, step=0.05, label='Image CFG Scale', value=1.5, elem_id="img2img_image_cfg_scale", visible=False)
+                            scripts.scripts_img2img.setup_ui_for_section(category)
+                        image_cfg_scale = gr.Slider(minimum=0, maximum=3.0, step=0.05, label='Image CFG Scale', value=1.5, elem_id="img2img_image_cfg_scale", visible=False)
 
                     elif category == "checkboxes":
                         with FormRow(elem_classes="checkboxes-row", variant="compact"):
@@ -685,7 +687,7 @@ def create_ui():
                                 with gr.Column(scale=4):
                                     inpaint_full_res_padding = gr.Slider(label='Only masked padding, pixels', minimum=0, maximum=256, step=4, value=32, elem_id="img2img_inpaint_full_res_padding")
 
-                    if category not in {"accordions"}:
+                    if category not in ("accordions", "cfg"):
                         scripts.scripts_img2img.setup_ui_for_section(category)
 
             # the code below is meant to update the resolution label after the image in the image selection UI has changed.

@@ -17,7 +17,6 @@ from modules.sd_models_xl import extend_sdxl
 from ldm.util import instantiate_from_config
 from modules_forge import forge_clip
 from modules_forge.unet_patcher import UnetPatcher
-from modules_forge.rescale_cfg import try_patch_cfg
 from ldm_patched.modules.model_base import model_sampling, ModelType
 
 import open_clip
@@ -134,7 +133,6 @@ def load_checkpoint_guess_config(sd, output_vae=True, output_clip=True, output_c
             print("loaded straight to GPU")
             model_management.load_model_gpu(model_patcher)
 
-    try_patch_cfg(model_patcher)
     return ForgeSD(model_patcher, clip, vae, clipvision)
 
 

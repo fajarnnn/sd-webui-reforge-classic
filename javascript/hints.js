@@ -13,6 +13,7 @@ var titles = {
     "Batch count": "How many batches of images to create (has no impact on generation performance or VRAM usage)",
     "Batch size": "How many image to create in a single batch (increases generation performance at cost of higher VRAM usage)",
     "CFG Scale": "Classifier Free Guidance Scale - how strongly the image should conform to prompt - lower values produce more creative results",
+    "Rescale CFG": "Reduce the high-contrast burnt color caused by high CFG; mainly for v-pred checkpoints",
     "Seed": "A value that determines the output of random number generator - if you create an image with same parameters and seed as another image, you'll get the same result",
     "\u{1f3b2}\ufe0f": "Set seed to -1, which will cause a new random number to be used every time",
     "\u267b\ufe0f": "Reuse seed from last generation, mostly useful if it was randomized",
@@ -154,7 +155,7 @@ function processTooltipCheckNodes() {
     tooltipCheckNodes.clear();
 }
 
-onUiUpdate(function(mutationRecords) {
+onUiUpdate(function (mutationRecords) {
     for (const record of mutationRecords) {
         if (record.type === "childList" && record.target.classList.contains("options")) {
             // This smells like a Gradio dropdown menu having changed,
@@ -189,7 +190,7 @@ onUiUpdate(function(mutationRecords) {
     }
 });
 
-onUiLoaded(function() {
+onUiLoaded(function () {
     for (var comp of window.gradio_config.components) {
         if (comp.props.webui_tooltip && comp.props.elem_id) {
             var elem = gradioApp().getElementById(comp.props.elem_id);

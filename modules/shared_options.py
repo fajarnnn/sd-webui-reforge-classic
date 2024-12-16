@@ -278,6 +278,7 @@ options_templates.update(options_section(('ui_gallery', "Gallery", "ui"), {
 
 options_templates.update(options_section(('ui_alternatives', "UI alternatives", "ui"), {
     "show_refiner": OptionInfo(False, "Display the Refiner Accordions").info("(deprecated) feature for SDXL").needs_reload_ui(),
+    "show_rescale_cfg": OptionInfo(True, "Display the Rescale CFG Slider").info("feature for v-pred checkpoints").needs_reload_ui(),
     "compact_prompt_box": OptionInfo(False, "Compact prompt layout").info("puts prompt and negative prompt inside the Generate tab, leaving more vertical space for the image on the right").needs_reload_ui(),
     "samplers_in_dropdown": OptionInfo(True, "Use dropdown for sampler selection instead of radio group").needs_reload_ui(),
     "dimensions_and_batch_together": OptionInfo(True, "Show Width/Height and Batch sliders in same row").needs_reload_ui(),
@@ -363,7 +364,6 @@ options_templates.update(options_section(('sampler-params', "Sampler parameters"
     'uni_pc_order': OptionInfo(3, "UniPC order", gr.Slider, {"minimum": 1, "maximum": 50, "step": 1}, infotext='UniPC order').info("must be < sampling steps"),
     'uni_pc_lower_order_final': OptionInfo(True, "UniPC lower order final", infotext='UniPC lower order final'),
     'sd_noise_schedule': OptionInfo("Default", "Noise schedule for sampling", gr.Radio, {"choices": ["Default", "Zero Terminal SNR"]}, infotext="Noise Schedule").info("for use with zero terminal SNR trained models"),
-    'rescale_cfg': OptionInfo(0.0, "Rescale CFG", gr.Slider, {"minimum": 0.0, "maximum": 1.0, "step": 0.05}, infotext="Recommendation: 0.7").info("improves the output of v-pred ztsnr models").needs_restart(),
 }))
 
 options_templates.update(options_section(('postprocessing', "Postprocessing", "postprocessing"), {
