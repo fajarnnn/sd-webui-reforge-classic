@@ -35,6 +35,10 @@ class ScriptRescaleCFG(scripts.ScriptBuiltinUI):
 
         return [cfg]
 
+    def after_extra_networks_activate(self, p, cfg, *args, **kwargs):
+        if opts.show_rescale_cfg and cfg > 0.0:
+            p.extra_generation_params.update({"Rescale CFG": cfg})
+
     def process_before_every_sampling(self, p, cfg, *args, **kwargs):
         if not opts.show_rescale_cfg or cfg < 0.05:
             return
@@ -64,6 +68,5 @@ class ScriptRescaleCFG(scripts.ScriptBuiltinUI):
         unet = p.sd_model.forge_objects.unet.clone()
         unet.set_model_sampler_cfg_function(rescale_cfg)
         p.sd_model.forge_objects.unet = unet
-        p.extra_generation_params.update({"Rescale CFG": cfg})
 
         print(f"rescale_cfg = {cfg}")
