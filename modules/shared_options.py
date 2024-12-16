@@ -205,7 +205,7 @@ options_templates.update(options_section(('img2img', "img2img", "sd"), {
 }))
 
 options_templates.update(options_section(('optimizations', "Optimizations", "sd"), {
-    "cross_attention_optimization": OptionInfo("Automatic", "Cross attention optimization", gr.Dropdown, lambda: {"choices": shared_items.cross_attention_optimizations()}),
+    "cross_attention_optimization": OptionInfo("Automatic", "Cross attention optimization", gr.Dropdown, lambda: {"choices": ["Automatic"], "interactive": False}),
     "s_min_uncond": OptionInfo(0.0, "Negative Guidance minimum sigma", gr.Slider, {"minimum": 0.0, "maximum": 8.0, "step": 0.05}).link("PR", "https://github.com/AUTOMATIC1111/stable-diffusion-webui/pull/9177").info("skip negative prompt for some steps when the image is almost ready; 0=disable, higher=faster"),
     'skip_early_cond': OptionInfo(0.0, "Ignore negative prompt during early steps", gr.Slider, {"minimum": 0.0, "maximum": 1.0, "step": 0.05}, infotext="Skip Early CFG").info("disables CFG on a proportion of steps at the beginning of generation; 0=disable; 1=skip all; can both improve sample diversity/quality and speed up sampling"),
     "token_merging_ratio": OptionInfo(0.0, "Token merging ratio", gr.Slider, {"minimum": 0.0, "maximum": 0.9, "step": 0.1}, infotext='Token merging ratio').link("PR", "https://github.com/AUTOMATIC1111/stable-diffusion-webui/pull/9256").info("0=disable, higher=faster"),
