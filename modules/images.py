@@ -13,7 +13,7 @@ import numpy as np
 import piexif
 import piexif.helper
 from PIL import Image, ImageFont, ImageDraw, ImageColor, PngImagePlugin
-import pillow_avif # noqa: F401
+from pillow_heif import AvifImagePlugin, HeifImagePlugin  # noqa: F401
 import string
 import json
 import hashlib
@@ -537,7 +537,7 @@ def save_image_with_geninfo(image, geninfo, filename, extension=None, existing_p
 
     image_format = Image.registered_extensions()[extension]
 
-    if extension.lower() == '.png':
+    if extension.lower() in ('.png', '.heif'):
         existing_pnginfo = existing_pnginfo or {}
         if opts.enable_pnginfo:
             existing_pnginfo[pnginfo_section_name] = geninfo
