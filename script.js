@@ -1,28 +1,19 @@
 function gradioApp() {
     const elems = document.getElementsByTagName('gradio-app');
     const elem = elems.length == 0 ? document : elems[0];
-
     if (elem !== document) {
-        elem.getElementById = function(id) {
+        elem.getElementById = (id) => {
             return document.getElementById(id);
         };
     }
     return elem.shadowRoot ? elem.shadowRoot : elem;
 }
 
-/**
- * Get the currently selected top-level UI tab button (e.g. the button that says "Extras").
- */
-function get_uiCurrentTab() {
-    return gradioApp().querySelector('#tabs > .tab-nav > button.selected');
-}
+/** Get the currently selected top-level UI tab button (e.g. the button that says "Extras") */
+function get_uiCurrentTab() { return gradioApp().querySelector('#tabs > .tab-nav > button.selected'); }
 
-/**
- * Get the first currently visible top-level UI tab content (e.g. the div hosting the "txt2img" UI).
- */
-function get_uiCurrentTabContent() {
-    return gradioApp().querySelector('#tabs > .tabitem[id^=tab_]:not([style*="display: none"])');
-}
+/** Get the first currently visible top-level UI tab content (e.g. the div hosting the "txt2img" UI) */
+function get_uiCurrentTabContent() { return gradioApp().querySelector('#tabs > .tabitem[id^=tab_]:not([style*="display: none"])'); }
 
 var uiUpdateCallbacks = [];
 var uiAfterUpdateCallbacks = [];
@@ -36,9 +27,7 @@ var uiCurrentTab = null;
  * Register callback to be called at each UI update.
  * The callback receives an array of MutationRecords as an argument.
  */
-function onUiUpdate(callback) {
-    uiUpdateCallbacks.push(callback);
-}
+function onUiUpdate(callback) { uiUpdateCallbacks.push(callback); }
 
 /**
  * Register callback to be called soon after UI updates.
@@ -48,41 +37,32 @@ function onUiUpdate(callback) {
  * access to the MutationRecords, as your function will
  * not be called quite as often.
  */
-function onAfterUiUpdate(callback) {
-    uiAfterUpdateCallbacks.push(callback);
-}
+function onAfterUiUpdate(callback) { uiAfterUpdateCallbacks.push(callback); }
 
 /**
  * Register callback to be called when the UI is loaded.
  * The callback receives no arguments.
  */
-function onUiLoaded(callback) {
-    uiLoadedCallbacks.push(callback);
-}
+function onUiLoaded(callback) { uiLoadedCallbacks.push(callback); }
 
 /**
  * Register callback to be called when the UI tab is changed.
  * The callback receives no arguments.
  */
-function onUiTabChange(callback) {
-    uiTabChangeCallbacks.push(callback);
-}
+function onUiTabChange(callback) { uiTabChangeCallbacks.push(callback); }
 
 /**
  * Register callback to be called when the options are changed.
  * The callback receives no arguments.
- * @param callback
  */
-function onOptionsChanged(callback) {
-    optionsChangedCallbacks.push(callback);
-}
+function onOptionsChanged(callback) { optionsChangedCallbacks.push(callback); }
 
 function executeCallbacks(queue, arg) {
     for (const callback of queue) {
         try {
             callback(arg);
         } catch (e) {
-            console.error("error running callback", callback, ":", e);
+            console.error(`error running callback "${callback}": ${e}`);
         }
     }
 }
@@ -95,15 +75,15 @@ function executeCallbacks(queue, arg) {
  */
 function scheduleAfterUiUpdateCallbacks() {
     clearTimeout(uiAfterUpdateTimeout);
-    uiAfterUpdateTimeout = setTimeout(function() {
+    uiAfterUpdateTimeout = setTimeout(() => {
         executeCallbacks(uiAfterUpdateCallbacks);
     }, 200);
 }
 
 var executedOnLoaded = false;
 
-document.addEventListener("DOMContentLoaded", function() {
-    var mutationObserver = new MutationObserver(function(m) {
+document.addEventListener("DOMContentLoaded", () => {
+    const mutationObserver = new MutationObserver((m) => {
         if (!executedOnLoaded && gradioApp().querySelector('#txt2img_prompt')) {
             executedOnLoaded = true;
             executeCallbacks(uiLoadedCallbacks);
@@ -117,7 +97,7 @@ document.addEventListener("DOMContentLoaded", function() {
             executeCallbacks(uiTabChangeCallbacks);
         }
     });
-    mutationObserver.observe(gradioApp(), {childList: true, subtree: true});
+    mutationObserver.observe(gradioApp(), { childList: true, subtree: true });
 });
 
 /**
@@ -126,8 +106,8 @@ document.addEventListener("DOMContentLoaded", function() {
  * Alt/Option+Enter to skip a generation
  * Esc to interrupt a generation
  */
-document.addEventListener('keydown', function(e) {
-    const isEnter = e.key === 'Enter' || e.keyCode === 13;
+document.addEventListener('keydown', (e) => {
+    const isEnter = e.key === 'Enter' || e.code === 'Enter';
     const isCtrlKey = e.metaKey || e.ctrlKey;
     const isAltKey = e.altKey;
     const isEsc = e.key === 'Escape';
@@ -150,7 +130,7 @@ document.addEventListener('keydown', function(e) {
                 }
             };
             const observer = new MutationObserver(callback);
-            observer.observe(interruptButton, {attributes: true});
+            observer.observe(interruptButton, { attributes: true });
         } else {
             generateButton.click();
         }
@@ -175,25 +155,20 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-/**
- * checks that a UI element is not in another hidden element or tab content
- */
+/** checks that a UI element is not in another hidden element or tab content */
 function uiElementIsVisible(el) {
-    if (el === document) {
+    if (el === document)
         return true;
-    }
 
     const computedStyle = getComputedStyle(el);
-    const isVisible = computedStyle.display !== 'none';
+    if (computedStyle.display === 'none')
+        return false;
 
-    if (!isVisible) return false;
     return uiElementIsVisible(el.parentNode);
 }
 
 function uiElementInSight(el) {
     const clRect = el.getBoundingClientRect();
     const windowHeight = window.innerHeight;
-    const isOnScreen = clRect.bottom > 0 && clRect.top < windowHeight;
-
-    return isOnScreen;
+    return (clRect.bottom > 0) && (clRect.top < windowHeight);
 }
