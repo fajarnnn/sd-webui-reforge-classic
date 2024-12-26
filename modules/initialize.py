@@ -136,10 +136,6 @@ def initialize_rest(*, reload_script_modules=False):
     sd_vae.refresh_vae_list()
     startup_timer.record("refresh VAE")
 
-    from modules import textual_inversion
-    textual_inversion.textual_inversion.list_textual_inversion_templates()
-    startup_timer.record("refresh textual inversion templates")
-
     from modules import script_callbacks, sd_hijack_optimizations, sd_hijack
     script_callbacks.on_list_optimizers(sd_hijack_optimizations.list_optimizers)
     sd_hijack.list_optimizers()

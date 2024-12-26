@@ -1,33 +1,12 @@
 import os
-from collections import namedtuple
-
 import torch
 import safetensors.torch
 
-from PIL import Image
-
 from modules import shared, devices, errors, hashes
-
-from modules.textual_inversion.image_embedding import embedding_from_b64, extract_image_data_embed
-
-
-TextualInversionTemplate = namedtuple("TextualInversionTemplate", ["name", "path"])
-textual_inversion_templates = {}
-
-
-def list_textual_inversion_templates():
-    textual_inversion_templates.clear()
-
-    for root, _, fns in os.walk(shared.cmd_opts.textual_inversion_templates_dir):
-        for fn in fns:
-            path = os.path.join(root, fn)
-
-            textual_inversion_templates[fn] = TextualInversionTemplate(fn, path)
-
-    return textual_inversion_templates
 
 
 class Embedding:
+
     def __init__(self, vec, name, step=None):
         self.vec = vec
         self.name = name
@@ -43,23 +22,7 @@ class Embedding:
         self.shorthash = None
 
     def save(self, filename):
-        embedding_data = {
-            "string_to_token": {"*": 265},
-            "string_to_param": {"*": self.vec},
-            "name": self.name,
-            "step": self.step,
-            "sd_checkpoint": self.sd_checkpoint,
-            "sd_checkpoint_name": self.sd_checkpoint_name,
-        }
-
-        torch.save(embedding_data, filename)
-
-        if shared.opts.save_optimizer_state and self.optimizer_state_dict is not None:
-            optimizer_saved_dict = {
-                'hash': self.checksum(),
-                'optimizer_state_dict': self.optimizer_state_dict,
-            }
-            torch.save(optimizer_saved_dict, f"{filename}.optim")
+        raise NotImplementedError("Training is not supported...")
 
     def checksum(self):
         if self.cached_checksum is not None:
@@ -80,6 +43,7 @@ class Embedding:
 
 
 class DirWithTextualInversionEmbeddings:
+
     def __init__(self, path):
         self.path = path
         self.mtime = None
@@ -100,6 +64,7 @@ class DirWithTextualInversionEmbeddings:
 
 
 class EmbeddingDatabase:
+
     def __init__(self):
         self.ids_lookup = {}
         self.word_embeddings = {}
@@ -123,7 +88,6 @@ class EmbeddingDatabase:
         if first_id not in self.ids_lookup:
             self.ids_lookup[first_id] = []
         if name in self.word_embeddings:
-            # remove old one from the lookup list
             lookup = [x for x in self.ids_lookup[first_id] if x[1].name!=name]
         else:
             lookup = self.ids_lookup[first_id]
@@ -131,7 +95,6 @@ class EmbeddingDatabase:
             lookup += [(ids, embedding)]
         self.ids_lookup[first_id] = sorted(lookup, key=lambda x: len(x[0]), reverse=True)
         if embedding is None:
-            # unregister embedding with specified name
             if name in self.word_embeddings:
                 del self.word_embeddings[name]
             if len(self.ids_lookup[first_id])==0:
@@ -149,27 +112,15 @@ class EmbeddingDatabase:
         name, ext = os.path.splitext(filename)
         ext = ext.upper()
 
-        if ext in ['.PNG', '.WEBP', '.JXL', '.AVIF']:
-            _, second_ext = os.path.splitext(name)
-            if second_ext.upper() == '.PREVIEW':
-                return
-
-            embed_image = Image.open(path)
-            if hasattr(embed_image, 'text') and 'sd-ti-embedding' in embed_image.text:
-                data = embedding_from_b64(embed_image.text['sd-ti-embedding'])
-                name = data.get('name', name)
-            else:
-                data = extract_image_data_embed(embed_image)
-                if data:
-                    name = data.get('name', name)
-                else:
-                    # if data is None, means this is not an embeding, just a preview image
-                    return
-        elif ext in ['.BIN', '.PT']:
+        if ext in ('.BIN', '.PT'):
             data = torch.load(path, map_location="cpu")
-        elif ext in ['.SAFETENSORS']:
+        elif ext in ('.SAFETENSORS',):
             data = safetensors.torch.load_file(path, device="cpu")
         else:
+            if ext in ('.PNG', '.WEBP', '.JXL', '.AVIF'):
+                second_ext = os.path.splitext(name)[1]
+                if second_ext.upper() != '.PREVIEW':
+                    raise NotImplementedError("Image-Embedding is not supported...")
             return
 
         embedding = create_embedding_from_data(data, name, filename=filename, filepath=path)
@@ -222,13 +173,6 @@ class EmbeddingDatabase:
         self.word_embeddings.clear()
         self.word_embeddings.update(sorted_word_embeddings)
 
-        displayed_embeddings = (tuple(self.word_embeddings.keys()), tuple(self.skipped_embeddings.keys()))
-        if shared.opts.textual_inversion_print_at_load and self.previously_displayed_embeddings != displayed_embeddings:
-            self.previously_displayed_embeddings = displayed_embeddings
-            print(f"Textual inversion embeddings loaded({len(self.word_embeddings)}): {', '.join(self.word_embeddings.keys())}")
-            if self.skipped_embeddings:
-                print(f"Textual inversion embeddings skipped({len(self.skipped_embeddings)}): {', '.join(self.skipped_embeddings.keys())}")
-
     def find_embedding_at_position(self, tokens, offset):
         token = tokens[offset]
         possible_matches = self.ids_lookup.get(token, None)
@@ -252,21 +196,23 @@ def create_embedding_from_data(data, name, filename='unknown embedding file', fi
         vec = emb.detach().to(devices.device, dtype=torch.float32)
         shape = vec.shape[-1]
         vectors = vec.shape[0]
+
     elif type(data) == dict and 'clip_g' in data and 'clip_l' in data:  # SDXL embedding
         vec = {k: v.detach().to(devices.device, dtype=torch.float32) for k, v in data.items()}
         shape = data['clip_g'].shape[-1] + data['clip_l'].shape[-1]
         vectors = data['clip_g'].shape[0]
+
     elif type(data) == dict and type(next(iter(data.values()))) == torch.Tensor:  # diffuser concepts
         assert len(data.keys()) == 1, 'embedding file has multiple terms in it'
-
         emb = next(iter(data.values()))
         if len(emb.shape) == 1:
             emb = emb.unsqueeze(0)
         vec = emb.detach().to(devices.device, dtype=torch.float32)
         shape = vec.shape[-1]
         vectors = vec.shape[0]
+
     else:
-        raise Exception(f"Couldn't identify {filename} as neither textual inversion embedding nor diffuser concept.")
+        raise LookupError(f"Couldn't identify {filename}...")
 
     embedding = Embedding(vec, name)
     embedding.step = data.get('step', None)
