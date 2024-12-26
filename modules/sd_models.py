@@ -16,7 +16,7 @@ from modules import paths, shared, modelloader, devices, script_callbacks, sd_va
 from modules.timer import Timer
 import numpy as np
 from modules_forge import forge_loader
-from ldm_patched.modules import model_management as model_management
+from ldm_patched.modules import model_management
 
 
 model_dir = "Stable-diffusion"
@@ -617,8 +617,36 @@ def reload_model_weights(sd_model=None, info=None, forced_reload=False):
 
 
 def unload_model_weights(sd_model=None, info=None):
+    before = model_management.get_free_memory()
+    model_management.unload_all_models()
+    after = model_management.get_free_memory()
+    print(f"\nUnload Weights - Free up {(after - before) // (1024 * 1024)} (MB) VRAM\n")
+
     return sd_model
 
+
+def list_loaded_weights():
+    if len(model_management.current_loaded_models) == 0:
+        return
+
+    from rich.console import Console
+    from rich.table import Table
+
+    table = Table(title="Currently Loaded Weights")
+    table.add_column("Model", justify="left")
+    table.add_column("VRAM", justify="right")
+    table.add_column("Device", justify="right")
+
+    for mdl in model_management.current_loaded_models:
+        table.add_row(
+            str(mdl.model.model.__class__.__name__),
+            f"{mdl.memory_required // (1024 * 1024)} (MB)" if mdl.memory_required > 0 else "n.a.",
+            str(mdl.device)
+        )
+
+    print('')
+    console = Console()
+    console.print(table)
 
 def apply_token_merging(sd_model, token_merging_ratio):
     if token_merging_ratio <= 0:
