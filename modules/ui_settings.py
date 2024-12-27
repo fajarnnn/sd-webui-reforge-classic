@@ -3,7 +3,6 @@ import gradio as gr
 from modules import ui_common, shared, script_callbacks, scripts, sd_models, sysinfo, timer
 from modules.call_queue import wrap_gradio_call
 from modules.shared import opts
-from modules.cache import prune_unused_hash
 from modules.ui_components import FormRow
 from modules.ui_gradio_extensions import reload_javascript
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -183,7 +182,6 @@ class UiSettings:
                     with gr.Row():
                         calculate_all_checkpoint_hash = gr.Button(value='Calculate hash for all checkpoint', elem_id="calculate_all_checkpoint_hash")
                         calculate_all_checkpoint_hash_threads = gr.Number(value=1, label="Number of parallel calculations", elem_id="calculate_all_checkpoint_hash_threads", precision=0, minimum=1)
-                        prune_all_checkpoint_hash = gr.Button(value='Prune hash for unused checkpoint', elem_id="prune_all_checkpoint_hash")
 
                 with gr.TabItem("Licenses", id="licenses", elem_id="settings_tab_licenses") as license_tab:
                     gr.HTML(shared.html("licenses.html"), elem_id="licenses")
@@ -280,8 +278,6 @@ class UiSettings:
                 fn=calculate_all_checkpoint_hash_fn,
                 inputs=[calculate_all_checkpoint_hash_threads],
             )
-
-            prune_all_checkpoint_hash.click(fn=prune_unused_hash)
 
         self.interface = settings_interface
 
