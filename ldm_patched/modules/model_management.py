@@ -768,7 +768,7 @@ def get_free_memory(dev=None, torch_free_too=False):
             mem_active = stats['active_bytes.all.current']
             mem_reserved = stats['reserved_bytes.all.current']
             mem_free_cuda, _ = torch.cuda.mem_get_info(dev)
-            mem_free_torch = mem_reserved - mem_active
+            mem_free_torch = max(mem_reserved - mem_active, 0)
             mem_free_total = mem_free_cuda + mem_free_torch
 
     if torch_free_too:
