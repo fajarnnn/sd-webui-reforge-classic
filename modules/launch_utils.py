@@ -1,85 +1,80 @@
-# this scripts installs necessary requirements and launches main program in webui.py
-import logging
-import re
-import subprocess
-import os
-import shutil
-import sys
-import importlib.util
+"""
+This script installs necessary requirements and launches main program in webui.py
+"""
+
 import importlib.metadata
-import platform
+import importlib.util
 import json
-from functools import lru_cache
-from typing import NamedTuple
+import logging
+import os
+import re
+import shutil
+import subprocess
+import sys
 from pathlib import Path
+from typing import NamedTuple
 
-from modules import cmd_args, errors
-from modules.paths_internal import script_path, extensions_dir, extensions_builtin_dir
+from modules import cmd_args, errors, logging_config
+from modules.paths_internal import extensions_builtin_dir, extensions_dir, script_path
 from modules.timer import startup_timer
-from modules import logging_config
-from modules_forge import forge_version
 from modules_forge.config import always_disabled_extensions
-
+from modules_forge.forge_version import version
 
 args, _ = cmd_args.parser.parse_known_args()
 logging_config.setup_logging(args.loglevel)
 
 python = sys.executable
-git = os.environ.get('GIT', "git")
-index_url = os.environ.get('INDEX_URL', "")
+git = os.environ.get("GIT", "git")
+index_url = os.environ.get("INDEX_URL")
 dir_repos = "repositories"
 
-# Whether to default to printing command output
-default_command_live = (os.environ.get('WEBUI_LAUNCH_LIVE_OUTPUT') == "1")
+default_command_live = (os.environ.get("WEBUI_LAUNCH_LIVE_OUTPUT") == "1")
+if uv := (os.environ.get("UV") == "1"):
+    assert os.environ.get("VIRTUAL_ENV") is not None
 
-os.environ.setdefault('GRADIO_ANALYTICS_ENABLED', 'False')
+os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
 
 
 def check_python_version():
-    is_windows = platform.system() == "Windows"
     major = sys.version_info.major
     minor = sys.version_info.minor
     micro = sys.version_info.micro
 
-    if is_windows:
-        supported_minors = [10]
-    else:
-        supported_minors = [7, 8, 9, 10, 11]
-
-    if not (major == 3 and minor in supported_minors):
+    if not (major == 3 and minor == 10):
         import modules.errors
 
-        modules.errors.print_error_explanation(f"""
-INCOMPATIBLE PYTHON VERSION
+        modules.errors.print_error_explanation(
+            f"""
+            This program is tested with 3.10.x Python, but you have {major}.{minor}.{micro}.
+            If you encounter any error regarding unsuccessful package/library installation,
+            please downgrade (or upgrade) to the latest version of 3.10 Python,
+            and delete the current Python "venv" folder in WebUI's directory.
 
-This program is tested with 3.10.6 Python, but you have {major}.{minor}.{micro}.
-If you encounter an error with "RuntimeError: Couldn't install torch." message,
-or any other error regarding unsuccessful package (library) installation,
-please downgrade (or upgrade) to the latest version of 3.10 Python
-and delete current Python and "venv" folder in WebUI's directory.
-
-You can download 3.10 Python from here: https://www.python.org/downloads/release/python-3106/
-
-{"Alternatively, use a binary release of WebUI: https://github.com/AUTOMATIC1111/stable-diffusion-webui/releases" if is_windows else ""}
-
-Use --skip-python-version-check to suppress this warning.
-""")
+            Use --skip-python-version-check to suppress this warning.
+            """
+        )
 
 
 def git_tag():
-    return "classic"
+    return version
 
 
-def run(command, desc=None, errdesc=None, custom_env=None, live: bool = default_command_live) -> str:
+def run(command, desc=None, errdesc=None, custom_env=None, live=default_command_live) -> str:
     if desc is not None:
         print(desc)
+
+    if uv and re.search(r"-m\s*pip", command):
+        original_command = command
+        _, dep = command.split("pip")
+        command = f"uv pip {dep}".replace("--prefer-binary", "")
+        live = True
 
     run_kwargs = {
         "args": command,
         "shell": True,
         "env": os.environ if custom_env is None else custom_env,
-        "encoding": 'utf8',
-        "errors": 'ignore',
+        "encoding": "utf8",
+        "errors": "ignore",
     }
 
     if not live:
@@ -88,6 +83,14 @@ def run(command, desc=None, errdesc=None, custom_env=None, live: bool = default_
     result = subprocess.run(**run_kwargs)
 
     if result.returncode != 0:
+        if uv:
+            print("[uv] failed; falling back to pip")
+            run_kwargs["args"] = original_command
+            result = subprocess.run(**run_kwargs)
+
+            if result.returncode == 0:
+                return result.stdout or ""
+
         error_bits = [
             f"{errdesc or 'Error running command'}.",
             f"Command: {command}",
@@ -99,7 +102,7 @@ def run(command, desc=None, errdesc=None, custom_env=None, live: bool = default_
             error_bits.append(f"stderr: {result.stderr}")
         raise RuntimeError("\n".join(error_bits))
 
-    return (result.stdout or "")
+    return result.stdout or ""
 
 
 def is_installed(package):
@@ -124,7 +127,7 @@ def run_pip(command, desc=None, live=default_command_live):
     if args.skip_install:
         return
 
-    index_url_line = f' --index-url {index_url}' if index_url != '' else ''
+    index_url_line = f' --index-url {index_url}' if index_url is not None else ''
     return run(f'"{python}" -m pip {command} --prefer-binary{index_url_line}', desc=f"Installing {desc}", errdesc=f"Couldn't install {desc}", live=live)
 
 
@@ -190,23 +193,6 @@ def git_pull_recursive(dir):
                 print(f"Pulled changes for repository in '{subdir}':\n{output.decode('utf-8').strip()}\n")
             except subprocess.CalledProcessError as e:
                 print(f"Couldn't perform 'git pull' on repository in '{subdir}':\n{e.output.decode('utf-8').strip()}\n")
-
-
-def version_check(commit):
-    try:
-        import requests
-        commits = requests.get('https://api.github.com/repos/AUTOMATIC1111/stable-diffusion-webui/branches/master').json()
-        if commit != "<none>" and commits['commit']['sha'] != commit:
-            print("--------------------------------------------------------")
-            print("| You are not up to date with the most recent release. |")
-            print("| Consider running `git pull` to update.               |")
-            print("--------------------------------------------------------")
-        elif commits['commit']['sha'] == commit:
-            print("You are up to date with the most recent release.")
-        else:
-            print("Not a git clone, can't perform version check.")
-    except Exception as e:
-        print("version check failed", e)
 
 
 def run_extension_installer(extension_dir):
@@ -338,30 +324,9 @@ def requirements_met(requirements_file):
 def prepare_environment():
     torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://download.pytorch.org/whl/cu124")
     torch_command = os.environ.get('TORCH_COMMAND', f"pip install torch==2.5.1+cu124 torchvision==0.20.1+cu124 --extra-index-url {torch_index_url}")
-    if args.use_ipex:
-        if platform.system() == "Windows":
-            # The "Nuullll/intel-extension-for-pytorch" wheels were built from IPEX source for Intel Arc GPU: https://github.com/intel/intel-extension-for-pytorch/tree/xpu-main
-            # This is NOT an Intel official release so please use it at your own risk!!
-            # See https://github.com/Nuullll/intel-extension-for-pytorch/releases/tag/v2.0.110%2Bxpu-master%2Bdll-bundle for details.
-            #
-            # Strengths (over official IPEX 2.0.110 windows release):
-            #   - AOT build (for Arc GPU only) to eliminate JIT compilation overhead: https://github.com/intel/intel-extension-for-pytorch/issues/399
-            #   - Bundles minimal oneAPI 2023.2 dependencies into the python wheels, so users don't need to install oneAPI for the whole system.
-            #   - Provides a compatible torchvision wheel: https://github.com/intel/intel-extension-for-pytorch/issues/465
-            # Limitation:
-            #   - Only works for python 3.10
-            url_prefix = "https://github.com/Nuullll/intel-extension-for-pytorch/releases/download/v2.0.110%2Bxpu-master%2Bdll-bundle"
-            torch_command = os.environ.get('TORCH_COMMAND', f"pip install {url_prefix}/torch-2.0.0a0+gite9ebda2-cp310-cp310-win_amd64.whl {url_prefix}/torchvision-0.15.2a0+fa99a53-cp310-cp310-win_amd64.whl {url_prefix}/intel_extension_for_pytorch-2.0.110+gitc6ea20b-cp310-cp310-win_amd64.whl")
-        else:
-            # Using official IPEX release for linux since it's already an AOT build.
-            # However, users still have to install oneAPI toolkit and activate oneAPI environment manually.
-            # See https://intel.github.io/intel-extension-for-pytorch/index.html#installation for details.
-            torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://pytorch-extension.intel.com/release-whl/stable/xpu/us/")
-            torch_command = os.environ.get('TORCH_COMMAND', f"pip install torch==2.0.0a0 intel-extension-for-pytorch==2.0.110+gitba7f6c1 --extra-index-url {torch_index_url}")
-    requirements_file = os.environ.get('REQS_FILE', "requirements_versions.txt")
-    requirements_file_for_npu = os.environ.get('REQS_FILE_FOR_NPU', "requirements_npu.txt")
-
     xformers_package = os.environ.get('XFORMERS_PACKAGE', 'xformers==0.0.28.post3')
+
+    requirements_file = os.environ.get('REQS_FILE', "requirements.txt")
     clip_package = os.environ.get('CLIP_PACKAGE', "https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip")
     openclip_package = os.environ.get('OPENCLIP_PACKAGE', "https://github.com/mlfoundations/open_clip/archive/bb6e834e9c70d9c27d0dc3ecedeebeaeb1ffad6b.zip")
 
@@ -388,26 +353,18 @@ def prepare_environment():
     startup_timer.record("checks")
 
     tag = git_tag()
-    startup_timer.record("git version info")
 
     print(f"Python {sys.version}")
     print(f"Version: {tag}")
 
-    if not is_installed("pydantic"):
-        run_pip(f"install pydantic~=1.10.15", "pydantic")
-
-    if args.reinstall_torch or not is_installed("torch") or not is_installed("torchvision"):
+    if not is_installed("torch") or not is_installed("torchvision") or args.reinstall_torch:
         run(f'"{python}" -m {torch_command}', "Installing torch and torchvision", "Couldn't install torch", live=True)
         startup_timer.record("install torch")
 
-    if args.use_ipex:
-        args.skip_torch_cuda_test = True
-    if not args.skip_torch_cuda_test and not check_run_python("import torch; assert torch.cuda.is_available()"):
-        raise RuntimeError(
-            'Torch is not able to use GPU; '
-            'add --skip-torch-cuda-test to COMMANDLINE_ARGS variable to disable this check'
-        )
-    startup_timer.record("torch GPU test")
+    if not args.skip_torch_cuda_test:
+        if not check_run_python("import torch; assert torch.cuda.is_available()"):
+            raise RuntimeError("PyTorch is not able to access CUDA")
+        startup_timer.record("torch GPU test")
 
     if not is_installed("clip"):
         run_pip(f"install {clip_package}", "clip")
@@ -417,11 +374,11 @@ def prepare_environment():
         run_pip(f"install {openclip_package}", "open_clip")
         startup_timer.record("install open_clip")
 
-    if (not is_installed("xformers") or args.reinstall_xformers) and args.xformers:
-        run_pip(f"install -U -I --no-deps {xformers_package} --extra-index-url {torch_index_url}", "xformers")
+    if args.xformers and (not is_installed("xformers") or args.reinstall_xformers):
+        run_pip(f"install -U --no-deps {xformers_package} --extra-index-url {torch_index_url}", "xformers")
         startup_timer.record("install xformers")
 
-    if not is_installed("ngrok") and args.ngrok:
+    if args.ngrok and not is_installed("ngrok"):
         run_pip("install ngrok", "ngrok")
         startup_timer.record("install ngrok")
 
@@ -431,7 +388,6 @@ def prepare_environment():
     git_clone(stable_diffusion_repo, repo_dir('stable-diffusion-stability-ai'), "Stable Diffusion", stable_diffusion_commit_hash)
     git_clone(stable_diffusion_xl_repo, repo_dir('generative-models'), "Stable Diffusion XL", stable_diffusion_xl_commit_hash)
     git_clone(k_diffusion_repo, repo_dir('k-diffusion'), "K-diffusion", k_diffusion_commit_hash)
-
     startup_timer.record("clone repositores")
 
     if not os.path.isfile(requirements_file):
@@ -441,13 +397,6 @@ def prepare_environment():
         run_pip(f"install -r \"{requirements_file}\"", "requirements")
         startup_timer.record("install requirements")
 
-    if not os.path.isfile(requirements_file_for_npu):
-        requirements_file_for_npu = os.path.join(script_path, requirements_file_for_npu)
-
-    if "torch_npu" in torch_command and not requirements_met(requirements_file_for_npu):
-        run_pip(f"install -r \"{requirements_file_for_npu}\"", "requirements_for_npu")
-        startup_timer.record("install requirements_for_npu")
-
     if not args.skip_install:
         run_extensions_installers(settings_file=args.ui_settings_file)
 
@@ -455,29 +404,13 @@ def prepare_environment():
         git_pull_recursive(extensions_dir)
         startup_timer.record("update extensions")
 
-    pydantic = importlib.metadata.distribution("pydantic")
-    major, minor, patch = pydantic.version.split(".")
-    if not (int(major) == 1 and int(minor) == 10):
-        run_pip(f"install pydantic~=1.10.15", "pydantic")
+    if not requirements_met(requirements_file):
+        run_pip(f"install -r \"{requirements_file}\"", "requirements")
+        startup_timer.record("enforce requirements")
 
     if "--exit" in sys.argv:
         print("Exiting because of --exit argument")
         exit(0)
-
-
-
-def configure_for_tests():
-    if "--api" not in sys.argv:
-        sys.argv.append("--api")
-    if "--ckpt" not in sys.argv:
-        sys.argv.append("--ckpt")
-        sys.argv.append(os.path.join(script_path, "test/test_files/empty.pt"))
-    if "--skip-torch-cuda-test" not in sys.argv:
-        sys.argv.append("--skip-torch-cuda-test")
-    if "--disable-nan-check" not in sys.argv:
-        sys.argv.append("--disable-nan-check")
-
-    os.environ['COMMANDLINE_ARGS'] = ""
 
 
 def configure_forge_reference_checkout(a1111_home: Path):
@@ -526,8 +459,8 @@ def start():
 
 
 def dump_sysinfo():
-    from modules import sysinfo
     import datetime
+    from modules import sysinfo
 
     text = sysinfo.get()
     filename = f"sysinfo-{datetime.datetime.utcnow().strftime('%Y-%m-%d-%H-%M')}.json"

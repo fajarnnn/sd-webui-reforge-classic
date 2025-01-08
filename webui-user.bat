@@ -1,8 +1,9 @@
 @echo off
 
-set PYTHON=
-set GIT=
-set VENV_DIR=
+:: set PYTHON=
+:: set GIT=
+:: set VENV_DIR=
+:: set UV=1
 set COMMANDLINE_ARGS= --no-download-sd-model
 
 :: --xformers

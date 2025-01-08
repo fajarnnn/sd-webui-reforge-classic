@@ -1,5 +1,6 @@
 __pycache__
 .idea
+.venv
 .vscode
 .vs
 
@@ -36,3 +37,5 @@ notification.mp3
 **.exp
 **.lib
 **.obj
+
+*.*.*
