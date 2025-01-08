@@ -1,11 +1,11 @@
-name: automatic
+name: forge-classic
 channels:
   - pytorch
   - defaults
 dependencies:
   - python=3.10
-  - pip=23.0
+  - pip=24.0
   - cudatoolkit=11.8
-  - pytorch=2.0
-  - torchvision=0.15
-  - numpy=1.23
+  - pytorch=2.5
+  - torchvision=0.20
+  - numpy=1.26
