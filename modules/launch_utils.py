@@ -12,7 +12,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import NamedTuple
+from dataclasses import dataclass
 
 from modules import cmd_args, errors, logging_config
 from modules.paths_internal import extensions_builtin_dir, extensions_dir, script_path
@@ -415,35 +415,32 @@ def prepare_environment():
         exit(0)
 
 
-def configure_forge_reference_checkout(a1111_home: Path):
-    """Set model paths based on an existing A1111 checkout."""
-    class ModelRef(NamedTuple):
-        arg_name: str
+def configure_forge_reference_checkout(model_ref: Path):
+    """Set model paths based on an existing A1111 setup"""
+
+    @dataclass
+    class ModelRef:
+        flag: str
         relative_path: str
 
     refs = [
-        ModelRef(arg_name="--ckpt-dir", relative_path="models/Stable-diffusion"),
-        ModelRef(arg_name="--vae-dir", relative_path="models/VAE"),
-        ModelRef(arg_name="--hypernetwork-dir", relative_path="models/hypernetworks"),
-        ModelRef(arg_name="--embeddings-dir", relative_path="embeddings"),
-        ModelRef(arg_name="--lora-dir", relative_path="models/lora"),
-        # Ref A1111 need to have sd-webui-controlnet installed.
-        ModelRef(arg_name="--controlnet-dir", relative_path="models/ControlNet"),
-        ModelRef(arg_name="--controlnet-preprocessor-models-dir", relative_path="extensions/sd-webui-controlnet/annotator/downloads"),
+        ModelRef("--ckpt-dir", "models/Stable-diffusion"),
+        ModelRef("--vae-dir", "models/VAE"),
+        ModelRef("--embeddings-dir", "models/embeddings"),
+        ModelRef("--lora-dir", "models/Lora"),
+        # ModelRef("--hypernetwork-dir", "models/hypernetworks"),
+        ModelRef("--controlnet-dir", "models/ControlNet"),
+        ModelRef("--controlnet-preprocessor-models-dir", "models/ControlNetPreprocessor"),
     ]
 
     for ref in refs:
-        target_path = a1111_home / ref.relative_path
+        target_path = model_ref.joinpath(ref.relative_path)
         if not target_path.exists():
-            print(f"Path {target_path} does not exist. Skip setting {ref.arg_name}")
+            print(f'Path "{target_path}" does not exist. Skipping "{ref.flag}" flag')
             continue
 
-        if ref.arg_name in sys.argv:
-            # Do not override existing dir setting.
-            continue
-
-        sys.argv.append(ref.arg_name)
-        sys.argv.append(str(target_path))
+        if ref.flag not in sys.argv:
+            sys.argv.extend([ref.flag, str(target_path)])
 
 
 def start():
