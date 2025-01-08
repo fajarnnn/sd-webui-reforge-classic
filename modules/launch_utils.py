@@ -63,11 +63,13 @@ def run(command, desc=None, errdesc=None, custom_env=None, live=default_command_
     if desc is not None:
         print(desc)
 
-    if uv and re.search(r"-m\s*pip", command):
-        original_command = command
-        _, dep = command.split("pip")
-        command = f"uv pip {dep}".replace("--prefer-binary", "")
-        live = True
+    if uv:
+        original_command = None
+        if re.search(r"-m\s*pip", command):
+            original_command = command
+            _, dep = command.split("pip")
+            command = f"uv pip {dep}".replace("--prefer-binary", "")
+            live = True
 
     run_kwargs = {
         "args": command,
@@ -83,7 +85,7 @@ def run(command, desc=None, errdesc=None, custom_env=None, live=default_command_
     result = subprocess.run(**run_kwargs)
 
     if result.returncode != 0:
-        if uv:
+        if uv and original_command is not None:
             print("[uv] failed; falling back to pip")
             run_kwargs["args"] = original_command
             result = subprocess.run(**run_kwargs)
