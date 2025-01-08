@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-import os
 
 import torch
+import os
 
 from modules import (
     devices,
@@ -24,24 +24,21 @@ class FaceRestorerGFPGAN(face_restoration_utils.CommonFaceRestoration):
     def name(self):
         return "GFPGAN"
 
-    def get_device(self):
-        return devices.device_gfpgan
-
     def load_net(self) -> torch.Module:
+        os.makedirs(self.model_path, exist_ok=True)
         for model_path in modelloader.load_models(
             model_path=self.model_path,
             model_url=model_url,
             command_path=self.model_path,
             download_name=model_download_name,
-            ext_filter=['.pth'],
+            ext_filter=[".pth"],
         ):
-            if 'GFPGAN' in os.path.basename(model_path):
-                return modelloader.load_spandrel_model(
-                    model_path,
-                    device=self.get_device(),
-                    expected_architecture='GFPGAN',
-                ).model
-        raise ValueError("No GFPGAN model found")
+            return modelloader.load_spandrel_model(
+                model_path,
+                device=devices.device_gfpgan,
+                expected_architecture="GFPGAN",
+            ).model
+        raise ValueError("No GFPGAN Model Found")
 
     def restore(self, np_image):
         def restore_face(cropped_face_t):
