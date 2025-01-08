@@ -2,32 +2,8 @@ import os
 import sys
 
 
-MONITOR_MODEL_MOVING = False
-
-
-def monitor_module_moving():
-    if not MONITOR_MODEL_MOVING:
-        return
-
-    import torch
-    import traceback
-
-    old_to = torch.nn.Module.to
-
-    def new_to(*args, **kwargs):
-        traceback.print_stack()
-        print('Model Movement')
-
-        return old_to(*args, **kwargs)
-
-    torch.nn.Module.to = new_to
-    return
-
-
 def initialize_forge():
-    bad_list = ['--lowvram', '--medvram', '--medvram-sdxl']
-
-    for bad in bad_list:
+    for bad in ('--lowvram', '--medvram', '--medvram-sdxl'):
         if bad in sys.argv:
             print(f'"{bad}" arg has been deprecated in Forge...')
 
@@ -45,8 +21,6 @@ def initialize_forge():
 
     import ldm_patched.modules.model_management as model_management
     import torch
-
-    monitor_module_moving()
 
     device = model_management.get_torch_device()
     torch.zeros((1, 1)).to(device, torch.float32)
@@ -77,4 +51,3 @@ def initialize_forge():
 
     if 'HF_HUB_CACHE' not in os.environ:
         os.environ['HF_HUB_CACHE'] = diffusers_dir
-    return
