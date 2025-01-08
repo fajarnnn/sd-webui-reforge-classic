@@ -11,10 +11,10 @@ __pycache__
 
 /cache
 /extensions
-/repositories
+/models/**/*
 /output
 /outputs
-/test
+/repositories
 /venv
 /log
 /tmp
