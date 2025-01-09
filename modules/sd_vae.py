@@ -2,7 +2,7 @@ import os
 import collections
 from dataclasses import dataclass
 
-from modules import paths, shared, devices, script_callbacks, sd_models, extra_networks, sd_hijack, hashes
+from modules import paths, shared, devices, script_callbacks, sd_models, sd_samplers_common, extra_networks, sd_hijack, hashes
 
 import glob
 from copy import deepcopy
@@ -242,6 +242,7 @@ def _load_vae_dict(model, vae_dict_1):
 def clear_loaded_vae():
     global loaded_vae_file
     loaded_vae_file = None
+    sd_samplers_common.get_decoder.cache_clear()
 
 
 unspecified = object()
