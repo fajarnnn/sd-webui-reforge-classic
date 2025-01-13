@@ -1,7 +1,7 @@
 from modules import shared
 import gradio as gr
 
-shared.options_templates.update(shared.options_section(('canvas_hotkey', "Canvas Hotkeys"), {
+shared.options_templates.update(shared.options_section(("canvas_hotkey", "Canvas Hotkeys", "ui"), {
     "canvas_hotkey_zoom": shared.OptionInfo("Alt", "Zoom canvas", gr.Radio, {"choices": ["Shift","Ctrl", "Alt"]}).info("If you choose 'Shift' you cannot scroll horizontally, 'Alt' can cause a little trouble in firefox"),
     "canvas_hotkey_adjust": shared.OptionInfo("Ctrl", "Adjust brush size", gr.Radio, {"choices": ["Shift","Ctrl", "Alt"]}).info("If you choose 'Shift' you cannot scroll horizontally, 'Alt' can cause a little trouble in firefox"),
     "canvas_hotkey_shrink_brush": shared.OptionInfo("Q", "Shrink the brush size"),
