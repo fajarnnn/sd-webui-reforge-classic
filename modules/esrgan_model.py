@@ -6,11 +6,15 @@ from modules_forge.forge_util import prepare_free_memory
 from functools import lru_cache
 
 
+URL = "https://github.com/cszn/KAIR/releases/download/v1.0/ESRGAN.pth"
+
+
 class UpscalerESRGAN(Upscaler):
-    def __init__(self, dirname):
+
+    def __init__(self, dirname: str):
         self.name = "ESRGAN"
-        self.model_url = "https://github.com/cszn/KAIR/releases/download/v1.0/ESRGAN.pth"
-        self.model_name = "ESRGAN_4x"
+        self.model_url = URL
+        self.model_name = "ESRGAN"
         self.scalers = []
         self.user_path = dirname
         super().__init__()
@@ -33,9 +37,14 @@ class UpscalerESRGAN(Upscaler):
         try:
             model = self.load_model(selected_model)
         except Exception:
-            errors.report(f"Unable to load ESRGAN model {selected_model}", exc_info=True)
+            errors.report(f"Unable to load {selected_model}", exc_info=True)
             return img
-        return esrgan_upscale(model, img)
+        return upscale_with_model(
+            model,
+            img,
+            tile_size=opts.ESRGAN_tile,
+            tile_overlap=opts.ESRGAN_tile_overlap,
+        )
 
     @lru_cache(maxsize=3, typed=False)
     def load_model(self, path: str):
@@ -55,12 +64,3 @@ class UpscalerESRGAN(Upscaler):
         )
         model.to(devices.device_esrgan)
         return model
-
-
-def esrgan_upscale(model, img):
-    return upscale_with_model(
-        model,
-        img,
-        tile_size=opts.ESRGAN_tile,
-        tile_overlap=opts.ESRGAN_tile_overlap,
-    )

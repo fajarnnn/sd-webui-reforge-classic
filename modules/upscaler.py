@@ -8,11 +8,12 @@ import modules.shared
 from modules import modelloader, shared
 
 
-LANCZOS = (Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS)
-NEAREST = (Image.Resampling.NEAREST if hasattr(Image, 'Resampling') else Image.NEAREST)
+LANCZOS = getattr(Image, "Resampling", Image).LANCZOS
+NEAREST = getattr(Image, "Resampling", Image).NEAREST
 
 # hardcode
 UPSCALE_ITERATIONS = 4
+
 
 class Upscaler:
     name = None
@@ -23,7 +24,7 @@ class Upscaler:
     filter = None
     model = None
     user_path = None
-    scalers: []
+    scalers: list["UpscalerData"] = []
     tile = True
 
     def __init__(self, create_dirs=False):
@@ -47,12 +48,12 @@ class Upscaler:
         try:
             import cv2  # noqa: F401
             self.can_tile = True
-        except Exception:
+        except ImportError:
             pass
 
     @abstractmethod
     def do_upscale(self, img: PIL.Image, selected_model: str):
-        return img
+        raise NotImplementedError
 
     def upscale(self, img: PIL.Image, scale, selected_model: str = None):
         self.scale = scale
@@ -71,10 +72,15 @@ class Upscaler:
 
     @abstractmethod
     def load_model(self, path: str):
-        pass
+        raise NotImplementedError
 
     def find_models(self, ext_filter=None) -> list:
-        return modelloader.load_models(model_path=self.model_path, model_url=self.model_url, command_path=self.user_path, ext_filter=ext_filter)
+        return modelloader.load_models(
+            model_path=self.model_path,
+            model_url=self.model_url,
+            command_path=self.user_path,
+            ext_filter=ext_filter,
+        )
 
     def update_status(self, prompt):
         print(f"\nextras: {prompt}", file=shared.progress_print_out)
@@ -87,7 +93,14 @@ class UpscalerData:
     scaler: Upscaler = None
     model: None
 
-    def __init__(self, name: str, path: str, upscaler: Upscaler = None, scale: int = 4, model=None):
+    def __init__(
+        self,
+        name: str,
+        path: str,
+        upscaler: Upscaler = None,
+        scale: int = 4,
+        model=None,
+    ):
         self.name = name
         self.data_path = path
         self.local_data_path = path
@@ -96,32 +109,37 @@ class UpscalerData:
         self.model = model
 
     def __repr__(self):
-        return f"<UpscalerData name={self.name} path={self.data_path} scale={self.scale}>"
+        return (
+            f"<UpscalerData name={self.name}"
+            + f" path={self.data_path}"
+            + f" scale={self.scale}>"
+        )
 
 
 class UpscalerNone(Upscaler):
-    name = "None"
-    scalers = []
 
-    def load_model(self, path):
-        pass
+    def load_model(self, _):
+        return
 
     def do_upscale(self, img, selected_model=None):
         return img
 
     def __init__(self, dirname=None):
         super().__init__(False)
+        self.name = "None"
         self.scalers = [UpscalerData("None", None, self)]
 
 
 class UpscalerLanczos(Upscaler):
-    scalers = []
-
-    def do_upscale(self, img, selected_model=None):
-        return img.resize((int(img.width * self.scale), int(img.height * self.scale)), resample=LANCZOS)
 
     def load_model(self, _):
-        pass
+        return
+
+    def do_upscale(self, img: PIL.Image.Image, selected_model=None):
+        return img.resize(
+            size=(int(img.width * self.scale), int(img.height * self.scale)),
+            resample=LANCZOS,
+        )
 
     def __init__(self, dirname=None):
         super().__init__(False)
@@ -130,13 +148,15 @@ class UpscalerLanczos(Upscaler):
 
 
 class UpscalerNearest(Upscaler):
-    scalers = []
-
-    def do_upscale(self, img, selected_model=None):
-        return img.resize((int(img.width * self.scale), int(img.height * self.scale)), resample=NEAREST)
 
     def load_model(self, _):
-        pass
+        return
+
+    def do_upscale(self, img, selected_model=None):
+        return img.resize(
+            size=(int(img.width * self.scale), int(img.height * self.scale)),
+            resample=NEAREST,
+        )
 
     def __init__(self, dirname=None):
         super().__init__(False)

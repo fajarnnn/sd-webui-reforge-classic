@@ -27,10 +27,9 @@ def torch_bgr_to_pil_image(tensor: torch.Tensor) -> Image.Image:
             raise ValueError(f"{tensor.shape} does not describe a BCHW tensor")
         tensor = tensor.squeeze(0)
     assert tensor.ndim == 3, f"{tensor.shape} does not describe a CHW tensor"
-    # TODO: is `tensor.float().cpu()...numpy()` the most efficient idiom?
-    arr = tensor.float().cpu().clamp_(0, 1).numpy()  # clamp
+    arr = tensor.detach().float().cpu().numpy()
     arr = 255.0 * np.moveaxis(arr, 0, 2)  # CHW to HWC, rescale
-    arr = arr.round().astype(np.uint8)
+    arr = np.clip(arr, 0, 255).astype(np.uint8)  # clamp
     arr = arr[:, :, ::-1]  # flip BGR to RGB
     return Image.fromarray(arr, "RGB")
 
@@ -65,7 +64,11 @@ def upscale_with_model(
     grid = images.split_grid(img, tile_size, tile_size, tile_overlap)
     newtiles = []
 
-    with tqdm.tqdm(total=grid.tile_count, desc=desc, disable=not shared.opts.enable_upscale_progressbar) as p:
+    with tqdm.tqdm(
+        total=grid.tile_count,
+        desc=desc,
+        disable=not shared.opts.enable_upscale_progressbar,
+    ) as p:
         for y, h, row in grid.tiles:
             newrow = []
             for x, w, tile in row:
@@ -98,10 +101,12 @@ def tiled_upscale_2(
     device: torch.device,
     desc="Tiled upscale",
 ):
-    # Alternative implementation of `upscale_with_model` originally used by
-    # SwinIR and ScuNET.  It differs from `upscale_with_model` in that tiling and
-    # weighting is done in PyTorch space, as opposed to `images.Grid` doing it in
-    # Pillow space without weighting.
+    """
+    Alternative implementation of `upscale_with_model` originally used by
+    SwinIR and ScuNET. It differs from `upscale_with_model` in that tiling and
+    weighting is done in PyTorch space, as opposed to `images.Grid` doing it in
+    Pillow space without weighting.
+    """
 
     b, c, h, w = img.size()
     tile_size = min(tile_size, h, w)
@@ -123,7 +128,11 @@ def tiled_upscale_2(
     )
     weights = torch.zeros_like(result)
     logger.debug("Upscaling %s to %s with tiles", img.shape, result.shape)
-    with tqdm.tqdm(total=len(h_idx_list) * len(w_idx_list), desc=desc, disable=not shared.opts.enable_upscale_progressbar) as pbar:
+    with tqdm.tqdm(
+        total=len(h_idx_list) * len(w_idx_list),
+        desc=desc,
+        disable=not shared.opts.enable_upscale_progressbar,
+    ) as pbar:
         for h_idx in h_idx_list:
             if shared.state.interrupted or shared.state.skipped:
                 break
@@ -175,7 +184,7 @@ def upscale_2(
     Convenience wrapper around `tiled_upscale_2` that handles PIL images.
     """
     param = torch_utils.get_param(model)
-    tensor = pil_image_to_torch_bgr(img).to(dtype=param.dtype).unsqueeze(0)  # add batch dimension
+    tensor = pil_image_to_torch_bgr(img).to(dtype=param.dtype).unsqueeze(0)
 
     with torch.inference_mode():
         output = tiled_upscale_2(

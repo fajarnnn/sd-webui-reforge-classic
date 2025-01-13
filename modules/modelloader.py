@@ -3,17 +3,17 @@ from __future__ import annotations
 import importlib
 import logging
 import os
-from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import torch
+import spandrel
+import spandrel_extra_arches
 
 from modules import shared
 from modules.upscaler import Upscaler, UpscalerLanczos, UpscalerNearest, UpscalerNone
 
-if TYPE_CHECKING:
-    import spandrel
 
+spandrel_extra_arches.install()
 logger = logging.getLogger(__name__)
 
 
@@ -24,8 +24,8 @@ def load_file_from_url(
     progress: bool = True,
     file_name: str | None = None,
 ) -> str:
-    """Download a file from `url` into `model_dir`, using the file present if possible.
-
+    """
+    Download a file from `url` into `model_dir`, using the file present if possible.
     Returns the path to the downloaded file.
     """
     os.makedirs(model_dir, exist_ok=True)
@@ -40,15 +40,23 @@ def load_file_from_url(
     return cached_file
 
 
-def load_models(model_path: str, model_url: str = None, command_path: str = None, ext_filter=None, download_name=None, ext_blacklist=None) -> list:
+def load_models(
+    model_path: str,
+    model_url: str = None,
+    command_path: str = None,
+    ext_filter=None,
+    download_name=None,
+    ext_blacklist=None,
+) -> list:
     """
-    A one-and done loader to try finding the desired models in specified directories.
+    A one-and-done loader to try finding the desired models in specified directories.
 
-    @param download_name: Specify to download from model_url immediately.
-    @param model_url: If no other models are found, this will be downloaded on upscale.
-    @param model_path: The location to store/find models in.
-    @param command_path: A command-line argument to search for models in first.
-    @param ext_filter: An optional list of filename extensions to filter by
+    - download_name: Specify to download from model_url immediately.
+    - model_url: If no other models are found, this will be downloaded on upscale.
+    - model_path: The location to store/find models in.
+    - command_path: A command-line argument to search for models in first.
+    - ext_filter: An optional list of filename extensions to filter by
+
     @return: A list of paths containing the desired model(s)
     """
     output = []
@@ -57,7 +65,7 @@ def load_models(model_path: str, model_url: str = None, command_path: str = None
         places = []
 
         if command_path is not None and command_path != model_path:
-            pretrained_path = os.path.join(command_path, 'experiments/pretrained_models')
+            pretrained_path = os.path.join(command_path, "experiments", "pretrained_models")
             if os.path.exists(pretrained_path):
                 print(f"Appending path: {pretrained_path}")
                 places.append(pretrained_path)
@@ -93,24 +101,15 @@ def friendly_name(file: str):
         file = urlparse(file).path
 
     file = os.path.basename(file)
-    model_name, extension = os.path.splitext(file)
+    model_name, _ = os.path.splitext(file)
     return model_name
 
 
 def load_upscalers():
     # We can only do this 'magic' method to dynamically load upscalers if they are referenced,
-    # so we'll try to import any _model.py files before looking in __subclasses__
-    modules_dir = os.path.join(shared.script_path, "modules")
-    for file in os.listdir(modules_dir):
-        if "_model.py" in file:
-            model_name = file.replace("_model.py", "")
-            full_model = f"modules.{model_name}_model"
-            try:
-                importlib.import_module(full_model)
-            except Exception:
-                pass
-
-    datas = []
+    # so we'll try to import the esrgan_model.py file before looking in __subclasses__
+    importlib.import_module("modules.esrgan_model")
+    all_upscalers = []
     commandline_options = vars(shared.cmd_opts)
 
     # some of upscaler classes will not go away after reloading their modules, and we'll end
@@ -129,12 +128,16 @@ def load_upscalers():
         scaler = cls(commandline_model_path)
         scaler.user_path = commandline_model_path
         scaler.model_download_path = commandline_model_path or scaler.model_path
-        datas += scaler.scalers
+        all_upscalers += scaler.scalers
 
     shared.sd_upscalers = sorted(
-        datas,
+        all_upscalers,
         # Special case for UpscalerNone keeps it at the beginning of the list.
-        key=lambda x: x.name.lower() if not isinstance(x.scaler, (UpscalerNone, UpscalerLanczos, UpscalerNearest)) else ""
+        key=lambda x: (
+            ""
+            if isinstance(x.scaler, (UpscalerNone, UpscalerLanczos, UpscalerNearest))
+            else x.name.lower()
+        ),
     )
 
 
@@ -146,24 +149,25 @@ def load_spandrel_model(
     dtype: str | torch.dtype | None = None,
     expected_architecture: str | None = None,
 ) -> spandrel.ModelDescriptor:
-    import spandrel
     model_descriptor = spandrel.ModelLoader(device=device).load_from_file(str(path))
-    if expected_architecture and model_descriptor.architecture != expected_architecture:
-        logger.warning(
-            f"Model {path!r} is not a {expected_architecture!r} model (got {model_descriptor.architecture!r})",
-        )
+    arch = model_descriptor.architecture
+    logger.info(f'Loaded {arch.name} Model: "{os.path.basename(path)}"')
+
     half = False
     if prefer_half:
         if model_descriptor.supports_half:
             model_descriptor.model.half()
             half = True
         else:
-            logger.info("Model %s does not support half precision, ignoring --half", path)
+            logger.warning(f"Model {path} does not support half precision...")
+
     if dtype:
         model_descriptor.model.to(dtype=dtype)
-    model_descriptor.model.eval()
+
     logger.debug(
         "Loaded %s from %s (device=%s, half=%s, dtype=%s)",
-        model_descriptor, path, device, half, dtype,
+        arch, path, device, half, dtype,
     )
+
+    model_descriptor.model.eval()
     return model_descriptor

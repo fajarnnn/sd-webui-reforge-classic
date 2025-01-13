@@ -3,49 +3,33 @@ import sys
 from modules.shared_cmd_options import cmd_opts
 
 
-def realesrgan_models_names():
-    import modules.realesrgan_model
-    return [x.name for x in modules.realesrgan_model.get_realesrgan_models(None)]
-
-
-def dat_models_names():
-    import modules.dat_model
-    return [x.name for x in modules.dat_model.get_dat_models(None)]
-
-
 def postprocessing_scripts():
     import modules.scripts
-
     return modules.scripts.scripts_postproc.scripts
 
 
 def sd_vae_items():
     import modules.sd_vae
-
     return ["Automatic", "None"] + list(modules.sd_vae.vae_dict)
 
 
 def refresh_vae_list():
     import modules.sd_vae
-
     modules.sd_vae.refresh_vae_list()
 
 
 def cross_attention_optimizations():
     import modules.sd_hijack
-
     return ["Automatic"] + [x.title() for x in modules.sd_hijack.optimizers] + ["None"]
 
 
 def sd_unet_items():
     import modules.sd_unet
-
     return ["Automatic"] + [x.label for x in modules.sd_unet.unet_options] + ["None"]
 
 
 def refresh_unet_list():
     import modules.sd_unet
-
     modules.sd_unet.list_unets()
 
 
@@ -110,7 +94,10 @@ def ui_reorder_categories():
 
     sections = {}
     for script in scripts.scripts_txt2img.scripts + scripts.scripts_img2img.scripts:
-        if isinstance(script.section, str) and script.section not in ui_reorder_categories_builtin_items:
+        if (
+            isinstance(script.section, str)
+            and script.section not in ui_reorder_categories_builtin_items
+        ):
             sections[script.section] = 1
 
     yield from sections
@@ -139,4 +126,4 @@ class Shared(sys.modules[__name__].__class__):
         modules.sd_models.model_data.set_sd_model(value)
 
 
-sys.modules['modules.shared'].__class__ = Shared
+sys.modules["modules.shared"].__class__ = Shared
