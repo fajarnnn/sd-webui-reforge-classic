@@ -4,20 +4,20 @@
 # 4th edit by https://github.com/comfyanonymous/ComfyUI
 # 5th edit by Forge
 
+import math
 from contextlib import contextmanager
 from typing import Tuple, Union
-import torch
-import math
-
-from ldm_patched.ldm.modules.distributions.distributions import DiagonalGaussianDistribution
-from ldm_patched.ldm.util import instantiate_from_config
-from ldm_patched.ldm.modules.ema import LitEma
 
 import ldm_patched.modules.ops
+import torch
+from ldm_patched.ldm.modules.distributions.distributions import (
+    DiagonalGaussianDistribution,
+)
+from ldm_patched.ldm.modules.ema import LitEma
+from ldm_patched.ldm.util import instantiate_from_config
 
 
 class DiagonalGaussianRegularizer(torch.nn.Module):
-
     def __init__(self, sample: bool = True):
         super().__init__()
         self.sample = sample

@@ -217,7 +217,7 @@ def split_cross_attention_forward_v1(self, x, context=None, mask=None, **kwargs)
     return self.to_out(r2)
 
 
-# taken from https://github.com/Doggettx/stable-diffusion and modified
+# Taken & Modified from: https://github.com/Doggettx/stable-diffusion
 def split_cross_attention_forward(self, x, context=None, mask=None, **kwargs):
     h = self.heads
 

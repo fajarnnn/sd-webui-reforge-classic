@@ -7,8 +7,8 @@ https://github.com/comfyanonymous/ComfyUI
 """
 
 import contextlib
-import torch
 
+import torch
 from ldm_patched.modules.model_management import cast_to_device
 from modules_forge import stream
 
@@ -84,7 +84,6 @@ def main_stream_worker(weight, bias, signal):
 
     for k in garbage:
         del stash[k]
-    return
 
 
 def cleanup_cache():
@@ -94,7 +93,6 @@ def cleanup_cache():
     stream.current_stream.synchronize()
     stream.mover_stream.synchronize()
     stash.clear()
-    return
 
 
 class disable_weight_init:
@@ -229,49 +227,51 @@ def fp8_linear(self, input):
         tensor_2d = True
         input = input.unsqueeze(1)
 
-    if len(input.shape) == 3:
-        w, bias, signal = cast_bias_weight(
-            self, input, dtype=dtype, bias_dtype=input.dtype
+    if len(input.shape) != 3:
+        return None
+
+    input_shape = input.shape
+    input_dtype = input.dtype
+    input_device = input.device
+
+    w, bias, signal = cast_bias_weight(self, input, dtype=dtype, bias_dtype=input_dtype)
+    w = w.t()
+
+    scale_weight = self.scale_weight
+    scale_input = self.scale_input
+    if scale_weight is None:
+        scale_weight = torch.ones((), device=input_device, dtype=torch.float32)
+    else:
+        scale_weight = scale_weight.to(input_device)
+
+    if scale_input is None:
+        scale_input = torch.ones((), device=input_device, dtype=torch.float32)
+        inn = torch.clamp(input, min=-448, max=448).view(-1, input_shape[2]).to(dtype)
+    else:
+        scale_input = scale_input.to(input_device)
+        inn = (
+            (input * (1.0 / scale_input).to(input_dtype))
+            .view(-1, input_shape[2])
+            .to(dtype)
         )
-        w = w.t()
 
-        scale_weight = self.scale_weight
-        scale_input = self.scale_input
-        if scale_weight is None:
-            scale_weight = torch.ones((), device=input.device, dtype=torch.float32)
-        else:
-            scale_weight = scale_weight.to(input.device)
+    with main_stream_worker(w, bias, signal):
+        o = torch._scaled_mm(
+            input=inn,
+            mat2=w,
+            bias=bias,
+            out_dtype=input_dtype,
+            scale_a=scale_input,
+            scale_b=scale_weight,
+        )
 
-        if scale_input is None:
-            scale_input = torch.ones((), device=input.device, dtype=torch.float32)
-            inn = torch.clamp(input, min=-448, max=448).view(-1, input.shape[2]).to(dtype)
-        else:
-            scale_input = scale_input.to(input.device)
-            inn = (
-                (input * (1.0 / scale_input).to(input.dtype))
-                .view(-1, input.shape[2])
-                .to(dtype)
-            )
+    if isinstance(o, tuple):
+        o = o[0]
 
-        with main_stream_worker(w, bias, signal):
-            o = torch._scaled_mm(
-                input=inn,
-                mat2=w,
-                bias=bias,
-                out_dtype=input.dtype,
-                scale_a=scale_input,
-                scale_b=scale_weight,
-            )
-
-        if isinstance(o, tuple):
-            o = o[0]
-
-        if tensor_2d:
-            return o.view(input.shape[0], -1)
-
-        return o.view((-1, input.shape[1], self.weight.shape[0]))
-
-    return None
+    if tensor_2d:
+        return o.view(input_shape[0], -1)
+    else:
+        return o.view((-1, input_shape[1], self.weight.shape[0]))
 
 
 class fp8_ops(manual_cast):

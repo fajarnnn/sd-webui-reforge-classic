@@ -3,10 +3,12 @@ https://github.com/dbolya/tomesd
 https://github.com/comfyanonymous/ComfyUI/blob/master/comfy_extras/nodes_tomesd.py
 """
 
-from typing import Tuple, Callable
-from modules.shared import opts
-import torch
 import math
+from typing import Callable, Tuple
+
+import torch
+
+from modules.shared import opts
 
 
 def do_nothing(x: torch.Tensor, mode: str = None):
@@ -50,7 +52,6 @@ def bipartite_soft_matching_random2d(
     gather = mps_gather_workaround if metric.device.type == "mps" else torch.gather
 
     with torch.no_grad():
-
         hsy, wsx = h // sy, w // sx
 
         # For each sy by sx kernel, randomly assign one token to be dst and the rest src
@@ -180,7 +181,6 @@ def get_functions(x, ratio, original_shape):
 
 
 class TomePatcher:
-
     @classmethod
     def patch(cls, model, ratio):
         cls.u = None

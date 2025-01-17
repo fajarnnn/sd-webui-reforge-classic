@@ -2,26 +2,33 @@
 # 2nd edit by Forge Official
 
 
-import torch
 import copy
 import inspect
 
-import ldm_patched.modules.utils
 import ldm_patched.modules.model_management
-
+import ldm_patched.modules.utils
+import torch
 
 extra_weight_calculators = {}
 
 
 class ModelPatcher:
-    def __init__(self, model, load_device, offload_device, size=0, current_device=None, weight_inplace_update=False):
+    def __init__(
+        self,
+        model,
+        load_device,
+        offload_device,
+        size=0,
+        current_device=None,
+        weight_inplace_update=False,
+    ):
         self.size = size
         self.model = model
         self.patches = {}
         self.backup = {}
         self.object_patches = {}
         self.object_patches_backup = {}
-        self.model_options = {"transformer_options":{}}
+        self.model_options = {"transformer_options": {}}
         self.model_size()
         self.load_device = load_device
         self.offload_device = offload_device
@@ -41,7 +48,14 @@ class ModelPatcher:
         return self.size
 
     def clone(self):
-        n = ModelPatcher(self.model, self.load_device, self.offload_device, self.size, self.current_device, weight_inplace_update=self.weight_inplace_update)
+        n = ModelPatcher(
+            self.model,
+            self.load_device,
+            self.offload_device,
+            self.size,
+            self.current_device,
+            weight_inplace_update=self.weight_inplace_update,
+        )
         n.patches = {}
         for k in self.patches:
             n.patches[k] = self.patches[k][:]
@@ -52,23 +66,33 @@ class ModelPatcher:
         return n
 
     def is_clone(self, other):
-        if hasattr(other, 'model') and self.model is other.model:
+        if hasattr(other, "model") and self.model is other.model:
             return True
         return False
 
     def memory_required(self, input_shape):
         return self.model.memory_required(input_shape=input_shape)
 
-    def set_model_sampler_cfg_function(self, sampler_cfg_function, disable_cfg1_optimization=False):
+    def set_model_sampler_cfg_function(
+        self, sampler_cfg_function, disable_cfg1_optimization=False
+    ):
         if len(inspect.signature(sampler_cfg_function).parameters) == 3:
-            self.model_options["sampler_cfg_function"] = lambda args: sampler_cfg_function(args["cond"], args["uncond"], args["cond_scale"]) #Old way
+            self.model_options["sampler_cfg_function"] = (
+                lambda args: sampler_cfg_function(
+                    args["cond"], args["uncond"], args["cond_scale"]
+                )
+            )  # Old way
         else:
             self.model_options["sampler_cfg_function"] = sampler_cfg_function
         if disable_cfg1_optimization:
             self.model_options["disable_cfg1_optimization"] = True
 
-    def set_model_sampler_post_cfg_function(self, post_cfg_function, disable_cfg1_optimization=False):
-        self.model_options["sampler_post_cfg_function"] = self.model_options.get("sampler_post_cfg_function", []) + [post_cfg_function]
+    def set_model_sampler_post_cfg_function(
+        self, post_cfg_function, disable_cfg1_optimization=False
+    ):
+        self.model_options["sampler_post_cfg_function"] = self.model_options.get(
+            "sampler_post_cfg_function", []
+        ) + [post_cfg_function]
         if disable_cfg1_optimization:
             self.model_options["disable_cfg1_optimization"] = True
 
@@ -87,7 +111,9 @@ class ModelPatcher:
             to["patches"] = {}
         to["patches"][name] = to["patches"].get(name, []) + [patch]
 
-    def set_model_patch_replace(self, patch, name, block_name, number, transformer_index=None):
+    def set_model_patch_replace(
+        self, patch, name, block_name, number, transformer_index=None
+    ):
         to = self.model_options["transformer_options"]
         if "patches_replace" not in to:
             to["patches_replace"] = {}
@@ -105,11 +131,19 @@ class ModelPatcher:
     def set_model_attn2_patch(self, patch):
         self.set_model_patch(patch, "attn2_patch")
 
-    def set_model_attn1_replace(self, patch, block_name, number, transformer_index=None):
-        self.set_model_patch_replace(patch, "attn1", block_name, number, transformer_index)
+    def set_model_attn1_replace(
+        self, patch, block_name, number, transformer_index=None
+    ):
+        self.set_model_patch_replace(
+            patch, "attn1", block_name, number, transformer_index
+        )
 
-    def set_model_attn2_replace(self, patch, block_name, number, transformer_index=None):
-        self.set_model_patch_replace(patch, "attn2", block_name, number, transformer_index)
+    def set_model_attn2_replace(
+        self, patch, block_name, number, transformer_index=None
+    ):
+        self.set_model_patch_replace(
+            patch, "attn2", block_name, number, transformer_index
+        )
 
     def set_model_attn1_output_patch(self, patch):
         self.set_model_patch(patch, "attn1_output_patch")
@@ -193,7 +227,9 @@ class ModelPatcher:
             old = ldm_patched.modules.utils.get_attr(self.model, k)
             if k not in self.object_patches_backup:
                 self.object_patches_backup[k] = old
-            ldm_patched.modules.utils.set_attr_raw(self.model, k, self.object_patches[k])
+            ldm_patched.modules.utils.set_attr_raw(
+                self.model, k, self.object_patches[k]
+            )
 
         if patch_weights:
             model_sd = self.model_state_dict()
@@ -207,13 +243,19 @@ class ModelPatcher:
                 inplace_update = self.weight_inplace_update
 
                 if key not in self.backup:
-                    self.backup[key] = weight.to(device=self.offload_device, copy=inplace_update)
+                    self.backup[key] = weight.to(
+                        device=self.offload_device, copy=inplace_update
+                    )
 
                 if device_to is not None:
-                    temp_weight = ldm_patched.modules.model_management.cast_to_device(weight, device_to, torch.float32, copy=True)
+                    temp_weight = ldm_patched.modules.model_management.cast_to_device(
+                        weight, device_to, torch.float32, copy=True
+                    )
                 else:
                     temp_weight = weight.to(torch.float32, copy=True)
-                out_weight = self.calculate_weight(self.patches[key], temp_weight, key).to(weight.dtype)
+                out_weight = self.calculate_weight(
+                    self.patches[key], temp_weight, key
+                ).to(weight.dtype)
                 if inplace_update:
                     ldm_patched.modules.utils.copy_to_param(self.model, key, out_weight)
                 else:
@@ -236,7 +278,7 @@ class ModelPatcher:
                 weight *= strength_model
 
             if isinstance(v, list):
-                v = (self.calculate_weight(v[1:], v[0].clone(), key), )
+                v = (self.calculate_weight(v[1:], v[0].clone(), key),)
 
             if len(v) == 1:
                 patch_type = "diff"
@@ -249,30 +291,83 @@ class ModelPatcher:
                 if alpha != 0.0:
                     if w1.shape != weight.shape:
                         if w1.ndim == weight.ndim == 4:
-                            new_shape = [max(n, m) for n, m in zip(weight.shape, w1.shape)]
-                            print(f'Merged with {key} channel changed to {new_shape}')
-                            new_diff = alpha * ldm_patched.modules.model_management.cast_to_device(w1, weight.device, weight.dtype)
+                            new_shape = [
+                                max(n, m) for n, m in zip(weight.shape, w1.shape)
+                            ]
+                            print(f"Merged with {key} channel changed to {new_shape}")
+                            new_diff = (
+                                alpha
+                                * ldm_patched.modules.model_management.cast_to_device(
+                                    w1, weight.device, weight.dtype
+                                )
+                            )
                             new_weight = torch.zeros(size=new_shape).to(weight)
-                            new_weight[:weight.shape[0], :weight.shape[1], :weight.shape[2], :weight.shape[3]] = weight
-                            new_weight[:new_diff.shape[0], :new_diff.shape[1], :new_diff.shape[2], :new_diff.shape[3]] += new_diff
+                            new_weight[
+                                : weight.shape[0],
+                                : weight.shape[1],
+                                : weight.shape[2],
+                                : weight.shape[3],
+                            ] = weight
+                            new_weight[
+                                : new_diff.shape[0],
+                                : new_diff.shape[1],
+                                : new_diff.shape[2],
+                                : new_diff.shape[3],
+                            ] += new_diff
                             new_weight = new_weight.contiguous().clone()
                             weight = new_weight
                         else:
-                            print("WARNING SHAPE MISMATCH {} WEIGHT NOT MERGED {} != {}".format(key, w1.shape, weight.shape))
+                            print(
+                                "WARNING SHAPE MISMATCH {} WEIGHT NOT MERGED {} != {}".format(
+                                    key, w1.shape, weight.shape
+                                )
+                            )
                     else:
-                        weight += alpha * ldm_patched.modules.model_management.cast_to_device(w1, weight.device, weight.dtype)
-            elif patch_type == "lora": #lora/locon
-                mat1 = ldm_patched.modules.model_management.cast_to_device(v[0], weight.device, torch.float32)
-                mat2 = ldm_patched.modules.model_management.cast_to_device(v[1], weight.device, torch.float32)
+                        weight += (
+                            alpha
+                            * ldm_patched.modules.model_management.cast_to_device(
+                                w1, weight.device, weight.dtype
+                            )
+                        )
+            elif patch_type == "lora":  # lora/locon
+                mat1 = ldm_patched.modules.model_management.cast_to_device(
+                    v[0], weight.device, torch.float32
+                )
+                mat2 = ldm_patched.modules.model_management.cast_to_device(
+                    v[1], weight.device, torch.float32
+                )
                 if v[2] is not None:
                     alpha *= v[2] / mat2.shape[0]
                 if v[3] is not None:
-                    #locon mid weights, hopefully the math is fine because I didn't properly test it
-                    mat3 = ldm_patched.modules.model_management.cast_to_device(v[3], weight.device, torch.float32)
-                    final_shape = [mat2.shape[1], mat2.shape[0], mat3.shape[2], mat3.shape[3]]
-                    mat2 = torch.mm(mat2.transpose(0, 1).flatten(start_dim=1), mat3.transpose(0, 1).flatten(start_dim=1)).reshape(final_shape).transpose(0, 1)
+                    # locon mid weights, hopefully the math is fine because I didn't properly test it
+                    mat3 = ldm_patched.modules.model_management.cast_to_device(
+                        v[3], weight.device, torch.float32
+                    )
+                    final_shape = [
+                        mat2.shape[1],
+                        mat2.shape[0],
+                        mat3.shape[2],
+                        mat3.shape[3],
+                    ]
+                    mat2 = (
+                        torch.mm(
+                            mat2.transpose(0, 1).flatten(start_dim=1),
+                            mat3.transpose(0, 1).flatten(start_dim=1),
+                        )
+                        .reshape(final_shape)
+                        .transpose(0, 1)
+                    )
                 try:
-                    weight += (alpha * torch.mm(mat1.flatten(start_dim=1), mat2.flatten(start_dim=1))).reshape(weight.shape).type(weight.dtype)
+                    weight += (
+                        (
+                            alpha
+                            * torch.mm(
+                                mat1.flatten(start_dim=1), mat2.flatten(start_dim=1)
+                            )
+                        )
+                        .reshape(weight.shape)
+                        .type(weight.dtype)
+                    )
                 except Exception as e:
                     print("ERROR", key, e)
             elif patch_type == "lokr":
@@ -287,23 +382,47 @@ class ModelPatcher:
 
                 if w1 is None:
                     dim = w1_b.shape[0]
-                    w1 = torch.mm(ldm_patched.modules.model_management.cast_to_device(w1_a, weight.device, torch.float32),
-                                  ldm_patched.modules.model_management.cast_to_device(w1_b, weight.device, torch.float32))
+                    w1 = torch.mm(
+                        ldm_patched.modules.model_management.cast_to_device(
+                            w1_a, weight.device, torch.float32
+                        ),
+                        ldm_patched.modules.model_management.cast_to_device(
+                            w1_b, weight.device, torch.float32
+                        ),
+                    )
                 else:
-                    w1 = ldm_patched.modules.model_management.cast_to_device(w1, weight.device, torch.float32)
+                    w1 = ldm_patched.modules.model_management.cast_to_device(
+                        w1, weight.device, torch.float32
+                    )
 
                 if w2 is None:
                     dim = w2_b.shape[0]
                     if t2 is None:
-                        w2 = torch.mm(ldm_patched.modules.model_management.cast_to_device(w2_a, weight.device, torch.float32),
-                                      ldm_patched.modules.model_management.cast_to_device(w2_b, weight.device, torch.float32))
+                        w2 = torch.mm(
+                            ldm_patched.modules.model_management.cast_to_device(
+                                w2_a, weight.device, torch.float32
+                            ),
+                            ldm_patched.modules.model_management.cast_to_device(
+                                w2_b, weight.device, torch.float32
+                            ),
+                        )
                     else:
-                        w2 = torch.einsum('i j k l, j r, i p -> p r k l',
-                                          ldm_patched.modules.model_management.cast_to_device(t2, weight.device, torch.float32),
-                                          ldm_patched.modules.model_management.cast_to_device(w2_b, weight.device, torch.float32),
-                                          ldm_patched.modules.model_management.cast_to_device(w2_a, weight.device, torch.float32))
+                        w2 = torch.einsum(
+                            "i j k l, j r, i p -> p r k l",
+                            ldm_patched.modules.model_management.cast_to_device(
+                                t2, weight.device, torch.float32
+                            ),
+                            ldm_patched.modules.model_management.cast_to_device(
+                                w2_b, weight.device, torch.float32
+                            ),
+                            ldm_patched.modules.model_management.cast_to_device(
+                                w2_a, weight.device, torch.float32
+                            ),
+                        )
                 else:
-                    w2 = ldm_patched.modules.model_management.cast_to_device(w2, weight.device, torch.float32)
+                    w2 = ldm_patched.modules.model_management.cast_to_device(
+                        w2, weight.device, torch.float32
+                    )
 
                 if len(w2.shape) == 4:
                     w1 = w1.unsqueeze(2).unsqueeze(2)
@@ -311,7 +430,9 @@ class ModelPatcher:
                     alpha *= v[2] / dim
 
                 try:
-                    weight += alpha * torch.kron(w1, w2).reshape(weight.shape).type(weight.dtype)
+                    weight += alpha * torch.kron(w1, w2).reshape(weight.shape).type(
+                        weight.dtype
+                    )
                 except Exception as e:
                     print("ERROR", key, e)
             elif patch_type == "loha":
@@ -321,23 +442,51 @@ class ModelPatcher:
                     alpha *= v[2] / w1b.shape[0]
                 w2a = v[3]
                 w2b = v[4]
-                if v[5] is not None: #cp decomposition
+                if v[5] is not None:  # cp decomposition
                     t1 = v[5]
                     t2 = v[6]
-                    m1 = torch.einsum('i j k l, j r, i p -> p r k l',
-                                      ldm_patched.modules.model_management.cast_to_device(t1, weight.device, torch.float32),
-                                      ldm_patched.modules.model_management.cast_to_device(w1b, weight.device, torch.float32),
-                                      ldm_patched.modules.model_management.cast_to_device(w1a, weight.device, torch.float32))
+                    m1 = torch.einsum(
+                        "i j k l, j r, i p -> p r k l",
+                        ldm_patched.modules.model_management.cast_to_device(
+                            t1, weight.device, torch.float32
+                        ),
+                        ldm_patched.modules.model_management.cast_to_device(
+                            w1b, weight.device, torch.float32
+                        ),
+                        ldm_patched.modules.model_management.cast_to_device(
+                            w1a, weight.device, torch.float32
+                        ),
+                    )
 
-                    m2 = torch.einsum('i j k l, j r, i p -> p r k l',
-                                      ldm_patched.modules.model_management.cast_to_device(t2, weight.device, torch.float32),
-                                      ldm_patched.modules.model_management.cast_to_device(w2b, weight.device, torch.float32),
-                                      ldm_patched.modules.model_management.cast_to_device(w2a, weight.device, torch.float32))
+                    m2 = torch.einsum(
+                        "i j k l, j r, i p -> p r k l",
+                        ldm_patched.modules.model_management.cast_to_device(
+                            t2, weight.device, torch.float32
+                        ),
+                        ldm_patched.modules.model_management.cast_to_device(
+                            w2b, weight.device, torch.float32
+                        ),
+                        ldm_patched.modules.model_management.cast_to_device(
+                            w2a, weight.device, torch.float32
+                        ),
+                    )
                 else:
-                    m1 = torch.mm(ldm_patched.modules.model_management.cast_to_device(w1a, weight.device, torch.float32),
-                                  ldm_patched.modules.model_management.cast_to_device(w1b, weight.device, torch.float32))
-                    m2 = torch.mm(ldm_patched.modules.model_management.cast_to_device(w2a, weight.device, torch.float32),
-                                  ldm_patched.modules.model_management.cast_to_device(w2b, weight.device, torch.float32))
+                    m1 = torch.mm(
+                        ldm_patched.modules.model_management.cast_to_device(
+                            w1a, weight.device, torch.float32
+                        ),
+                        ldm_patched.modules.model_management.cast_to_device(
+                            w1b, weight.device, torch.float32
+                        ),
+                    )
+                    m2 = torch.mm(
+                        ldm_patched.modules.model_management.cast_to_device(
+                            w2a, weight.device, torch.float32
+                        ),
+                        ldm_patched.modules.model_management.cast_to_device(
+                            w2b, weight.device, torch.float32
+                        ),
+                    )
 
                 try:
                     weight += (alpha * m1 * m2).reshape(weight.shape).type(weight.dtype)
@@ -347,12 +496,30 @@ class ModelPatcher:
                 if v[4] is not None:
                     alpha *= v[4] / v[0].shape[0]
 
-                a1 = ldm_patched.modules.model_management.cast_to_device(v[0].flatten(start_dim=1), weight.device, torch.float32)
-                a2 = ldm_patched.modules.model_management.cast_to_device(v[1].flatten(start_dim=1), weight.device, torch.float32)
-                b1 = ldm_patched.modules.model_management.cast_to_device(v[2].flatten(start_dim=1), weight.device, torch.float32)
-                b2 = ldm_patched.modules.model_management.cast_to_device(v[3].flatten(start_dim=1), weight.device, torch.float32)
+                a1 = ldm_patched.modules.model_management.cast_to_device(
+                    v[0].flatten(start_dim=1), weight.device, torch.float32
+                )
+                a2 = ldm_patched.modules.model_management.cast_to_device(
+                    v[1].flatten(start_dim=1), weight.device, torch.float32
+                )
+                b1 = ldm_patched.modules.model_management.cast_to_device(
+                    v[2].flatten(start_dim=1), weight.device, torch.float32
+                )
+                b2 = ldm_patched.modules.model_management.cast_to_device(
+                    v[3].flatten(start_dim=1), weight.device, torch.float32
+                )
 
-                weight += ((torch.mm(b2, b1) + torch.mm(torch.mm(weight.flatten(start_dim=1), a2), a1)) * alpha).reshape(weight.shape).type(weight.dtype)
+                weight += (
+                    (
+                        (
+                            torch.mm(b2, b1)
+                            + torch.mm(torch.mm(weight.flatten(start_dim=1), a2), a1)
+                        )
+                        * alpha
+                    )
+                    .reshape(weight.shape)
+                    .type(weight.dtype)
+                )
             elif patch_type in extra_weight_calculators:
                 weight = extra_weight_calculators[patch_type](weight, alpha, v)
             else:
@@ -378,6 +545,8 @@ class ModelPatcher:
 
         keys = list(self.object_patches_backup.keys())
         for k in keys:
-            ldm_patched.modules.utils.set_attr_raw(self.model, k, self.object_patches_backup[k])
+            ldm_patched.modules.utils.set_attr_raw(
+                self.model, k, self.object_patches_backup[k]
+            )
 
         self.object_patches_backup = {}
