@@ -428,7 +428,6 @@ def configure_forge_reference_checkout(model_ref: Path):
         ModelRef("--vae-dir", "models/VAE"),
         ModelRef("--embeddings-dir", "models/embeddings"),
         ModelRef("--lora-dir", "models/Lora"),
-        # ModelRef("--hypernetwork-dir", "models/hypernetworks"),
         ModelRef("--controlnet-dir", "models/ControlNet"),
         ModelRef("--controlnet-preprocessor-models-dir", "models/ControlNetPreprocessor"),
     ]

@@ -2,10 +2,8 @@ import torch
 from torch.nn.functional import silu
 from types import MethodType
 
-from modules import devices, sd_hijack_optimizations, shared, script_callbacks, errors, sd_unet, patches
-from modules.hypernetworks import hypernetwork
+from modules import devices, shared, script_callbacks, errors, sd_unet, patches, sd_hijack_clip, sd_hijack_open_clip, sd_hijack_unet  # noqa F401
 from modules.shared import cmd_opts
-from modules import sd_hijack_clip, sd_hijack_open_clip, sd_hijack_unet
 
 import ldm.modules.attention
 import ldm.modules.diffusionmodules.model
@@ -24,8 +22,8 @@ attention_CrossAttention_forward = ldm.modules.attention.CrossAttention.forward
 diffusionmodules_model_nonlinearity = ldm.modules.diffusionmodules.model.nonlinearity
 diffusionmodules_model_AttnBlock_forward = ldm.modules.diffusionmodules.model.AttnBlock.forward
 
-# new memory efficient cross attention blocks do not support hypernets and we already
-# have memory efficient cross attention anyway, so this disables SD2.0's memory efficient cross attention
+# we already have memory efficient cross attention anyway,
+# so this disables SD2.0's memory efficient cross attention
 ldm.modules.attention.MemoryEfficientCrossAttention = ldm.modules.attention.CrossAttention
 ldm.modules.attention.BasicTransformerBlock.ATTENTION_MODES["softmax-xformers"] = ldm.modules.attention.CrossAttention
 
@@ -35,40 +33,11 @@ ldm.modules.diffusionmodules.model.print = shared.ldm_print
 ldm.util.print = shared.ldm_print
 ldm.models.diffusion.ddpm.print = shared.ldm_print
 
-optimizers = []
-current_optimizer: sd_hijack_optimizations.SdOptimization = None
-
 ldm_patched_forward = sd_unet.create_unet_forward(ldm.modules.diffusionmodules.openaimodel.UNetModel.forward)
 ldm_original_forward = patches.patch(__file__, ldm.modules.diffusionmodules.openaimodel.UNetModel, "forward", ldm_patched_forward)
 
 sgm_patched_forward = sd_unet.create_unet_forward(sgm.modules.diffusionmodules.openaimodel.UNetModel.forward)
 sgm_original_forward = patches.patch(__file__, sgm.modules.diffusionmodules.openaimodel.UNetModel, "forward", sgm_patched_forward)
-
-
-def list_optimizers():
-    new_optimizers = script_callbacks.list_optimizers_callback()
-
-    new_optimizers = [x for x in new_optimizers if x.is_available()]
-
-    new_optimizers = sorted(new_optimizers, key=lambda x: x.priority, reverse=True)
-
-    optimizers.clear()
-    optimizers.extend(new_optimizers)
-
-
-def apply_optimizations(option=None):
-    return
-
-
-def undo_optimizations():
-    return
-
-
-def fix_checkpoint():
-    """checkpoints are now added and removed in embedding/hypernet code, since torch doesn't want
-    checkpoints to be added when not training (there's a warning)"""
-
-    pass
 
 
 def weighted_loss(sd_model, pred, target, mean=True):

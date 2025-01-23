@@ -136,11 +136,6 @@ def initialize_rest(*, reload_script_modules=False):
     sd_vae.refresh_vae_list()
     startup_timer.record("refresh VAE")
 
-    from modules import script_callbacks, sd_hijack_optimizations, sd_hijack
-    script_callbacks.on_list_optimizers(sd_hijack_optimizations.list_optimizers)
-    sd_hijack.list_optimizers()
-    startup_timer.record("scripts list_optimizers")
-
     from modules import sd_unet
     sd_unet.list_unets()
     startup_timer.record("scripts list_unets")
@@ -149,15 +144,10 @@ def initialize_rest(*, reload_script_modules=False):
     import modules.sd_models
     main_thread.async_run(modules.sd_models.model_data.get_sd_model)
 
-    from modules import shared_items
-    shared_items.reload_hypernetworks()
-    startup_timer.record("reload hypernetworks")
-
     from modules import ui_extra_networks
     ui_extra_networks.initialize()
     ui_extra_networks.register_default_pages()
 
     from modules import extra_networks
     extra_networks.initialize()
-    extra_networks.register_default_extra_networks()
     startup_timer.record("initialize extra networks")

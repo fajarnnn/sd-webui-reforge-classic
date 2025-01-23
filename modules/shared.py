@@ -23,10 +23,6 @@ weight_load_location = None
 
 xformers_available = False
 
-hypernetworks = {}
-
-loaded_hypernetworks = []
-
 state = None
 
 prompt_styles = None
@@ -84,4 +80,3 @@ reload_gradio_theme = shared_gradio_themes.reload_gradio_theme
 list_checkpoint_tiles = shared_items.list_checkpoint_tiles
 refresh_checkpoints = shared_items.refresh_checkpoints
 list_samplers = shared_items.list_samplers
-reload_hypernetworks = shared_items.reload_hypernetworks
