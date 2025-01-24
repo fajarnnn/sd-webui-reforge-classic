@@ -56,7 +56,10 @@ def set_samplers():
 
 
 def visible_sampler_names():
-    return [x.name for x in samplers if x.name not in samplers_hidden]
+    if shared.opts.hide_samplers_invert:
+        return [x.name for x in samplers if x.name in samplers_hidden]
+    else:
+        return [x.name for x in samplers if x.name not in samplers_hidden]
 
 
 set_samplers()
