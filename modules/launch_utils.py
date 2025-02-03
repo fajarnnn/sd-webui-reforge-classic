@@ -324,9 +324,9 @@ def requirements_met(requirements_file):
 
 
 def prepare_environment():
-    torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://download.pytorch.org/whl/cu124")
-    torch_command = os.environ.get('TORCH_COMMAND', f"pip install torch==2.5.1+cu124 torchvision==0.20.1+cu124 --extra-index-url {torch_index_url}")
-    xformers_package = os.environ.get('XFORMERS_PACKAGE', 'xformers==0.0.28.post3')
+    torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://download.pytorch.org/whl/cu126")
+    torch_command = os.environ.get('TORCH_COMMAND', f"pip install torch==2.6.0+cu126 torchvision==0.21.0+cu126 --extra-index-url {torch_index_url}")
+    xformers_package = os.environ.get('XFORMERS_PACKAGE', 'xformers==0.0.29.post2')
 
     requirements_file = os.environ.get('REQS_FILE', "requirements.txt")
     clip_package = os.environ.get('CLIP_PACKAGE', "https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip")
