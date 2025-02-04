@@ -2,18 +2,38 @@ import os
 import sys
 
 import gradio as gr
-
-from modules import shared_cmd_options, shared_gradio_themes, options, shared_items, sd_models_types
-from modules.paths_internal import models_path, script_path, data_path, sd_configs_path, sd_default_config, sd_model_file, default_sd_model_file, extensions_dir, extensions_builtin_dir  # noqa: F401
-from modules import util
+from ldm_patched.modules.model_management import xformers_enabled
+from modules import (
+    options,
+    sd_models_types,
+    shared_cmd_options,
+    shared_gradio_themes,
+    shared_items,
+    util,
+)
+from modules.paths_internal import (
+    data_path,
+    default_sd_model_file,
+    extensions_builtin_dir,
+    extensions_dir,
+    models_path,
+    script_path,
+    sd_configs_path,
+    sd_default_config,
+    sd_model_file,
+)  # noqa: F401
 
 cmd_opts = shared_cmd_options.cmd_opts
 parser = shared_cmd_options.parser
 
 parallel_processing_allowed = True
-styles_filename = cmd_opts.styles_file = cmd_opts.styles_file if len(cmd_opts.styles_file) > 0 else [os.path.join(data_path, 'styles.csv')]
-config_filename = cmd_opts.ui_settings_file
 hide_dirs = {"visible": not cmd_opts.hide_ui_dir_config}
+config_filename = cmd_opts.ui_settings_file
+styles_filename = cmd_opts.styles_file = (
+    cmd_opts.styles_file
+    if len(cmd_opts.styles_file) > 0
+    else [os.path.join(data_path, "styles.csv")]
+)
 
 demo = None
 
@@ -21,7 +41,7 @@ device = None
 
 weight_load_location = None
 
-xformers_available = False
+xformers_available = xformers_enabled()
 
 state = None
 
@@ -38,7 +58,7 @@ restricted_opts = None
 sd_model: sd_models_types.WebuiSdModel = None
 
 settings_components = None
-"""assinged from ui.py, a mapping on setting names to gradio components repsponsible for those settings"""
+"""assigned from ui.py, a mapping on setting names to gradio components repsponsible for those settings"""
 
 tab_names = []
 
