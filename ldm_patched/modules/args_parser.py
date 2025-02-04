@@ -81,6 +81,7 @@ vram_group.add_argument("--always-no-vram", action="store_true")
 vram_group.add_argument("--always-cpu", action="store_true")
 
 parser.add_argument("--disable-xformers", action="store_true")
+parser.add_argument("--disable-sage", action="store_true")
 
 parser.add_argument("--always-offload-from-vram", action="store_true")
 parser.add_argument("--pytorch-deterministic", action="store_true")

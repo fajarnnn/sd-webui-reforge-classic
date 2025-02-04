@@ -329,6 +329,7 @@ def prepare_environment():
     torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://download.pytorch.org/whl/cu126")
     torch_command = os.environ.get('TORCH_COMMAND', f"pip install torch==2.6.0+cu126 torchvision==0.21.0+cu126 --extra-index-url {torch_index_url}")
     xformers_package = os.environ.get('XFORMERS_PACKAGE', 'xformers==0.0.29.post2')
+    sage_package = os.environ.get('SAGE_PACKAGE', 'sageattention==1.0.6')
 
     requirements_file = os.environ.get('REQS_FILE', "requirements.txt")
     clip_package = os.environ.get('CLIP_PACKAGE', "https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip")
@@ -381,6 +382,10 @@ def prepare_environment():
     if args.xformers and (not is_installed("xformers") or args.reinstall_xformers):
         run_pip(f"install -U --no-deps {xformers_package} --extra-index-url {torch_index_url}", "xformers")
         startup_timer.record("install xformers")
+
+    if args.sage and not is_installed("sageattention"):
+        run_pip(f"install -U --no-deps {sage_package}", "sageattention")
+        startup_timer.record("install sageattention")
 
     if args.ngrok and not is_installed("ngrok"):
         run_pip("install ngrok", "ngrok")

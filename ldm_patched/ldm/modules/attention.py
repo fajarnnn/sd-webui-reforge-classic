@@ -21,6 +21,11 @@ if model_management.xformers_enabled():
     import xformers
     import xformers.ops
 
+if model_management.sage_enabled():
+    from sageattention import sageattn
+    from modules import shared
+    sage_warning = False
+
 import ldm_patched.modules.ops
 from ldm_patched.modules.args_parser import args
 
@@ -400,9 +405,45 @@ def attention_pytorch(q, k, v, heads, mask=None):
     return out
 
 
+def attention_sage(q, k, v, heads, mask=None):
+    """
+    Reference: https://github.com/comfyanonymous/ComfyUI/blob/v0.3.13/comfy/ldm/modules/attention.py#L472
+    Edited by. Haoming02
+    """
+
+    if not shared.sd_model.is_sdxl:
+        global sage_warning
+        if not sage_warning:
+            print("\nWARNING: Sage Attention only supports SDXL\n")
+            sage_warning = True
+        return attention_pytorch(q, k, v, heads, mask)
+
+    b, _, dim_head = q.shape
+    dim_head //= heads
+    q, k, v = map(
+        lambda t: t.view(b, -1, heads, dim_head),
+        (q, k, v),
+    )
+
+    if mask is not None:
+        if mask.ndim == 2:
+            # add a batch dimension if there isn't already one
+            mask = mask.unsqueeze(0)
+        if mask.ndim == 3:
+            # add a heads dimension if there isn't already one
+            mask = mask.unsqueeze(1)
+
+    out = sageattn(q, k, v, attn_mask=mask, is_causal=False, tensor_layout="NHD")
+    out = out.reshape(b, -1, heads * dim_head)
+    return out
+
+
 optimized_attention = attention_basic
 
-if model_management.xformers_enabled():
+if model_management.sage_enabled():
+    print("Using sage cross attention")
+    optimized_attention = attention_sage
+elif model_management.xformers_enabled():
     print("Using xformers cross attention")
     optimized_attention = attention_xformers
 elif model_management.pytorch_attention_enabled():
@@ -413,9 +454,7 @@ else:
         print("Using split optimization for cross attention")
         optimized_attention = attention_split
     else:
-        print(
-            "Using sub quadratic optimization for cross attention, if you have memory or speed issues try using: --attention-split"
-        )
+        print("Using sub quadratic optimization for cross attention")
         optimized_attention = attention_sub_quad
 
 optimized_attention_masked = optimized_attention

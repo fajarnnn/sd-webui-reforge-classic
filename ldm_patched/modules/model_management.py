@@ -167,17 +167,28 @@ else:
             XFORMERS_VERSION = xformers.version.__version__
             print("xformers version:", XFORMERS_VERSION)
             if XFORMERS_VERSION.startswith("0.0.18"):
-                print()
-                print(
-                    "WARNING: This version of xformers has a major bug where you will get black images when generating high resolution images."
+                from modules.errors import print_error_explanation
+                print_error_explanation(
+                    """
+                    WARNING: This version of xformers has a major bug where you will get black images when generating high resolution images.
+                    Please downgrade or upgrade xformers to a different version.
+                    """.strip()
                 )
-                print("Please downgrade or upgrade xformers to a different version.")
-                print()
                 XFORMERS_ENABLED_VAE = False
         except:
             pass
     except:
         XFORMERS_IS_AVAILABLE = False
+
+if args.disable_sage:
+    SAGE_IS_AVAILABLE = False
+else:
+    try:
+        from sageattention import sageattn
+    except ImportError:
+        SAGE_IS_AVAILABLE = False
+    else:
+        SAGE_IS_AVAILABLE = True
 
 
 def is_nvidia():
@@ -837,6 +848,14 @@ def xformers_enabled():
     if directml_enabled:
         return False
     return XFORMERS_IS_AVAILABLE
+
+
+def sage_enabled():
+    if cpu_state != CPUState.GPU:
+        return False
+    if not is_nvidia():
+        return False
+    return SAGE_IS_AVAILABLE
 
 
 def xformers_enabled_vae():
