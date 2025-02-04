@@ -158,7 +158,8 @@ def run_git(dir, name, command, desc=None, errdesc=None, custom_env=None, live: 
 
 
 def git_clone(url, dir, name, commithash=None):
-    # TODO clone into temporary dir and move if successful
+    folder, repo = os.path.split(dir)
+    temp_dir = os.path.join(folder, f"~{repo}")  # Clone into a temporary directory
 
     if os.path.exists(dir):
         if commithash is None:
@@ -178,9 +179,10 @@ def git_clone(url, dir, name, commithash=None):
         return
 
     try:
-        run(f'"{git}" clone --config core.filemode=false "{url}" "{dir}"', f"Cloning {name} into {dir}...", f"Couldn't clone {name}", live=True)
+        run(f'"{git}" clone --config core.filemode=false "{url}" "{temp_dir}"', f"Cloning {name} into {temp_dir}...", f"Couldn't clone {name}", live=True)
+        shutil.move(temp_dir, dir)  # Move temp directory to final directory
     except RuntimeError:
-        shutil.rmtree(dir, ignore_errors=True)
+        shutil.rmtree(temp_dir, ignore_errors=True)
         raise
 
     if commithash is not None:
