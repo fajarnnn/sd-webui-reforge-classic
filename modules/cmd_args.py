@@ -36,7 +36,6 @@ parser.add_argument("--no-progressbar-hiding", action="store_true", help="do not
 parser.add_argument("--max-batch-count", type=int, default=16, help="maximum batch count value for the UI")
 parser.add_argument("--embeddings-dir", type=normalized_filepath, default=os.path.join(models_path, "embeddings"), help="textual inversion directory")
 parser.add_argument("--localizations-dir", type=normalized_filepath, default=os.path.join(script_path, "localizations"), help="localizations directory")
-parser.add_argument("--allow-code", action="store_true", help="allow custom script execution from webui")
 parser.add_argument("--medvram", action="store_true", help="enable stable diffusion model optimizations for sacrificing a little speed for low VRM usage")
 parser.add_argument("--medvram-sdxl", action="store_true", help="enable --medvram optimization just for SDXL models")
 parser.add_argument("--lowvram", action="store_true", help="enable stable diffusion model optimizations for sacrificing a lot of speed for very low VRM usage")
