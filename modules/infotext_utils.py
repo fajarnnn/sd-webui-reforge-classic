@@ -160,7 +160,7 @@ def connect_paste_params_buttons():
             )
 
         if binding.source_text_component is not None and fields is not None:
-            connect_paste(binding.paste_button, fields, override_settings_component, binding.tabname)
+            connect_paste(binding.paste_button, fields, binding.source_text_component, override_settings_component, binding.tabname)
 
         if binding.source_tabname is not None and fields is not None:
             paste_field_names = ['Prompt', 'Negative prompt', 'Steps', 'Face restoration'] + (["Seed"] if shared.opts.send_seed else []) + binding.paste_field_names
@@ -448,16 +448,8 @@ def get_override_settings(params, *, skip_fields=None):
     return res
 
 
-def connect_paste(button, paste_fields, override_settings_component, tabname):
-    def paste_func(prompt, negative_prompt):
-        res = []
-
-        if negative_prompt:
-            for _ in paste_fields:
-                res.append(gr.skip())
-
-            return res
-
+def connect_paste(button, paste_fields, input_comp, override_settings_component, tabname):
+    def paste_func(prompt):
         if not prompt and not shared.cmd_opts.hide_ui_dir_config:
             filename = os.path.join(data_path, "params.txt")
             try:
@@ -468,6 +460,7 @@ def connect_paste(button, paste_fields, override_settings_component, tabname):
 
         params = parse_generation_parameters(prompt)
         script_callbacks.infotext_pasted_callback(prompt, params)
+        res = []
 
         for output, key in paste_fields:
             if callable(key):
@@ -508,11 +501,9 @@ def connect_paste(button, paste_fields, override_settings_component, tabname):
 
         paste_fields = paste_fields + [(override_settings_component, paste_settings)]
 
-    print("\n".join(paste_fields))
-
     button.click(
         fn=paste_func,
-        inputs=[paste_fields[0][0], paste_fields[1][0]],  # positive & negative prompts
+        inputs=[input_comp],
         outputs=[x[0] for x in paste_fields],
         show_progress=False,
     )

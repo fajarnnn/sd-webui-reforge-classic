@@ -134,3 +134,15 @@ class Toprow:
     def create_styles_ui(self):
         self.ui_styles = ui_prompt_styles.UiPromptStyles(self.id_part, self.prompt, self.negative_prompt)
         self.ui_styles.setup_apply_button(self.apply_styles)
+
+    def hook_paste_guard(self):
+        assert self.negative_prompt is not None and self.paste is not None
+
+        def auto(prompt: str) -> bool:
+            return gr.update(interactive=(not bool(prompt)))
+
+        self.negative_prompt.change(
+            fn=auto,
+            inputs=[self.negative_prompt],
+            outputs=[self.paste]
+        )

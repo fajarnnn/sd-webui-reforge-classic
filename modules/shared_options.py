@@ -274,6 +274,7 @@ options_templates.update(options_section(('ui', "User interface", "ui"), {
     "show_progress_in_title": OptionInfo(True, "Show generation progress in window title."),
     "send_seed": OptionInfo(True, "Send seed when sending prompt or image to other interface"),
     "send_size": OptionInfo(True, "Send size when sending prompt or image to another interface"),
+    "paste_safe_guard": OptionInfo(True, 'Disable the "Read generation parameters" button when negative prompt contains texts'),
 }))
 
 

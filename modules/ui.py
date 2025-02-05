@@ -245,6 +245,8 @@ def create_ui():
 
     with gr.Blocks(analytics_enabled=False) as txt2img_interface:
         toprow = ui_toprow.Toprow(is_img2img=False, is_compact=shared.opts.compact_prompt_box)
+        if shared.opts.paste_safe_guard:
+            toprow.hook_paste_guard()
 
         dummy_component = gr.Label(visible=False)
 
@@ -483,6 +485,8 @@ def create_ui():
 
     with gr.Blocks(analytics_enabled=False) as img2img_interface:
         toprow = ui_toprow.Toprow(is_img2img=True, is_compact=shared.opts.compact_prompt_box)
+        if shared.opts.paste_safe_guard:
+            toprow.hook_paste_guard()
 
         extra_tabs = gr.Tabs(elem_id="img2img_extra_tabs", elem_classes=["extra-networks"])
         extra_tabs.__enter__()
