@@ -7,7 +7,7 @@ import re
 
 import gradio as gr
 from modules.paths import data_path
-from modules import shared, ui_tempdir, script_callbacks, processing, infotext_versions, prompt_parser
+from modules import shared, ui_tempdir, script_callbacks, processing, prompt_parser
 from PIL import Image
 
 re_param_code = r'\s*(\w[\w \-/]+):\s*("(?:\\.|[^\\"])+"|[^,]*)(?:,|$)'
@@ -355,8 +355,6 @@ Steps: 20, Sampler: Euler a, CFG scale: 7, Seed: 965400086, Size: 512x512, Model
         if len(prompt_attention) != len(prompt_with_attention):
             res["Emphasis"] = "Original"
 
-    infotext_versions.backcompat(res)
-
     for key in skip_fields:
         res.pop(key, None)
 
@@ -509,6 +507,8 @@ def connect_paste(button, paste_fields, override_settings_component, tabname):
             return gr.Dropdown.update(value=vals_pairs, choices=vals_pairs, visible=bool(vals_pairs))
 
         paste_fields = paste_fields + [(override_settings_component, paste_settings)]
+
+    print("\n".join(paste_fields))
 
     button.click(
         fn=paste_func,
