@@ -8,7 +8,6 @@ div.gradio-image button[aria-label="Edit"] {
     --checkbox-label-gap: 0.25em 0.1em;
     --section-header-text-size: 12pt;
     --block-background-fill: transparent;
-
 }
 
 .block.padded:not(.gradio-accordion) {
@@ -140,18 +139,13 @@ a {
     cursor: pointer;
 }
 
-
 div.gradio-container, .block.gradio-textbox, div.gradio-group, div.gradio-dropdown {
     overflow: visible !important;
 }
 
-
 .unequal-height {
     align-content: flex-start;
 }
-
-
-
 
 .gradio-button.tool {
     max-width: 2.2em;
@@ -203,9 +197,6 @@ input[type="checkbox"].input-accordion-checkbox {
     vertical-align: sub;
     margin-right: 0.5em;
 }
-
-
-
 
 .block.token-counter {
     position: absolute;
@@ -423,7 +414,6 @@ div.toprow-compact-tools {
     max-width: fit-content;
 }
 
-
 #quicksettings {
     align-items: end;
 }
@@ -548,8 +538,6 @@ table.popup-table .link {
     padding: 1em;
 }
 
-
-
 .progressDiv {
     position: absolute;
     height: 20px;
@@ -600,10 +588,7 @@ table.popup-table .link {
     object-fit: contain;
     width: 100%;
     height: calc(100% - 60px);
-
 }
-
-
 
 .popup-metadata {
     color: black;
@@ -655,8 +640,6 @@ table.popup-table .link {
     max-height: 90%;
     max-width: 90%;
 }
-
-
 
 #lightboxModal {
     display: none;
@@ -775,8 +758,6 @@ table.popup-table .link {
     }
 }
 
-
-
 #context-menu {
     z-index: 9999;
     position: absolute;
@@ -803,9 +784,6 @@ table.popup-table .link {
 .context-menu-items a:hover {
     background: #a55000;
 }
-
-
-
 
 #tab_extensions table {
     border-collapse: collapse;
@@ -856,8 +834,6 @@ table.popup-table .link {
     display: inline-block;
 }
 
-
-
 #extensions tr:hover td,
 #config_state_extensions tr:hover td,
 #available_extensions tr:hover td {
@@ -869,8 +845,6 @@ table.popup-table .link {
 .dark #available_extensions tr:hover td {
     background: rgba(255, 255, 255, 0.15);
 }
-
-
 
 footer {
     display: none !important;
@@ -888,8 +862,6 @@ footer {
     font-size: 85%;
     opacity: 0.85;
 }
-
-
 
 .extra-page>div.gap {
     gap: 0;
@@ -1159,9 +1131,6 @@ div.accordions>div.input-accordion.input-accordion-open {
     flex-flow: column;
 }
 
-
-
-
 #img2img_results, #txt2img_results, #extras_results {
     position: sticky;
     top: 0.5em;
@@ -1196,7 +1165,6 @@ body.resizing .resize-handle {
     left: 7.5px;
     border-left: 1px dashed var(--border-color-primary);
 }
-
 
 .extra-network-pane {
     display: flex;
@@ -1234,7 +1202,6 @@ body.resizing .resize-handle {
     width: 100%;
     overflow: hidden;
 }
-
 
 .extra-network-pane .extra-network-cards::-webkit-scrollbar,
 .extra-network-pane .extra-network-tree::-webkit-scrollbar {
@@ -1286,19 +1253,16 @@ body.resizing .resize-handle {
         0.7rem 0 0 var(--neutral-800) inset;
 }
 
-
 .extra-network-tree .tree-list--subgroup>.tree-list-item {
     margin-left: 0.4rem !important;
     padding-left: 0.4rem !important;
 }
-
 
 .extra-network-tree .tree-list-item {
     list-style: none;
     position: relative;
     background-color: transparent;
 }
-
 
 .extra-network-tree .tree-list-content+.tree-list--subgroup {
     height: 0;
@@ -1311,7 +1275,6 @@ body.resizing .resize-handle {
     visibility: visible;
     opacity: 1;
 }
-
 
 .extra-network-tree .tree-list-item--subitem {
     padding-top: 0 !important;
@@ -1366,8 +1329,6 @@ body.resizing .resize-handle {
     background-color: var(--neutral-200);
 }
 
-
-
 .extra-network-tree .tree-list-content-dir .tree-list-item-action-chevron {
     -ms-transform: rotate(135deg);
     -webkit-transform: rotate(135deg);
@@ -1389,8 +1350,6 @@ body.resizing .resize-handle {
     box-shadow: 0.1rem 0.1rem 0 0 var(--neutral-200) inset;
     transform: rotate(135deg);
 }
-
-
 
 .extra-network-control .extra-network-control--search::before {
     content: "🔎︎";
@@ -1415,7 +1374,6 @@ body.resizing .resize-handle {
     line-height: 1rem;
 }
 
-
 .extra-network-control .extra-network-control--search .extra-network-control--search-text::-webkit-search-cancel-button {
     -webkit-appearance: none;
     appearance: none;
@@ -1428,7 +1386,6 @@ body.resizing .resize-handle {
     mask-size: 100%;
     background-color: var(--input-placeholder-color);
 }
-
 
 .extra-network-control .extra-network-control--sort {
     padding: 0.25rem;
@@ -1463,7 +1420,6 @@ body.resizing .resize-handle {
     mask-image: url('data:image/svg+xml,<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="M10 21H6.2C5.0799 21 4.51984 21 4.09202 20.782C3.71569 20.5903 3.40973 20.2843 3.21799 19.908C3 19.4802 3 18.9201 3 17.8V8.2C3 7.0799 3 6.51984 3.21799 6.09202C3.40973 5.71569 3.71569 5.40973 4.09202 5.21799C4.51984 5 5.0799 5 6.2 5H17.8C18.9201 5 19.4802 5 19.908 5.21799C20.2843 5.40973 20.5903 5.71569 20.782 6.09202C21 6.51984 21 7.0799 21 8.2V10M7 3V5M17 3V5M3 9H21M13.5 13.0001L7 13M10 17.0001L7 17M14 21L16.025 20.595C16.2015 20.5597 16.2898 20.542 16.3721 20.5097C16.4452 20.4811 16.5147 20.4439 16.579 20.399C16.6516 20.3484 16.7152 20.2848 16.8426 20.1574L21 16C21.5523 15.4477 21.5523 14.5523 21 14C20.4477 13.4477 19.5523 13.4477 19 14L14.8426 18.1574C14.7152 18.2848 14.6516 18.3484 14.601 18.421C14.5561 18.4853 14.5189 18.5548 14.4903 18.6279C14.458 18.7102 14.4403 18.7985 14.405 18.975L14 21Z" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></g></svg>');
 }
 
-
 .extra-network-control .extra-network-control--sort-dir {
     padding: 0.25rem;
     display: inline-flex;
@@ -1488,7 +1444,6 @@ body.resizing .resize-handle {
 .extra-network-control .extra-network-control--sort-dir[data-sortdir="Descending"] .extra-network-control--sort-dir-icon {
     mask-image: url('data:image/svg+xml,<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path d="M13 12H21M13 8H21M13 16H21M6 7V17M6 17L3 14M6 17L9 14" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></g></svg>');
 }
-
 
 .extra-network-control .extra-network-control--tree-view {
     padding: 0.25rem;
@@ -1516,7 +1471,6 @@ body.resizing .resize-handle {
     background-color: rgba(255, 255, 255, 0.15);
 }
 
-
 .extra-network-control .extra-network-control--refresh {
     padding: 0.25rem;
     display: inline-flex;
@@ -1542,9 +1496,6 @@ body.resizing .resize-handle {
     transition: transform 0.2s;
 }
 
-
-
-
 .extra-network-tree .tree-list-item-label {
     position: relative;
     line-height: 1.25rem;
@@ -1553,13 +1504,11 @@ body.resizing .resize-handle {
     padding-left: 0.5rem;
 }
 
-
 .extra-network-tree .tree-list-item-label--truncate {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
 
 .extra-network-tree .tree-list-item-visual {
     min-height: 1rem;
@@ -1568,21 +1517,17 @@ body.resizing .resize-handle {
     align-items: right;
 }
 
-
-
 .extra-network-tree .tree-list-item-visual--leading {
     grid-area: leading-visual;
     width: 1rem;
     text-align: right;
 }
 
-
 .extra-network-tree .tree-list-item-visual--trailing {
     grid-area: trailing-visual;
     width: 1rem;
     text-align: right;
 }
-
 
 .extra-network-tree .tree-list-item-action--leading {
     margin-right: 0.5rem;
@@ -1606,7 +1551,6 @@ body.resizing .resize-handle {
     display: inline-flex;
     visibility: hidden;
     color: var(--button-secondary-text-color);
-
 }
 
 .extra-network-tree .tree-list-content:hover .button-row {
