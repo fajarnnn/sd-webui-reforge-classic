@@ -36,11 +36,16 @@ def imports():
     startup_timer.record("import gradio")
 
     with HiddenPrints():
-        from modules import paths, timer, import_hook, errors  # noqa: F401
+        from modules import paths, timer, errors  # noqa: F401
+        if "--xformers" not in "".join(sys.argv):
+            sys.modules["xformers"] = None
+        else:
+            import xformers  # noqa: F401
+            import xformers.ops  # noqa: F401
         startup_timer.record("setup paths")
 
         import ldm.modules.encoders.modules  # noqa: F401
-        import ldm.modules.diffusionmodules.model
+        import ldm.modules.diffusionmodules.model  # noqa: F401
         startup_timer.record("import ldm")
 
         import sgm.modules.encoders.modules  # noqa: F401

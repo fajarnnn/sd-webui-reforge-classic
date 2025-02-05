@@ -4,14 +4,11 @@ import io
 import json
 import os
 import re
-import sys
 
 import gradio as gr
 from modules.paths import data_path
 from modules import shared, ui_tempdir, script_callbacks, processing, infotext_versions, prompt_parser
 from PIL import Image
-
-sys.modules['modules.generation_parameters_copypaste'] = sys.modules[__name__]  # alias for old name
 
 re_param_code = r'\s*(\w[\w \-/]+):\s*("(?:\\.|[^\\"])+"|[^,]*)(?:,|$)'
 re_param = re.compile(re_param_code)
@@ -289,7 +286,7 @@ Steps: 20, Sampler: Euler a, CFG scale: 7, Seed: 965400086, Size: 512x512, Model
             else:
                 res[k] = v
         except Exception:
-            print(f"Error parsing \"{k}: {v}\"")
+            print(f'Error parsing "{k}: {v}"')
 
     # Missing CLIP skip means it was set to 1 (the default)
     if "Clip skip" not in res:
@@ -462,7 +459,7 @@ def connect_paste(button, paste_fields, override_settings_component, tabname):
                 res.append(gr.skip())
 
             return res
-        
+
         if not prompt and not shared.cmd_opts.hide_ui_dir_config:
             filename = os.path.join(data_path, "params.txt")
             try:
