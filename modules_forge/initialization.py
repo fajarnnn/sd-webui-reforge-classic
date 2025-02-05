@@ -3,7 +3,7 @@ import sys
 
 
 def initialize_forge():
-    for bad in ('--lowvram', '--medvram', '--medvram-sdxl'):
+    for bad in ("--lowvram", "--medvram", "--medvram-sdxl"):
         if bad in sys.argv:
             print(f'"{bad}" arg has been deprecated in Forge...')
 
@@ -12,7 +12,7 @@ def initialize_forge():
     args_parser.args, _ = args_parser.parser.parse_known_args()
 
     if args_parser.args.gpu_device_id is not None:
-        os.environ['CUDA_VISIBLE_DEVICES'] = str(args_parser.args.gpu_device_id)
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(args_parser.args.gpu_device_id)
         print("Set device to:", args_parser.args.gpu_device_id)
 
     if args_parser.args.cuda_malloc:
@@ -30,24 +30,24 @@ def initialize_forge():
     modules_forge.patch_basic.patch_all_basics()
 
     from modules_forge import stream
-    print('CUDA Stream Activated: ', stream.using_stream)
+    print("CUDA Stream Activated: ", stream.using_stream)
 
     from modules_forge.shared import diffusers_dir
 
-    if 'TRANSFORMERS_CACHE' not in os.environ:
-        os.environ['TRANSFORMERS_CACHE'] = diffusers_dir
+    if "TRANSFORMERS_CACHE" not in os.environ:
+        os.environ["TRANSFORMERS_CACHE"] = diffusers_dir
 
-    if 'HF_HOME' not in os.environ:
-        os.environ['HF_HOME'] = diffusers_dir
+    if "HF_HOME" not in os.environ:
+        os.environ["HF_HOME"] = diffusers_dir
 
-    if 'HF_DATASETS_CACHE' not in os.environ:
-        os.environ['HF_DATASETS_CACHE'] = diffusers_dir
+    if "HF_DATASETS_CACHE" not in os.environ:
+        os.environ["HF_DATASETS_CACHE"] = diffusers_dir
 
-    if 'HUGGINGFACE_HUB_CACHE' not in os.environ:
-        os.environ['HUGGINGFACE_HUB_CACHE'] = diffusers_dir
+    if "HUGGINGFACE_HUB_CACHE" not in os.environ:
+        os.environ["HUGGINGFACE_HUB_CACHE"] = diffusers_dir
 
-    if 'HUGGINGFACE_ASSETS_CACHE' not in os.environ:
-        os.environ['HUGGINGFACE_ASSETS_CACHE'] = diffusers_dir
+    if "HUGGINGFACE_ASSETS_CACHE" not in os.environ:
+        os.environ["HUGGINGFACE_ASSETS_CACHE"] = diffusers_dir
 
-    if 'HF_HUB_CACHE' not in os.environ:
-        os.environ['HF_HUB_CACHE'] = diffusers_dir
+    if "HF_HUB_CACHE" not in os.environ:
+        os.environ["HF_HUB_CACHE"] = diffusers_dir

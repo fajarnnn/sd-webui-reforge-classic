@@ -15,8 +15,13 @@ class AlterSampler(sd_samplers_kdiffusion.KDiffusionSampler):
         super().__init__(sampler_function, sd_model, None)
 
     def get_sigmas(self, p, steps):
-        if self.scheduler_name == 'turbo':
-            timesteps = torch.flip(torch.arange(1, steps + 1) * float(1000.0 / steps) - 1, (0,)).round().long().clip(0, 999)
+        if self.scheduler_name == "turbo":
+            timesteps = (
+                torch.flip(torch.arange(1, steps + 1) * float(1000.0 / steps) - 1, (0,))
+                .round()
+                .long()
+                .clip(0, 999)
+            )
             sigmas = self.unet.model.model_sampling.sigma(timesteps)
             sigmas = torch.cat([sigmas, sigmas.new_zeros([1])])
         else:

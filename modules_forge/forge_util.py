@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-import os
 import time
 import random
 import string
@@ -12,20 +11,21 @@ from ldm_patched.modules import model_management
 def prepare_free_memory(aggressive=False):
     if aggressive:
         model_management.unload_all_models()
-        print('Cleanup all memory.')
+        print("Cleanup all memory.")
         return
 
-    model_management.free_memory(memory_required=model_management.minimum_inference_memory(),
-                                 device=model_management.get_torch_device())
-    print('Cleanup minimal inference memory.')
-    return
+    model_management.free_memory(
+        memory_required=model_management.minimum_inference_memory(),
+        device=model_management.get_torch_device(),
+    )
+    print("Cleanup minimal inference memory.")
 
 
 def apply_circular_forge(model, tiling_enabled=False):
     if model.tiling_enabled == tiling_enabled:
         return
 
-    print(f'Tiling: {tiling_enabled}')
+    print(f"Tiling: {tiling_enabled}")
     model.tiling_enabled = tiling_enabled
 
     def flatten(el):
@@ -37,9 +37,8 @@ def apply_circular_forge(model, tiling_enabled=False):
 
     layers = flatten(model)
 
-    for layer in [layer for layer in layers if 'Conv' in type(layer).__name__]:
-        layer.padding_mode = 'circular' if tiling_enabled else 'zeros'
-    return
+    for layer in [layer for layer in layers if "Conv" in type(layer).__name__]:
+        layer.padding_mode = "circular" if tiling_enabled else "zeros"
 
 
 def HWC3(x):
@@ -63,7 +62,7 @@ def HWC3(x):
 
 def generate_random_filename(extension=".txt"):
     timestamp = time.strftime("%Y%m%d-%H%M%S")
-    random_string = ''.join(random.choices(string.ascii_lowercase + string.digits, k=5))
+    random_string = "".join(random.choices(string.ascii_lowercase + string.digits, k=5))
     filename = f"{timestamp}-{random_string}{extension}"
     return filename
 
@@ -71,7 +70,7 @@ def generate_random_filename(extension=".txt"):
 @torch.no_grad()
 @torch.inference_mode()
 def pytorch_to_numpy(x):
-    return [np.clip(255. * y.cpu().numpy(), 0, 255).astype(np.uint8) for y in x]
+    return [np.clip(255.0 * y.cpu().numpy(), 0, 255).astype(np.uint8) for y in x]
 
 
 @torch.no_grad()
@@ -101,7 +100,7 @@ def resize_image_with_pad(img, resolution):
     W_target = int(np.round(float(W_raw) * k))
     img = cv2.resize(img, (W_target, H_target), interpolation=interpolation)
     H_pad, W_pad = pad64(H_target), pad64(W_target)
-    img_padded = np.pad(img, [[0, H_pad], [0, W_pad], [0, 0]], mode='edge')
+    img_padded = np.pad(img, [[0, H_pad], [0, W_pad], [0, 0]], mode="edge")
 
     def remove_pad(x):
         return safer_memory(x[:H_target, :W_target])
@@ -110,6 +109,8 @@ def resize_image_with_pad(img, resolution):
 
 
 def lazy_memory_management(model):
-    required_memory = model_management.module_size(model) + model_management.minimum_inference_memory()
+    required_memory = (
+        model_management.module_size(model)
+        + model_management.minimum_inference_memory()
+    )
     model_management.free_memory(required_memory, device=model_management.get_torch_device())
-    return

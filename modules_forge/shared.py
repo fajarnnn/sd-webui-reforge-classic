@@ -46,13 +46,11 @@ def add_supported_preprocessor(preprocessor):
     global supported_preprocessors
     p = preprocessor
     supported_preprocessors[p.name] = p
-    return
 
 
 def add_supported_control_model(control_model):
     global supported_control_models
     supported_control_models.append(control_model)
-    return
 
 
 def try_load_supported_control_model(ckpt_path):

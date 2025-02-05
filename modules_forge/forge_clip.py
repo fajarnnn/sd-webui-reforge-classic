@@ -6,11 +6,10 @@ from modules.shared import opts
 
 def move_clip_to_gpu():
     if sd_models.model_data.sd_model is None:
-        print('Error: CLIP called before SD is loaded!')
+        print("Error: CLIP called before SD is loaded!")
         return
 
     model_management.load_model_gpu(sd_models.model_data.sd_model.forge_objects.clip.patcher)
-    return
 
 
 class CLIP_SD_15_L(FrozenCLIPEmbedderWithCustomWords):

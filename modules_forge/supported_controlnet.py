@@ -29,13 +29,13 @@ class ControlModelPatcher:
         self.advanced_mask_weighting = None
 
     def process_after_running_preprocessors(self, process, params, *args, **kwargs):
-        return
+        pass
 
     def process_before_every_sampling(self, process, cond, mask, *args, **kwargs):
-        return
+        pass
 
     def process_after_every_sampling(self, process, params, *args, **kwargs):
-        return
+        pass
 
 
 class ControlNetPatcher(ControlModelPatcher):
@@ -177,7 +177,6 @@ class ControlNetPatcher(ControlModelPatcher):
         )
 
         process.sd_model.forge_objects.unet = unet
-        return
 
 
 add_supported_control_model(ControlNetPatcher)

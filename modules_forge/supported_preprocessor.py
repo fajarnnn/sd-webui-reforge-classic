@@ -92,13 +92,13 @@ class Preprocessor:
         )
 
     def process_after_running_preprocessors(self, process, params, *args, **kwargs):
-        return
+        pass
 
     def process_before_every_sampling(self, process, cond, mask, *args, **kwargs):
         return cond, mask
 
     def process_after_every_sampling(self, process, params, *args, **kwargs):
-        return
+        pass
 
     def __call__(
         self,

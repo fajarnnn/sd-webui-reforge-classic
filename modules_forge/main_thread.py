@@ -1,7 +1,8 @@
-# This file is the main thread that handles all gradio calls for major t2i or i2i processing.
-# Other gradio calls (like those from extensions) are not influenced.
-# By using one single thread to process all major calls, model moving is significantly faster.
-
+"""
+This file is the main thread that handles all gradio calls for major t2i or i2i processing.
+Other gradio calls (like those from extensions) are not influenced.
+By using one single thread to process all major calls, model moving is significantly faster.
+"""
 
 import time
 import traceback
@@ -65,4 +66,3 @@ def run_and_wait_result(func, *args, **kwargs):
             with lock:
                 finished_list.remove(finished_task)
             return finished_task.result
-
