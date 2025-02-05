@@ -1,17 +1,20 @@
-from PIL import ImageOps, Image
-
-from modules import scripts_postprocessing, ui_components
 import gradio as gr
+from modules import scripts_postprocessing
+from modules.ui_components import InputAccordion
+from PIL import Image
 
 
-class ScriptPostprocessingCreateFlippedCopies(scripts_postprocessing.ScriptPostprocessing):
-    name = "Create flipped copies"
+class FlippedCopiesPostprocessing(scripts_postprocessing.ScriptPostprocessing):
+    name = "Create Flipped Copies"
     order = 4030
 
     def ui(self):
-        with ui_components.InputAccordion(False, label="Create flipped copies") as enable:
-            with gr.Row():
-                option = gr.CheckboxGroup(value=["Horizontal"], choices=["Horizontal", "Vertical", "Both"], show_label=False)
+        with InputAccordion(False, label="Create Flipped Copies") as enable:
+            option = gr.CheckboxGroup(
+                value=["X Flip"],
+                choices=("X Flip", "Y Flip", "XY Flip"),
+                show_label=False,
+            )
 
         return {
             "enable": enable,
@@ -22,11 +25,15 @@ class ScriptPostprocessingCreateFlippedCopies(scripts_postprocessing.ScriptPostp
         if not enable:
             return
 
-        if "Horizontal" in option:
-            pp.extra_images.append(ImageOps.mirror(pp.image))
+        if "X Flip" in option:
+            pp.extra_images.append(pp.image.transpose(Image.Transpose.FLIP_LEFT_RIGHT))
 
-        if "Vertical" in option:
+        if "Y Flip" in option:
             pp.extra_images.append(pp.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM))
 
-        if "Both" in option:
-            pp.extra_images.append(pp.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM).transpose(Image.Transpose.FLIP_LEFT_RIGHT))
+        if "XY Flip" in option:
+            pp.extra_images.append(
+                pp.image.transpose(Image.Transpose.FLIP_TOP_BOTTOM).transpose(
+                    Image.Transpose.FLIP_LEFT_RIGHT
+                )
+            )

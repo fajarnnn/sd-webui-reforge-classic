@@ -1,37 +1,71 @@
 import math
+import re
 
-import modules.scripts as scripts
 import gradio as gr
-from PIL import Image
-
-from modules import processing, shared, images, devices
+import modules.scripts as scripts
+from modules import devices, images, processing, shared
 from modules.processing import Processed
 from modules.shared import opts, state
+from PIL import Image
 
 
-class Script(scripts.Script):
+class SDUpscale(scripts.Script):
     def title(self):
-        return "SD upscale"
+        return "SD Upscale"
 
     def show(self, is_img2img):
         return is_img2img
 
     def ui(self, is_img2img):
-        info = gr.HTML("<p style=\"margin-bottom:0.75em\">Will upscale the image by the selected scale factor; use width and height sliders to set tile size</p>")
-        overlap = gr.Slider(minimum=0, maximum=256, step=16, label='Tile overlap', value=64, elem_id=self.elem_id("overlap"))
-        scale_factor = gr.Slider(minimum=1.0, maximum=4.0, step=0.05, label='Scale Factor', value=2.0, elem_id=self.elem_id("scale_factor"))
-        upscaler_index = gr.Radio(label='Upscaler', choices=[x.name for x in shared.sd_upscalers], value=shared.sd_upscalers[0].name, type="index", elem_id=self.elem_id("upscaler_index"))
+        gr.HTML(
+            """<p align="center">Upscale the image by the selected <b>Scale Factor</b>;
+            use the <b>Width</b> and <b>Height</b> to set the tile size;
+            use the <b>Batch size</b> to process multiple tiles at once</p>"""
+        )
 
-        return [info, overlap, upscaler_index, scale_factor]
+        scale_factor = gr.Slider(
+            label="Scale Factor",
+            value=2.0,
+            minimum=1.0,
+            maximum=8.0,
+            step=0.05,
+            elem_id=self.elem_id("scale_factor"),
+        )
 
-    def run(self, p, _, overlap, upscaler_index, scale_factor):
+        with gr.Row():
+            overlap = gr.Slider(
+                label="Tile Overlap",
+                value=64,
+                minimum=0,
+                maximum=256,
+                step=16,
+                elem_id=self.elem_id("overlap"),
+            )
+            upscaler_index = gr.Dropdown(
+                label="Upscaler",
+                choices=[x.name for x in shared.sd_upscalers],
+                value=shared.sd_upscalers[0].name,
+                type="index",
+                elem_id=self.elem_id("upscaler_index"),
+            )
+
+        return [overlap, upscaler_index, scale_factor]
+
+    def run(self, p, overlap, upscaler_index, scale_factor):
         if isinstance(upscaler_index, str):
-            upscaler_index = [x.name.lower() for x in shared.sd_upscalers].index(upscaler_index.lower())
-        processing.fix_seed(p)
-        upscaler = shared.sd_upscalers[upscaler_index]
+            upscaler = next(
+                (x for x in shared.sd_upscalers if x.name == upscaler_index),
+                None,
+            )
+            assert upscaler is not None
+        else:
+            assert isinstance(upscaler_index, int)
+            upscaler = shared.sd_upscalers[upscaler_index]
 
-        p.extra_generation_params["SD upscale overlap"] = overlap
-        p.extra_generation_params["SD upscale upscaler"] = upscaler.name
+        processing.fix_seed(p)
+
+        p.extra_generation_params["SD Upscale - Overlap"] = overlap
+        p.extra_generation_params["SD Upscale - Upscaler"] = upscaler.name
 
         initial_info = None
         seed = p.seed
@@ -56,14 +90,21 @@ class Script(scripts.Script):
 
         work = []
 
-        for _y, _h, row in grid.tiles:
+        for _, _, row in grid.tiles:
             for tiledata in row:
                 work.append(tiledata[2])
 
         batch_count = math.ceil(len(work) / batch_size)
         state.job_count = batch_count * upscale_count
 
-        print(f"SD upscaling will process a total of {len(work)} images tiled as {len(grid.tiles[0][2])}x{len(grid.tiles)} per upscale in a total of {state.job_count} batches.")
+        print(
+            f"""
+[SD Upscale]
+- Processing {len(grid.tiles[0][2])}x{len(grid.tiles)} tiles
+- totaling {len(work)} images at a batch size of {batch_size}
+- resulting in {state.job_count} iterations
+            """
+        )
 
         result_images = []
         for n in range(upscale_count):
@@ -73,7 +114,7 @@ class Script(scripts.Script):
             work_results = []
             for i in range(batch_count):
                 p.batch_size = batch_size
-                p.init_images = work[i * batch_size:(i + 1) * batch_size]
+                p.init_images = work[i * batch_size : (i + 1) * batch_size]
 
                 state.job = f"Batch {i + 1 + n * batch_count} out of {state.job_count}"
                 processed = processing.process_images(p)
@@ -85,17 +126,32 @@ class Script(scripts.Script):
                 work_results += processed.images
 
             image_index = 0
-            for _y, _h, row in grid.tiles:
+            for _, _, row in grid.tiles:
                 for tiledata in row:
-                    tiledata[2] = work_results[image_index] if image_index < len(work_results) else Image.new("RGB", (p.width, p.height))
+                    tiledata[2] = (
+                        work_results[image_index]
+                        if image_index < len(work_results)
+                        else Image.new("RGB", (p.width, p.height))
+                    )
                     image_index += 1
 
             combined_image = images.combine_grid(grid)
             result_images.append(combined_image)
 
             if opts.samples_save:
-                images.save_image(combined_image, p.outpath_samples, "", start_seed, p.prompt, opts.samples_format, info=initial_info, p=p)
+                images.save_image(
+                    combined_image,
+                    p.outpath_samples,
+                    "",
+                    start_seed,
+                    p.prompt,
+                    opts.samples_format,
+                    info=initial_info,
+                    p=p,
+                )
 
-        processed = Processed(p, result_images, seed, initial_info)
+        new_w, new_h = img.size
+        pattern = r"Size: (\d+)x(\d+)"
+        initial_info = re.sub(pattern, f"Size: {new_w}x{new_h}", initial_info)
 
-        return processed
+        return Processed(p, result_images, seed, initial_info)

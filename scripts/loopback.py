@@ -1,13 +1,12 @@
 import math
 
 import gradio as gr
-import modules.scripts as scripts
-from modules import images, processing, shared
+from modules import images, processing, scripts
 from modules.processing import Processed
 from modules.shared import opts, state
 
 
-class Script(scripts.Script):
+class Loopback(scripts.Script):
     def title(self):
         return "Loopback"
 
@@ -15,20 +14,40 @@ class Script(scripts.Script):
         return is_img2img
 
     def ui(self, is_img2img):
-        loops = gr.Slider(minimum=1, maximum=32, step=1, label='Loops', value=4, elem_id=self.elem_id("loops"))
-        final_denoising_strength = gr.Slider(minimum=0, maximum=1, step=0.01, label='Final denoising strength', value=0.5, elem_id=self.elem_id("final_denoising_strength"))
-        denoising_curve = gr.Dropdown(label="Denoising strength curve", choices=["Aggressive", "Linear", "Lazy"], value="Linear")
+        with gr.Row():
+            loops = gr.Slider(
+                minimum=1,
+                maximum=8,
+                step=1,
+                label="Loops",
+                value=2,
+                elem_id=self.elem_id("loops"),
+            )
+            final_denoising_strength = gr.Slider(
+                label="Final Denoising Strength",
+                minimum=0,
+                maximum=1,
+                step=0.01,
+                value=0.5,
+                elem_id=self.elem_id("final_denoising_strength"),
+            )
+            denoising_curve = gr.Dropdown(
+                label="Denoising Strength Curve",
+                choices=("Aggressive", "Linear", "Lazy"),
+                value="Linear",
+                elem_id=self.elem_id("denoising_strength_curve"),
+            )
 
         return [loops, final_denoising_strength, denoising_curve]
 
-    def run(self, p, loops, final_denoising_strength, denoising_curve):
+    def run(self, p, loops: int, final_denoising_strength: float, denoising_curve: str):
         processing.fix_seed(p)
-        batch_count = p.n_iter
         p.extra_generation_params = {
-            "Final denoising strength": final_denoising_strength,
-            "Denoising curve": denoising_curve
+            "Final Denoising Strength": final_denoising_strength,
+            "Denoising Strength Curve": denoising_curve,
         }
 
+        batch_count = p.n_iter
         p.batch_size = 1
         p.n_iter = 1
 
@@ -40,11 +59,12 @@ class Script(scripts.Script):
         grids = []
         all_images = []
         original_init_image = p.init_images
-        original_prompt = p.prompt
         original_inpainting_fill = p.inpainting_fill
         state.job_count = loops * batch_count
 
-        initial_color_corrections = [processing.setup_color_correction(p.init_images[0])]
+        initial_color_corrections = [
+            processing.setup_color_correction(p.init_images[0])
+        ]
 
         def calculate_denoising_strength(loop):
             strength = initial_denoising_strength
@@ -86,7 +106,7 @@ class Script(scripts.Script):
 
                 processed = processing.process_images(p)
 
-                # Generation cancelled.
+                # Generation cancelled
                 if state.interrupted or state.stopping_generation:
                     break
 
@@ -102,7 +122,8 @@ class Script(scripts.Script):
 
                 last_image = processed.images[0]
                 p.init_images = [last_image]
-                p.inpainting_fill = 1 # Set "masked content" to "original" for next loop.
+                # Set "masked content" to "original" for next loop
+                p.inpainting_fill = 1
 
                 if batch_count == 1:
                     history.append(last_image)
@@ -120,13 +141,22 @@ class Script(scripts.Script):
         if len(history) > 1:
             grid = images.image_grid(history, rows=1)
             if opts.grid_save:
-                images.save_image(grid, p.outpath_grids, "grid", initial_seed, p.prompt, opts.grid_format, info=info, short_filename=not opts.grid_extended_filename, grid=True, p=p)
+                images.save_image(
+                    grid,
+                    p.outpath_grids,
+                    "grid",
+                    initial_seed,
+                    p.prompt,
+                    opts.grid_format,
+                    info=info,
+                    short_filename=not opts.grid_extended_filename,
+                    grid=True,
+                    p=p,
+                )
 
             if opts.return_grid:
                 grids.append(grid)
 
         all_images = grids + all_images
 
-        processed = Processed(p, all_images, initial_seed, initial_info)
-
-        return processed
+        return Processed(p, all_images, initial_seed, initial_info)
