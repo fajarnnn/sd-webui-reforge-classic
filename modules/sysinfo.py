@@ -134,16 +134,6 @@ def get_argv():
 re_newline = re.compile(r"\r*\n")
 
 
-def _val(v: str):
-    v = str(v).strip()
-    if not v:
-        return None
-    try:
-        return int(v)
-    except ValueError:
-        return v
-
-
 def get_torch_sysinfo():
     try:
         import torch.utils.collect_env
@@ -153,18 +143,12 @@ def get_torch_sysinfo():
             k: re.split(re_newline, str(v)) if "\n" in str(v) else v
             for k, v in env.items()
         }
-        cpu_info = info["cpu_info"]
-        cpu_infos = [info.split("=") for info in cpu_info]
-        cpu_info = {k: _val(v) for (k, v) in cpu_infos}
-        info["cpu_info"] = cpu_info
-
         return info
     except Exception as e:
         return str(e)
 
 
 def get_extensions(*, enabled):
-
     try:
 
         def to_json(x: extensions.Extension):
