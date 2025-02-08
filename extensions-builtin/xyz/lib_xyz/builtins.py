@@ -50,20 +50,14 @@ builtin_options = [
         apply_field("sampler_name"),
         format_value=format_value,
         confirm=confirm_samplers,
-        choices=lambda: [
-            x.name for x in sd_samplers.samplers if x.name not in opts.hide_samplers
-        ],
+        choices=sd_samplers.visible_sampler_names,
     ),
     AxisOptionTxt2Img(
         "Hires sampler",
         str,
         apply_field("hr_sampler_name"),
         confirm=confirm_samplers,
-        choices=lambda: [
-            x.name
-            for x in sd_samplers.samplers_for_img2img
-            if x.name not in opts.hide_samplers
-        ],
+        choices=sd_samplers.visible_sampler_names,
     ),
     AxisOptionImg2Img(
         "Sampler",
@@ -71,11 +65,7 @@ builtin_options = [
         apply_field("sampler_name"),
         format_value=format_value,
         confirm=confirm_samplers,
-        choices=lambda: [
-            x.name
-            for x in sd_samplers.samplers_for_img2img
-            if x.name not in opts.hide_samplers
-        ],
+        choices=sd_samplers.visible_sampler_names,
     ),
     AxisOption(
         "Checkpoint name",
