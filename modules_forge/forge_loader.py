@@ -13,6 +13,7 @@ from omegaconf import OmegaConf
 from modules.sd_models_config import find_checkpoint_config
 from modules import shared
 from modules import sd_hijack
+from modules.sd_models_types import WebuiSdModel
 from modules.sd_models_xl import extend_sdxl
 from ldm_patched.ldm.util import instantiate_from_config
 from modules_forge import forge_clip
@@ -35,7 +36,7 @@ class FakeObject:
         return []
 
 
-class ForgeSD:
+class ForgeObjects:
     def __init__(self, unet, clip, vae, clipvision):
         self.unet = unet
         self.clip = clip
@@ -43,7 +44,7 @@ class ForgeSD:
         self.clipvision = clipvision
 
     def shallow_copy(self):
-        return ForgeSD(self.unet, self.clip, self.vae, self.clipvision)
+        return ForgeObjects(self.unet, self.clip, self.vae, self.clipvision)
 
 
 @contextlib.contextmanager
@@ -75,7 +76,7 @@ def load_checkpoint_guess_config(
     output_clipvision=False,
     embedding_directory=None,
     output_model=True,
-):
+) -> ForgeObjects:
     clip = None
     clipvision = None
     vae = None
@@ -140,7 +141,7 @@ def load_checkpoint_guess_config(
             print("loaded straight to GPU")
             model_management.load_model_gpu(model_patcher)
 
-    return ForgeSD(model_patcher, clip, vae, clipvision)
+    return ForgeObjects(model_patcher, clip, vae, clipvision)
 
 
 @torch.no_grad()
@@ -169,7 +170,7 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
         )
 
     with no_clip():
-        sd_model = instantiate_from_config(a1111_config.model)
+        sd_model: WebuiSdModel = instantiate_from_config(a1111_config.model)
 
     timer.record("forge instantiate config")
 
@@ -267,11 +268,6 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
     sd_model.ztsnr = ztsnr
     sd_model.is_sd2 = not sd_model.is_sdxl and hasattr(sd_model.cond_stage_model, "model")
     sd_model.is_sd1 = not sd_model.is_sdxl and not sd_model.is_sd2
-    sd_model.is_ssd = (
-        sd_model.is_sdxl
-        and "model.diffusion_model.middle_block.1.transformer_blocks.0.attn1.to_q.weight"
-        not in sd_model.state_dict().keys()
-    )
     sd_model.sd_model_hash = sd_model_hash
     sd_model.sd_model_checkpoint = checkpoint_info.filename
     sd_model.sd_checkpoint_info = checkpoint_info
@@ -356,3 +352,6 @@ def apply_alpha_schedule_override(sd_model, p=None):
         sd_model.alphas_cumprod = rescale_zero_terminal_snr_abar(
             sd_model.alphas_cumprod
         ).to(shared.device)
+
+
+ForgeSD = ForgeObjects
