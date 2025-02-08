@@ -190,19 +190,8 @@ def get_closet_checkpoint_match(search_string):
     return None
 
 
-def model_hash(filename):
-    """old hash that only looks at a small part of the file and is prone to collisions"""
-
-    try:
-        with open(filename, "rb") as file:
-            import hashlib
-            m = hashlib.sha256()
-
-            file.seek(0x100000)
-            m.update(file.read(0x10000))
-            return m.hexdigest()[0:8]
-    except FileNotFoundError:
-        return 'NOFILE'
+model_hash = hashes.partial_hash_from_cache
+"""old hash that only looks at a small part of the file and is prone to collisions"""
 
 
 def select_checkpoint():

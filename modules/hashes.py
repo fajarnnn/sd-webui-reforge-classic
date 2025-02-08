@@ -21,18 +21,21 @@ def calculate_sha256(filename):
 
 def sha256_from_cache(filename, title, use_addnet_hash=False):
     hashes = cache("hashes-addnet") if use_addnet_hash else cache("hashes")
-    try:
-        ondisk_mtime = os.path.getmtime(filename)
-    except FileNotFoundError:
-        return None
 
     if title not in hashes:
         return None
 
     cached_sha256 = hashes[title].get("sha256", None)
-    cached_mtime = hashes[title].get("mtime", 0)
+    if cached_sha256 is None:
+        return None
 
-    if ondisk_mtime > cached_mtime or cached_sha256 is None:
+    try:
+        ondisk_mtime = os.path.getmtime(filename)
+    except FileNotFoundError:
+        return None
+
+    cached_mtime = hashes[title].get("mtime", -1)
+    if ondisk_mtime != cached_mtime:
         return None
 
     return cached_sha256
@@ -48,7 +51,7 @@ def sha256(filename, title, use_addnet_hash=False):
     if shared.cmd_opts.no_hashing:
         return None
 
-    print(f"Calculating sha256 for {filename}: ", end='')
+    print(f"Calculating sha256 for {filename}: ", end="")
     if use_addnet_hash:
         with open(filename, "rb") as file:
             sha256_value = addnet_hash_safetensors(file)
@@ -67,7 +70,9 @@ def sha256(filename, title, use_addnet_hash=False):
 
 
 def addnet_hash_safetensors(b):
-    """kohya-ss hash for safetensors from https://github.com/kohya-ss/sd-scripts/blob/main/library/train_util.py"""
+    """
+    kohya-ss hash for safetensors from https://github.com/kohya-ss/sd-scripts/blob/main/library/train_util.py
+    """
     hash_sha256 = hashlib.sha256()
     blksize = 1024 * 1024
 
@@ -82,3 +87,20 @@ def addnet_hash_safetensors(b):
 
     return hash_sha256.hexdigest()
 
+
+def partial_hash_from_cache(filename):
+    hashes = cache("partial-hashes")
+
+    if filename in hashes:
+        return hashes[filename]
+
+    try:
+        with open(filename, "rb") as file:
+            hash_sha256 = hashlib.sha256()
+            file.seek(0x100000)
+            hash_sha256.update(file.read(0x10000))
+            partial_hash = hash_sha256.hexdigest()[0:8]
+            hashes[filename] = partial_hash
+            return partial_hash
+    except Exception:
+        return "NOFILE"
