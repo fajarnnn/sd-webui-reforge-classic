@@ -4,10 +4,8 @@ from modules import shared, sd_models, errors, scripts
 
 import lora_patches
 
-from typing import Union
 import functools
 import network
-import torch
 import re
 import os
 
@@ -17,23 +15,10 @@ def load_lora_state_dict(filename):
     return load_torch_file(filename, safe_load=True)
 
 
-def convert_diffusers_name_to_compvis(key, is_sd2):
-    pass
-
-
-def assign_network_names_to_compvis_modules(sd_model):
-    pass
-
-
 def load_network(name, network_on_disk):
     net = network.Network(name, network_on_disk)
     net.mtime = os.path.getmtime(network_on_disk.filename)
-
     return net
-
-
-def purge_networks_from_memory():
-    pass
 
 
 def load_networks(names, te_multipliers=None, unet_multipliers=None, dyn_dims=None):
@@ -103,79 +88,6 @@ def load_networks(names, te_multipliers=None, unet_multipliers=None, dyn_dims=No
     current_sd.forge_objects_after_applying_lora = (
         current_sd.forge_objects.shallow_copy()
     )
-    return
-
-
-def network_restore_weights_from_backup(
-    self: Union[
-        torch.nn.Conv2d,
-        torch.nn.Linear,
-        torch.nn.GroupNorm,
-        torch.nn.LayerNorm,
-        torch.nn.MultiheadAttention,
-    ]
-):
-    pass
-
-
-def network_apply_weights(
-    self: Union[
-        torch.nn.Conv2d,
-        torch.nn.Linear,
-        torch.nn.GroupNorm,
-        torch.nn.LayerNorm,
-        torch.nn.MultiheadAttention,
-    ]
-):
-    pass
-
-
-def network_forward(org_module, input, original_forward):
-    pass
-
-
-def network_reset_cached_weight(self: Union[torch.nn.Conv2d, torch.nn.Linear]):
-    pass
-
-
-def network_Linear_forward(self, input):
-    pass
-
-
-def network_Linear_load_state_dict(self, *args, **kwargs):
-    pass
-
-
-def network_Conv2d_forward(self, input):
-    pass
-
-
-def network_Conv2d_load_state_dict(self, *args, **kwargs):
-    pass
-
-
-def network_GroupNorm_forward(self, input):
-    pass
-
-
-def network_GroupNorm_load_state_dict(self, *args, **kwargs):
-    pass
-
-
-def network_LayerNorm_forward(self, input):
-    pass
-
-
-def network_LayerNorm_load_state_dict(self, *args, **kwargs):
-    pass
-
-
-def network_MultiheadAttention_forward(self, *args, **kwargs):
-    pass
-
-
-def network_MultiheadAttention_load_state_dict(self, *args, **kwargs):
-    pass
 
 
 def list_available_networks():
@@ -201,9 +113,7 @@ def list_available_networks():
         try:
             entry = network.NetworkOnDisk(name, filename)
         except OSError:  # should catch FileNotFoundError and PermissionError etc.
-            errors.report(
-                f"Failed to load network {name} from {filename}", exc_info=True
-            )
+            errors.report(f"Failed to load network {name} from {filename}", exc_info=True)
             continue
 
         available_networks[name] = entry
