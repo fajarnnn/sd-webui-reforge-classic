@@ -1479,64 +1479,6 @@ class IPAdapterApplyEncoded(IPAdapterApply):
         }
 
 
-class IPAdapterSaveEmbeds:
-    def __init__(self):
-        self.output_dir = folder_paths.get_output_directory()
-
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "embeds": ("EMBEDS",),
-                "filename_prefix": ("STRING", {"default": "embeds/IPAdapter"}),
-            },
-        }
-
-    RETURN_TYPES = ()
-    FUNCTION = "save"
-    OUTPUT_NODE = True
-    CATEGORY = "ipadapter"
-
-    def save(self, embeds, filename_prefix):
-        full_output_folder, filename, counter, subfolder, filename_prefix = (
-            folder_paths.get_save_image_path(filename_prefix, self.output_dir)
-        )
-        file = f"{filename}_{counter:05}_.ipadpt"
-        file = os.path.join(full_output_folder, file)
-
-        torch.save(embeds, file)
-        return (None,)
-
-
-class IPAdapterLoadEmbeds:
-    @classmethod
-    def INPUT_TYPES(s):
-        input_dir = folder_paths.get_input_directory()
-        files = [
-            os.path.relpath(os.path.join(root, file), input_dir)
-            for root, dirs, files in os.walk(input_dir)
-            for file in files
-            if file.endswith(".ipadpt")
-        ]
-        return {
-            "required": {
-                "embeds": [
-                    sorted(files),
-                ]
-            },
-        }
-
-    RETURN_TYPES = ("EMBEDS",)
-    FUNCTION = "load"
-    CATEGORY = "ipadapter"
-
-    def load(self, embeds):
-        path = folder_paths.get_annotated_filepath(embeds)
-        output = torch.load(path).cpu()
-
-        return (output,)
-
-
 class IPAdapterBatchEmbeds:
     @classmethod
     def INPUT_TYPES(s):
@@ -1562,8 +1504,6 @@ NODE_CLASS_MAPPINGS = {
     "IPAdapterApplyEncoded": IPAdapterApplyEncoded,
     "PrepImageForClipVision": PrepImageForClipVision,
     "IPAdapterEncoder": IPAdapterEncoder,
-    "IPAdapterSaveEmbeds": IPAdapterSaveEmbeds,
-    "IPAdapterLoadEmbeds": IPAdapterLoadEmbeds,
     "IPAdapterBatchEmbeds": IPAdapterBatchEmbeds,
     "InsightFaceLoader": InsightFaceLoader,
     "PrepImageForInsightFace": PrepImageForInsightFace,
@@ -1576,8 +1516,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "IPAdapterApplyEncoded": "Apply IPAdapter from Encoded",
     "PrepImageForClipVision": "Prepare Image For Clip Vision",
     "IPAdapterEncoder": "Encode IPAdapter Image",
-    "IPAdapterSaveEmbeds": "Save IPAdapter Embeds",
-    "IPAdapterLoadEmbeds": "Load IPAdapter Embeds",
     "IPAdapterBatchEmbeds": "IPAdapter Batch Embeds",
     "InsightFaceLoader": "Load InsightFace",
     "PrepImageForInsightFace": "Prepare Image For InsightFace",
