@@ -22,14 +22,17 @@ class PromptChunk:
 
 
 PromptChunkFix = namedtuple('PromptChunkFix', ['offset', 'embedding'])
-"""An object of this type is a marker showing that textual inversion embedding's vectors have to placed at offset in the prompt
-chunk. Thos objects are found in PromptChunk.fixes and, are placed into FrozenCLIPEmbedderWithCustomWordsBase.hijack.fixes, and finally
-are applied by sd_hijack.EmbeddingsWithFixes's forward function."""
+"""
+An object of this type is a marker showing that textual inversion embedding's vectors have to placed at offset in the prompt
+chunk. Those objects are found in PromptChunk.fixes and, are placed into FrozenCLIPEmbedderWithCustomWordsBase.hijack.fixes, and finally
+are applied by sd_hijack.EmbeddingsWithFixes's forward function.
+"""
 
 
 class FrozenCLIPEmbedderWithCustomWordsBase(torch.nn.Module):
-    """A pytorch module that is a wrapper for FrozenCLIPEmbedder module. it enhances FrozenCLIPEmbedder, making it possible to
-    have unlimited prompt length and assign weights to tokens in prompt.
+    """
+    A pytorch module that is a wrapper for FrozenCLIPEmbedder module. it enhances FrozenCLIPEmbedder,
+    making it possible to have unlimited prompt length and assign weights to tokens in prompt.
     """
 
     def __init__(self, wrapped, hijack):
@@ -67,7 +70,7 @@ class FrozenCLIPEmbedderWithCustomWordsBase(torch.nn.Module):
 
     def encode_with_transformers(self, tokens):
         """
-        converts a batch of token ids (in python lists) into a single tensor with numeric respresentation of those tokens;
+        converts a batch of token ids (in python lists) into a single tensor with numeric representation of those tokens;
         All python lists with tokens are assumed to have same length, usually 77.
         if input is a list with B elements and each element has T tokens, expected output shape is (B, T, C), where C depends on
         model - can be 768 and 1024.
@@ -77,8 +80,11 @@ class FrozenCLIPEmbedderWithCustomWordsBase(torch.nn.Module):
         raise NotImplementedError
 
     def encode_embedding_init_text(self, init_text, nvpt):
-        """Converts text into a tensor with this text's tokens' embeddings. Note that those are embeddings before they are passed through
-        transformers. nvpt is used as a maximum length in tokens. If text produces less teokens than nvpt, only this many is returned."""
+        """
+        Converts text into a tensor with this text's tokens' embeddings.
+        Note that those are embeddings before they are passed through transformers.
+        nvpt is used as a maximum length in tokens. If text produces less teokens than nvpt, only this many is returned.
+        """
 
         raise NotImplementedError
 
@@ -102,8 +108,10 @@ class FrozenCLIPEmbedderWithCustomWordsBase(torch.nn.Module):
         last_comma = -1
 
         def next_chunk(is_last=False):
-            """puts current chunk into the list of results and produces the next one - empty;
-            if is_last is true, tokens <end-of-text> tokens at the end won't add to token_count"""
+            """
+            puts current chunk into the list of results and produces the next one - empty;
+            if is_last is true, tokens <end-of-text> tokens at the end won't add to token_count
+            """
             nonlocal token_count
             nonlocal last_comma
             nonlocal chunk
@@ -137,7 +145,7 @@ class FrozenCLIPEmbedderWithCustomWordsBase(torch.nn.Module):
                 if token == self.comma_token:
                     last_comma = len(chunk.tokens)
 
-                # this is when we are at the end of alloted 75 tokens for the current chunk, and the current token is not a comma. opts.comma_padding_backtrack
+                # this is when we are at the end of allotted 75 tokens for the current chunk, and the current token is not a comma. opts.comma_padding_backtrack
                 # is a setting that specifies that if there is a comma nearby, the text after the comma should be moved out of this chunk and into the next.
                 elif opts.comma_padding_backtrack != 0 and len(chunk.tokens) == self.chunk_length and last_comma != -1 and len(chunk.tokens) - last_comma <= opts.comma_padding_backtrack:
                     break_location = last_comma + 1
@@ -206,7 +214,7 @@ class FrozenCLIPEmbedderWithCustomWordsBase(torch.nn.Module):
         Returns a tensor with shape of (B, T, C), where B is length of the array; T is length, in tokens, of texts (including padding) - T will
         be a multiple of 77; and C is dimensionality of each token - for SD1 it's 768, for SD2 it's 1024, and for SDXL it's 1280.
         An example shape returned by this function can be: (2, 77, 768).
-        For SDXL, instead of returning one tensor avobe, it returns a tuple with two: the other one with shape (B, 1280) with pooled values.
+        For SDXL, instead of returning one tensor above, it returns a tuple with two: the other one with shape (B, 1280) with pooled values.
         Webui usually sends just one text at a time through this function - the only time when texts is an array with more than one elemenet
         is when you do prompt editing: "a picture of a [cat:dog:0.4] eating ice cream"
         """
@@ -245,9 +253,6 @@ class FrozenCLIPEmbedderWithCustomWordsBase(torch.nn.Module):
                 if self.hijack.extra_generation_params.get("TI hashes"):
                     hashes.append(self.hijack.extra_generation_params.get("TI hashes"))
                 self.hijack.extra_generation_params["TI hashes"] = ", ".join(hashes)
-
-        if any(x for x in texts if "(" in x or "[" in x) and opts.emphasis != "Original":
-            self.hijack.extra_generation_params["Emphasis"] = opts.emphasis
 
         if getattr(self.wrapped, 'return_pooled', False):
             return torch.hstack(zs), zs[0].pooled
