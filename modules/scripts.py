@@ -11,6 +11,7 @@ from modules import shared, paths, script_callbacks, extensions, script_loading,
 
 AlwaysVisible = object()
 
+
 class MaskBlendArgs:
     def __init__(self, current_latent, nmask, init_latent, mask, blended_latent, denoiser=None, sigma=None):
         self.current_latent = current_latent
@@ -23,19 +24,23 @@ class MaskBlendArgs:
         self.is_final_blend = denoiser is None
         self.sigma = sigma
 
+
 class PostSampleArgs:
     def __init__(self, samples):
         self.samples = samples
 
+
 class PostprocessImageArgs:
     def __init__(self, image):
         self.image = image
+
 
 class PostProcessMaskOverlayArgs:
     def __init__(self, index, mask_for_overlay, overlay_image):
         self.index = index
         self.mask_for_overlay = mask_for_overlay
         self.overlay_image = overlay_image
+
 
 class PostprocessBatchListArgs:
     def __init__(self, images):
@@ -64,19 +69,21 @@ class Script:
     tabname = None
 
     group = None
-    """A gr.Group component that has all script's UI inside it."""
+    """A gr.Group component that has all script's UI inside it"""
 
     create_group = True
-    """If False, for alwayson scripts, a group component will not be created."""
+    """If False, for alwayson scripts, a group component will not be created"""
 
     infotext_fields = None
-    """if set in ui(), this is a list of pairs of gradio component + text; the text will be used when
+    """
+    if set in ui(), this is a list of pairs of gradio component + text; the text will be used when
     parsing infotext to set the value for the component; see ui.py's txt2img_paste_fields for an example
     """
 
     paste_field_names = None
-    """if set in ui(), this is a list of names of infotext fields; the fields will be sent through the
-    various "Send to <X>" buttons when clicked
+    """
+    if set in ui(), this is a list of names of infotext fields; the fields will be sent through
+    the various "Send to X" buttons when clicked
     """
 
     api_info = None
@@ -92,95 +99,91 @@ class Script:
     """If true, the script setup will only be run in Gradio UI, not in API"""
 
     controls = None
-    """A list of controls retured by the ui()."""
+    """A list of controls returned by the ui()"""
 
     sorting_priority = 0
-    """Larger number will appear downwards in the UI."""
+    """Larger number will appear downwards in the UI"""
 
     def title(self):
-        """this function should return the title of the script. This is what will be displayed in the dropdown menu."""
-
+        """this function should return the title of the script. This is what will be displayed in the dropdown menu"""
         raise NotImplementedError()
 
     def ui(self, is_img2img):
-        """this function should create gradio UI elements. See https://gradio.app/docs/#components
+        """
+        this function should create gradio UI elements (See https://gradio.app/docs/#components)
         The return value should be an array of all components that are used in processing.
         Values of those returned components will be passed to run() and process() functions.
         """
-
         pass
 
     def show(self, is_img2img):
         """
-        is_img2img is True if this function is called for the img2img interface, and Fasle otherwise
+        is_img2img is True if this function is called for the img2img interface, False otherwise
 
-        This function should return:
-         - False if the script should not be shown in UI at all
-         - True if the script should be shown in UI if it's selected in the scripts dropdown
-         - script.AlwaysVisible if the script should be shown in UI at all times
-         """
-
+        - This function should return:
+          - False if the script should not be shown in UI at all
+          - True if the script should be shown in UI if it's selected in the scripts dropdown
+          - script.AlwaysVisible if the script should be shown in UI at all times
+        """
         return True
 
     def run(self, p, *args):
         """
         This function is called if the script has been selected in the script dropdown.
-        It must do all processing and return the Processed object with results, same as
-        one returned by processing.process_images.
-
-        Usually the processing is done by calling the processing.process_images function.
+        It must do all processing and return the Processed object with results
+        by calling the processing.process_images function.
 
         args contains all values returned by components from ui()
         """
-
         pass
 
     def setup(self, p, *args):
-        """For AlwaysVisible scripts, this function is called when the processing object is set up, before any processing starts.
-        args contains all values returned by components from ui().
+        """
+        For AlwaysVisible scripts, this function is called when the processing object is set up,
+        before any processing starts.
+
+        args contains all values returned by components from ui()
         """
         pass
-
 
     def before_process(self, p, *args):
         """
         This function is called very early during processing begins for AlwaysVisible scripts.
         You can modify the processing object (p) here, inject hooks, etc.
+
         args contains all values returned by components from ui()
         """
-
         pass
 
     def process(self, p, *args):
         """
         This function is called before processing begins for AlwaysVisible scripts.
         You can modify the processing object (p) here, inject hooks, etc.
+
         args contains all values returned by components from ui()
         """
-
         pass
 
     def before_process_batch(self, p, *args, **kwargs):
         """
-        Called before extra networks are parsed from the prompt, so you can add
-        new extra network keywords to the prompt with this callback.
+        Called before extra networks are parsed from the prompt, so you can
+        add new extra network keywords to the prompt with this callback.
 
-        **kwargs will have those items:
+        - kwargs will have those items:
           - batch_number - index of current batch, from 0 to number of batches-1
           - prompts - list of prompts for current batch; you can change contents of this list but changing the number of entries will likely break things
           - seeds - list of seeds for current batch
           - subseeds - list of subseeds for current batch
         """
-
         pass
 
     def after_extra_networks_activate(self, p, *args, **kwargs):
         """
-        Called after extra networks activation, before conds calculation
-        allow modification of the network after extra networks activation been applied
-        won't be call if p.disable_extra_networks
+        Called after extra networks activation before conds calculation,
+        allow modification of the network after extra networks have activation been applied.
+        Won't be called if p.disable_extra_networks
 
-        **kwargs will have those items:
+        - kwargs will have those items:
           - batch_number - index of current batch, from 0 to number of batches-1
           - prompts - list of prompts for current batch; you can change contents of this list but changing the number of entries will likely break things
           - seeds - list of seeds for current batch
@@ -192,33 +195,30 @@ class Script:
     def process_before_every_sampling(self, p, *args, **kwargs):
         """
         Similar to process(), called before every sampling.
-        If you use high-res fix, this will be called two times.
+        Will be called two times if high-res fix is enabled.
         """
-
         pass
 
     def process_batch(self, p, *args, **kwargs):
         """
         Same as process(), but called for every batch.
 
-        **kwargs will have those items:
+        - kwargs will have those items:
           - batch_number - index of current batch, from 0 to number of batches-1
           - prompts - list of prompts for current batch; you can change contents of this list but changing the number of entries will likely break things
           - seeds - list of seeds for current batch
           - subseeds - list of subseeds for current batch
         """
-
         pass
 
     def postprocess_batch(self, p, *args, **kwargs):
         """
         Same as process_batch(), but called for every batch after it has been generated.
 
-        **kwargs will have same items as process_batch, and also:
+        - kwargs will have same items as process_batch, and also:
           - batch_number - index of current batch, from 0 to number of batches-1
-          - images - torch tensor with all generated images, with values ranging from 0 to 1;
+          - images - torch tensor with all generated images, with values ranging from 0 to 1
         """
-
         pass
 
     def postprocess_batch_list(self, p, pp: PostprocessBatchListArgs, *args, **kwargs):
@@ -234,10 +234,9 @@ class Script:
           - p.seeds
           - p.subseeds
 
-        **kwargs will have same items as process_batch, and also:
+        - kwargs will have same items as process_batch, and also:
           - batch_number - index of current batch, from 0 to number of batches-1
         """
-
         pass
 
     def on_mask_blend(self, p, mba: MaskBlendArgs, *args):
@@ -247,7 +246,6 @@ class Script:
         If is_final_blend is true, this is called for the final blending stage.
         Otherwise, denoiser and sigma are defined and may be used to inform the procedure.
         """
-
         pass
 
     def post_sample(self, p, ps: PostSampleArgs, *args):
@@ -256,21 +254,14 @@ class Script:
         but before they have been decoded by the VAE, if applicable.
         Check getattr(samples, 'already_decoded', False) to test if the images are decoded.
         """
-
         pass
 
     def postprocess_image(self, p, pp: PostprocessImageArgs, *args):
-        """
-        Called for every image after it has been generated.
-        """
-
+        """Called for every image after it has been generated"""
         pass
 
     def postprocess_maskoverlay(self, p, ppmo: PostProcessMaskOverlayArgs, *args):
-        """
-        Called for every image after it has been generated.
-        """
-
+        """Called for every image after it has been generated"""
         pass
 
     def postprocess_image_after_composite(self, p, pp: PostprocessImageArgs, *args):
@@ -279,7 +270,6 @@ class Script:
         Same as postprocess_image but after inpaint_full_res composite
         So that it operates on the full image instead of the inpaint_full_res crop region.
         """
-
         pass
 
     def postprocess(self, p, processed, *args):
@@ -287,7 +277,6 @@ class Script:
         This function is called after processing ends for AlwaysVisible scripts.
         args contains all values returned by components from ui()
         """
-
         pass
 
     def before_component(self, component, **kwargs):
@@ -297,14 +286,10 @@ class Script:
         This can be useful to inject your own components somewhere in the middle of vanilla UI.
         You can return created components in the ui() function to add them to the list of arguments for your processing functions
         """
-
         pass
 
     def after_component(self, component, **kwargs):
-        """
-        Called after a component is created. Same as above.
-        """
-
+        """Called after a component is created. Same as above"""
         pass
 
     def on_before_component(self, callback, *, elem_id):
@@ -313,8 +298,8 @@ class Script:
 
         May be called in show() or ui() - but it may be too late in latter as some components may already be created.
 
-        This function is an alternative to before_component in that it also cllows to run before a component is created, but
-        it doesn't require to be called for every created component - just for the one you need.
+        This function is an alternative to before_component in that it also allows running before a component is created,
+        but it doesn't require to be called for every created component - just for the one you need.
         """
         if self.on_before_component_elem_id is None:
             self.on_before_component_elem_id = []
@@ -330,24 +315,23 @@ class Script:
 
         self.on_after_component_elem_id.append((elem_id, callback))
 
-    def describe(self):
-        """unused"""
-        return ""
-
     def elem_id(self, item_id):
-        """helper function to generate id for a HTML element, constructs final id out of script name, tab and user-supplied item_id"""
+        """
+        helper function to generate id for a HTML element, constructs final id out of
+          - script name
+          - tab
+          - user-supplied item_id
+        """
 
         need_tabname = self.show(True) == self.show(False)
-        tabkind = 'img2img' if self.is_img2img else 'txt2img'
+        tabkind = "img2img" if self.is_img2img else "txt2img"
         tabname = f"{tabkind}_" if need_tabname else ""
-        title = re.sub(r'[^a-z_0-9]', '', re.sub(r'\s', '_', self.title().lower()))
+        title = re.sub(r"[^a-z_0-9]", "", re.sub(r"\s", "_", self.title().lower()))
 
-        return f'script_{tabname}{title}_{item_id}'
+        return f"script_{tabname}{title}_{item_id}"
 
     def before_hr(self, p, *args):
-        """
-        This function is called before hires fix start.
-        """
+        """This function is called before hires fix start"""
         pass
 
 
@@ -355,21 +339,27 @@ class ScriptBuiltinUI(Script):
     setup_for_ui_only = True
 
     def elem_id(self, item_id):
-        """helper function to generate id for a HTML element, constructs final id out of tab and user-supplied item_id"""
+        """
+        helper function to generate id for a HTML element, constructs final id out of
+          - script name
+          - tab
+          - user-supplied item_id
+        """
 
         need_tabname = self.show(True) == self.show(False)
-        tabname = ('img2img' if self.is_img2img else 'txt2img') + "_" if need_tabname else ""
+        tabname = ("img2img" if self.is_img2img else "txt2img") + "_" if need_tabname else ""
 
-        return f'{tabname}{item_id}'
+        return f"{tabname}{item_id}"
 
 
 current_basedir = paths.script_path
 
 
 def basedir():
-    """returns the base directory for the current script. For scripts in the main scripts directory,
-    this is the main directory (where webui.py resides), and for scripts in extensions directory
-    (ie extensions/aesthetic/script/aesthetic.py), this is extension's directory (extensions/aesthetic)
+    """
+    Returns the base directory for the current script
+    For scripts in the main scripts directory, this is the main directory (where webui.py resides);
+    For scripts in extensions directory, this is the extension's directory
     """
     return current_basedir
 
@@ -380,9 +370,11 @@ scripts_data = []
 postprocessing_scripts_data = []
 ScriptClassData = namedtuple("ScriptClassData", ["script_class", "path", "basedir", "module"])
 
+
 def topological_sort(dependencies):
-    """Accepts a dictionary mapping name to its dependencies, returns a list of names ordered according to dependencies.
-    Ignores errors relating to missing dependeencies or circular dependencies
+    """
+    Accepts a dictionary mapping name to its dependencies, returns a list of names ordered according to dependencies.
+    Ignores errors relating to missing dependencies or circular dependencies
     """
 
     visited = {}
@@ -672,7 +664,7 @@ class ScriptRunner:
                 if v is not None:
                     setattr(arg_info, field, v)
 
-            choices = getattr(control, 'choices', None)  # as of gradio 3.41, some items in choices are strings, and some are tuples where the first elem is the string
+            choices = getattr(control, "choices", None)  # as of gradio 3.41, some items in choices are strings, and some are tuples where the first elem is the string
             if choices is not None:
                 arg_info.choices = [x[0] if isinstance(x, tuple) else x for x in choices]
 
@@ -730,14 +722,14 @@ class ScriptRunner:
         def select_script(script_index):
             if script_index is None:
                 script_index = 0
-            selected_script = self.selectable_scripts[script_index - 1] if script_index>0 else None
+            selected_script = self.selectable_scripts[script_index - 1] if script_index > 0 else None
 
             return [gr.update(visible=selected_script == s) for s in self.selectable_scripts]
 
         def init_field(title):
             """called when an initial value is set from ui-config.json to show script's UI components"""
 
-            if title == 'None':
+            if title == "None":
                 return
 
             script_index = self.titles.index(title)
@@ -745,16 +737,12 @@ class ScriptRunner:
 
         dropdown.init_field = init_field
 
-        dropdown.change(
-            fn=select_script,
-            inputs=[dropdown],
-            outputs=[script.group for script in self.selectable_scripts]
-        )
+        dropdown.change(fn=select_script, inputs=[dropdown], outputs=[script.group for script in self.selectable_scripts])
 
         self.script_load_ctr = 0
 
         def onload_script_visibility(params):
-            title = params.get('Script', None)
+            title = params.get("Script", None)
             if title:
                 title_index = self.titles.index(title)
                 visibility = title_index == self.script_load_ctr
@@ -763,7 +751,7 @@ class ScriptRunner:
             else:
                 return gr.update(visible=False)
 
-        self.infotext_fields.append((dropdown, lambda x: gr.update(value=x.get('Script', 'None'))))
+        self.infotext_fields.append((dropdown, lambda x: gr.update(value=x.get("Script", "None"))))
         self.infotext_fields.extend([(script.group, onload_script_visibility) for script in self.selectable_scripts])
 
         self.apply_on_before_component_callbacks()
@@ -776,12 +764,12 @@ class ScriptRunner:
         if script_index == 0 or script_index is None:
             return None
 
-        script = self.selectable_scripts[script_index-1]
+        script = self.selectable_scripts[script_index - 1]
 
         if script is None:
             return None
 
-        script_args = args[script.args_from:script.args_to]
+        script_args = args[script.args_from : script.args_to]
         processed = script.run(p, *script_args)
 
         shared.total_tqdm.clear()
@@ -791,7 +779,7 @@ class ScriptRunner:
     def before_process(self, p):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.before_process(p, *script_args)
             except Exception:
                 errors.report(f"Error running before_process: {script.filename}", exc_info=True)
@@ -799,7 +787,7 @@ class ScriptRunner:
     def process(self, p):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.process(p, *script_args)
             except Exception:
                 errors.report(f"Error running process: {script.filename}", exc_info=True)
@@ -807,7 +795,7 @@ class ScriptRunner:
     def before_process_batch(self, p, **kwargs):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.before_process_batch(p, *script_args, **kwargs)
             except Exception:
                 errors.report(f"Error running before_process_batch: {script.filename}", exc_info=True)
@@ -815,7 +803,7 @@ class ScriptRunner:
     def after_extra_networks_activate(self, p, **kwargs):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.after_extra_networks_activate(p, *script_args, **kwargs)
             except Exception:
                 errors.report(f"Error running after_extra_networks_activate: {script.filename}", exc_info=True)
@@ -823,7 +811,7 @@ class ScriptRunner:
     def process_batch(self, p, **kwargs):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.process_batch(p, *script_args, **kwargs)
             except Exception:
                 errors.report(f"Error running process_batch: {script.filename}", exc_info=True)
@@ -831,7 +819,7 @@ class ScriptRunner:
     def process_before_every_sampling(self, p, **kwargs):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.process_before_every_sampling(p, *script_args, **kwargs)
             except Exception:
                 errors.report(f"Error running process_before_every_sampling: {script.filename}", exc_info=True)
@@ -839,7 +827,7 @@ class ScriptRunner:
     def postprocess(self, p, processed):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.postprocess(p, processed, *script_args)
             except Exception:
                 errors.report(f"Error running postprocess: {script.filename}", exc_info=True)
@@ -847,7 +835,7 @@ class ScriptRunner:
     def postprocess_batch(self, p, images, **kwargs):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.postprocess_batch(p, *script_args, images=images, **kwargs)
             except Exception:
                 errors.report(f"Error running postprocess_batch: {script.filename}", exc_info=True)
@@ -855,7 +843,7 @@ class ScriptRunner:
     def postprocess_batch_list(self, p, pp: PostprocessBatchListArgs, **kwargs):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.postprocess_batch_list(p, pp, *script_args, **kwargs)
             except Exception:
                 errors.report(f"Error running postprocess_batch_list: {script.filename}", exc_info=True)
@@ -863,7 +851,7 @@ class ScriptRunner:
     def post_sample(self, p, ps: PostSampleArgs):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.post_sample(p, ps, *script_args)
             except Exception:
                 errors.report(f"Error running post_sample: {script.filename}", exc_info=True)
@@ -871,7 +859,7 @@ class ScriptRunner:
     def on_mask_blend(self, p, mba: MaskBlendArgs):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.on_mask_blend(p, mba, *script_args)
             except Exception:
                 errors.report(f"Error running post_sample: {script.filename}", exc_info=True)
@@ -879,7 +867,7 @@ class ScriptRunner:
     def postprocess_image(self, p, pp: PostprocessImageArgs):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.postprocess_image(p, pp, *script_args)
             except Exception:
                 errors.report(f"Error running postprocess_image: {script.filename}", exc_info=True)
@@ -887,7 +875,7 @@ class ScriptRunner:
     def postprocess_maskoverlay(self, p, ppmo: PostProcessMaskOverlayArgs):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.postprocess_maskoverlay(p, ppmo, *script_args)
             except Exception:
                 errors.report(f"Error running postprocess_image: {script.filename}", exc_info=True)
@@ -895,7 +883,7 @@ class ScriptRunner:
     def postprocess_image_after_composite(self, p, pp: PostprocessImageArgs):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.postprocess_image_after_composite(p, pp, *script_args)
             except Exception:
                 errors.report(f"Error running postprocess_image_after_composite: {script.filename}", exc_info=True)
@@ -950,7 +938,7 @@ class ScriptRunner:
     def before_hr(self, p):
         for script in self.alwayson_scripts:
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.before_hr(p, *script_args)
             except Exception:
                 errors.report(f"Error running before_hr: {script.filename}", exc_info=True)
@@ -961,13 +949,14 @@ class ScriptRunner:
                 continue
 
             try:
-                script_args = p.script_args[script.args_from:script.args_to]
+                script_args = p.script_args[script.args_from : script.args_to]
                 script.setup(p, *script_args)
             except Exception:
                 errors.report(f"Error running setup: {script.filename}", exc_info=True)
 
     def set_named_arg(self, args, script_name, arg_elem_id, value, fuzzy=False):
-        """Locate an arg of a specific script in script_args and set its value
+        """
+        Locate an arg of a specific script in script_args and set its value
         Args:
             args: all script args of process p, p.script_args
             script_name: the name target script name to
@@ -987,7 +976,7 @@ class ScriptRunner:
                 index = script.args_from + i
 
                 if isinstance(args, tuple):
-                    return args[:index] + (value,) + args[index + 1:]
+                    return args[:index] + (value,) + args[index + 1 :]
                 elif isinstance(args, list):
                     args[index] = value
                     return args
