@@ -165,14 +165,14 @@ def setup_progressbar(*args, **kwargs):
 
 def apply_setting(key, value):
     if value is None:
-        return gr.update()
+        return gr.skip()
 
     if shared.cmd_opts.freeze_settings:
-        return gr.update()
+        return gr.skip()
 
     # dont allow model to be swapped when model hash exists in prompt
     if key == "sd_model_checkpoint" and opts.disable_weights_auto_swap:
-        return gr.update()
+        return gr.skip()
 
     if key == "sd_model_checkpoint":
         ckpt_info = sd_models.get_closet_checkpoint_match(value)
@@ -180,7 +180,7 @@ def apply_setting(key, value):
         if ckpt_info is not None:
             value = ckpt_info.title
         else:
-            return gr.update()
+            return gr.skip()
 
     comp_args = opts.data_labels[key].component_args
     if comp_args and isinstance(comp_args, dict) and comp_args.get('visible') is False:
@@ -438,7 +438,7 @@ def create_ui():
                 PasteField(width, "Size-1", api="width"),
                 PasteField(height, "Size-2", api="height"),
                 PasteField(batch_size, "Batch size", api="batch_size"),
-                PasteField(toprow.ui_styles.dropdown, lambda d: d["Styles array"] if isinstance(d.get("Styles array"), list) else gr.update(), api="styles"),
+                PasteField(toprow.ui_styles.dropdown, lambda d: d["Styles array"] if isinstance(d.get("Styles array"), list) else gr.skip(), api="styles"),
                 PasteField(denoising_strength, "Denoising strength", api="denoising_strength"),
                 PasteField(enable_hr, lambda d: "Denoising strength" in d and ("Hires upscale" in d or "Hires upscaler" in d or "Hires resize-1" in d), api="enable_hr"),
                 PasteField(hr_scale, "Hires upscale", api="hr_scale"),
@@ -448,10 +448,10 @@ def create_ui():
                 PasteField(hr_resize_y, "Hires resize-2", api="hr_resize_y"),
                 PasteField(hr_checkpoint_name, "Hires checkpoint", api="hr_checkpoint_name"),
                 PasteField(hr_sampler_name, "Hires sampler", api="hr_sampler_name"),
-                PasteField(hr_sampler_container, lambda d: gr.update(visible=True) if d.get("Hires sampler", "Use same sampler") != "Use same sampler" or d.get("Hires checkpoint", "Use same checkpoint") != "Use same checkpoint" else gr.update()),
+                PasteField(hr_sampler_container, lambda d: gr.update(visible=True) if d.get("Hires sampler", "Use same sampler") != "Use same sampler" or d.get("Hires checkpoint", "Use same checkpoint") != "Use same checkpoint" else gr.skip()),
                 PasteField(hr_prompt, "Hires prompt", api="hr_prompt"),
                 PasteField(hr_negative_prompt, "Hires negative prompt", api="hr_negative_prompt"),
-                PasteField(hr_prompts_container, lambda d: gr.update(visible=True) if d.get("Hires prompt", "") != "" or d.get("Hires negative prompt", "") != "" else gr.update()),
+                PasteField(hr_prompts_container, lambda d: gr.update(visible=True) if d.get("Hires prompt", "") != "" or d.get("Hires negative prompt", "") != "" else gr.skip()),
                 *scripts.scripts_txt2img.infotext_fields
             ]
             parameters_copypaste.add_paste_fields("txt2img", None, txt2img_paste_fields, override_settings)
@@ -769,7 +769,7 @@ def create_ui():
             res_switch_btn.click(fn=None, _js="function(){switchWidthHeight('img2img')}", inputs=None, outputs=None, show_progress=False)
 
             detect_image_size_btn.click(
-                fn=lambda w, h, _: (w or gr.update(), h or gr.update()),
+                fn=lambda w, h, _: (w or gr.skip(), h or gr.skip()),
                 _js="currentImg2imgSourceResolution",
                 inputs=[dummy_component, dummy_component, dummy_component],
                 outputs=[width, height],
@@ -804,7 +804,7 @@ def create_ui():
                 (width, "Size-1"),
                 (height, "Size-2"),
                 (batch_size, "Batch size"),
-                (toprow.ui_styles.dropdown, lambda d: d["Styles array"] if isinstance(d.get("Styles array"), list) else gr.update()),
+                (toprow.ui_styles.dropdown, lambda d: d["Styles array"] if isinstance(d.get("Styles array"), list) else gr.skip()),
                 (denoising_strength, "Denoising strength"),
                 (mask_blur, "Mask blur"),
                 (inpainting_mask_invert, 'Mask mode'),

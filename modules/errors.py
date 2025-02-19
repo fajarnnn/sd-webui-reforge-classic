@@ -6,10 +6,7 @@ exception_records = []
 
 
 def format_traceback(tb):
-    return [
-        [f"{x.filename}, line {x.lineno}, {x.name}", x.line]
-        for x in traceback.extract_tb(tb)
-    ]
+    return [[f"{x.filename}, line {x.lineno}, {x.name}", x.line] for x in traceback.extract_tb(tb)]
 
 
 def format_exception(e, tb):

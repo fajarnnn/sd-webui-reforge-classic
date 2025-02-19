@@ -13,7 +13,7 @@ from PIL import Image
 re_param_code = r'\s*(\w[\w \-/]+):\s*("(?:\\.|[^\\"])+"|[^,]*)(?:,|$)'
 re_param = re.compile(re_param_code)
 re_imagesize = re.compile(r"^(\d+)x(\d+)$")
-type_of_gr_update = type(gr.update())
+type_of_gr_update = type(gr.skip())
 
 
 class ParamBinding:
@@ -190,8 +190,8 @@ def send_image_and_dimensions(x):
         w = img.width
         h = img.height
     else:
-        w = gr.update()
-        h = gr.update()
+        w = gr.skip()
+        h = gr.skip()
 
     return img, w, h
 

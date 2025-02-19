@@ -30,7 +30,7 @@ class ExtraNetworkParams:
         self.named = {}
 
         for item in self.items:
-            parts = item.split('=', 2) if isinstance(item, str) else [item]
+            parts = item.split("=", 2) if isinstance(item, str) else [item]
             if len(parts) == 2:
                 self.named[parts[0]] = parts[1]
             else:
@@ -105,8 +105,10 @@ def lookup_extra_networks(extra_network_data):
 
 
 def activate(p, extra_network_data):
-    """call activate for extra networks in extra_network_data in specified order, then call
-    activate for all remaining registered networks with an empty argument list"""
+    """
+    call activate for extra networks in extra_network_data in specified order, then
+    call activate for all remaining registered networks with an empty argument list
+    """
 
     activated = []
 
@@ -192,7 +194,7 @@ def get_user_metadata(filename, lister=None):
         return {}
 
     basename, ext = os.path.splitext(filename)
-    metadata_filename = basename + '.json'
+    metadata_filename = basename + ".json"
 
     metadata = {}
     try:

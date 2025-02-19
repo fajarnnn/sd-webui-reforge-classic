@@ -23,12 +23,12 @@ def update_generation_info(generation_info, html_info, img_index):
     try:
         generation_info = json.loads(generation_info)
         if img_index < 0 or img_index >= len(generation_info["infotexts"]):
-            return html_info, gr.update()
-        return plaintext_to_html(generation_info["infotexts"][img_index]), gr.update()
+            return html_info, gr.skip()
+        return plaintext_to_html(generation_info["infotexts"][img_index]), gr.skip()
     except Exception:
         pass
     # if the json parse or anything else fails, just return the old html_info
-    return html_info, gr.update()
+    return html_info, gr.skip()
 
 
 def plaintext_to_html(text, classname=None):

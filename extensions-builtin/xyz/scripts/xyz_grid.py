@@ -235,11 +235,11 @@ class XYZ(scripts.Script):
             axis = self.current_axis_options[axis_type]
             if axis.choices:
                 if csv_mode:
-                    return list_to_csv_string(axis.choices()), gr.update()
+                    return list_to_csv_string(axis.choices()), gr.skip()
                 else:
-                    return gr.update(), axis.choices()
+                    return gr.skip(), axis.choices()
             else:
-                return gr.update(), gr.update()
+                return gr.skip(), gr.skip()
 
         fill_x_button.click(
             fn=fill, inputs=[x_type, csv_mode], outputs=[x_values, x_values_dropdown]

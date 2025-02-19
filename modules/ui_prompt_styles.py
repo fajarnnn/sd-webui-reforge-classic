@@ -12,8 +12,8 @@ def select_style(name):
     existing = style is not None
     empty = not name
 
-    prompt = style.prompt if style else gr.update()
-    negative_prompt = style.negative_prompt if style else gr.update()
+    prompt = style.prompt if style else gr.skip()
+    negative_prompt = style.negative_prompt if style else gr.skip()
 
     return prompt, negative_prompt, gr.update(visible=existing), gr.update(visible=not empty)
 

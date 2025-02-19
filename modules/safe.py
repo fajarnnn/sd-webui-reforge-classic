@@ -1,4 +1,6 @@
-# this code is adapted from the script contributed by anon from /h/
+"""
+code adapted from the script contributed by anon from /h/
+"""
 
 import pickle
 import collections
@@ -10,10 +12,9 @@ import zipfile
 import re
 
 
-# PyTorch 1.13 and later have _TypedStorage renamed to TypedStorage
 from modules import errors
+from torch.storage import TypedStorage
 
-TypedStorage = torch.storage.TypedStorage if hasattr(torch.storage, 'TypedStorage') else torch.storage._TypedStorage
 
 def encode(*args):
     out = _codecs.encode(*args)
@@ -24,7 +25,7 @@ class RestrictedUnpickler(pickle.Unpickler):
     extra_handler = None
 
     def persistent_load(self, saved_id):
-        assert saved_id[0] == 'storage'
+        assert saved_id[0] == "storage"
 
         try:
             return TypedStorage(_internal=True)
@@ -40,32 +41,33 @@ class RestrictedUnpickler(pickle.Unpickler):
         class Empty:
             pass
 
-        if module == 'collections' and name == 'OrderedDict':
+        if module == "collections" and name == "OrderedDict":
             return getattr(collections, name)
-        if module == 'torch._utils' and name in ['_rebuild_tensor_v2', '_rebuild_parameter', '_rebuild_device_tensor_from_numpy']:
+        if module == "torch._utils" and name in ["_rebuild_tensor_v2", "_rebuild_parameter", "_rebuild_device_tensor_from_numpy"]:
             return getattr(torch._utils, name)
-        if module == 'torch' and name in ['FloatStorage', 'HalfStorage', 'IntStorage', 'LongStorage', 'DoubleStorage', 'ByteStorage', 'float32', 'BFloat16Storage']:
+        if module == "torch" and name in ["FloatStorage", "HalfStorage", "IntStorage", "LongStorage", "DoubleStorage", "ByteStorage", "float32", "BFloat16Storage"]:
             return getattr(torch, name)
-        if module == 'torch.nn.modules.container' and name in ['ParameterDict']:
+        if module == "torch.nn.modules.container" and name in ["ParameterDict"]:
             return getattr(torch.nn.modules.container, name)
-        if module == 'numpy.core.multiarray' and name in ['scalar', '_reconstruct']:
+        if module == "numpy.core.multiarray" and name in ["scalar", "_reconstruct"]:
             return getattr(numpy.core.multiarray, name)
-        if module == 'numpy' and name in ['dtype', 'ndarray']:
+        if module == "numpy" and name in ["dtype", "ndarray"]:
             return getattr(numpy, name)
-        if module == '_codecs' and name == 'encode':
+        if module == "_codecs" and name == "encode":
             return encode
         if module.startswith("pytorch_lightning"):
             return Empty
-        if module == "__builtin__" and name == 'set':
+        if module == "__builtin__" and name == "set":
             return set
 
-        # Forbid everything else.
+        # Forbid everything else
         raise Exception(f"global '{module}/{name}' is forbidden")
 
 
 # Regular expression that accepts 'dirname/version', 'dirname/data.pkl', and 'dirname/data/<number>'
 allowed_zip_names_re = re.compile(r"^([^/]+)/((data/\d+)|version|(data\.pkl))$")
 data_pkl_re = re.compile(r"^([^/]+)/data\.pkl$")
+
 
 def check_zip_filenames(filename, names):
     for name in names:
@@ -137,17 +139,13 @@ def load_with_extra(filename, extra_handler=None, *args, **kwargs):
 
     except pickle.UnpicklingError:
         errors.report(
-            f"Error verifying pickled file from {filename}\n"
-            "-----> !!!! The file is most likely corrupted !!!! <-----\n"
-            "You can skip this check with --disable-safe-unpickle commandline argument, but that is not going to help you.\n\n",
+            f"Error verifying pickled file from {filename}\n" "-----> !!!! The file is most likely corrupted !!!! <-----\n" "You can skip this check with --disable-safe-unpickle commandline argument, but that is not going to help you.\n\n",
             exc_info=True,
         )
         return None
     except Exception:
         errors.report(
-            f"Error verifying pickled file from {filename}\n"
-            f"The file may be malicious, so the program is not going to read it.\n"
-            f"You can skip this check with --disable-safe-unpickle commandline argument.\n\n",
+            f"Error verifying pickled file from {filename}\n" f"The file may be malicious, so the program is not going to read it.\n" f"You can skip this check with --disable-safe-unpickle commandline argument.\n\n",
             exc_info=True,
         )
         return None
@@ -160,19 +158,19 @@ class Extra:
     A class for temporarily setting the global handler for when you can't explicitly call load_with_extra
     (because it's not your code making the torch.load call). The intended use is like this:
 
-```
-import torch
-from modules import safe
+    ```
+    import torch
+    from modules import safe
 
-def handler(module, name):
-    if module == 'torch' and name in ['float64', 'float16']:
-        return getattr(torch, name)
+    def handler(module, name):
+        if module == "torch" and name in ["float64", "float16"]:
+            return getattr(torch, name)
 
-    return None
+        return None
 
-with safe.Extra(handler):
-    x = torch.load('model.pt')
-```
+    with safe.Extra(handler):
+        x = torch.load("model.pt")
+    ```
     """
 
     def __init__(self, handler):
@@ -181,7 +179,7 @@ with safe.Extra(handler):
     def __enter__(self):
         global global_extra_handler
 
-        assert global_extra_handler is None, 'already inside an Extra() block'
+        assert global_extra_handler is None, "already inside an Extra() block"
         global_extra_handler = self.handler
 
     def __exit__(self, exc_type, exc_val, exc_tb):

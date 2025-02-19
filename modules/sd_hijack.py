@@ -1,8 +1,7 @@
 import torch
-from torch.nn.functional import silu
 from types import MethodType
 
-from modules import devices, shared, script_callbacks, errors, sd_unet, patches, sd_hijack_clip, sd_hijack_open_clip, sd_hijack_unet  # noqa F401
+from modules import devices, shared, sd_unet, patches, sd_hijack_clip, sd_hijack_open_clip, sd_hijack_unet  # noqa F401
 from modules.shared import cmd_opts
 
 import ldm.modules.attention
@@ -34,52 +33,55 @@ ldm.util.print = shared.ldm_print
 ldm.models.diffusion.ddpm.print = shared.ldm_print
 
 ldm_patched_forward = sd_unet.create_unet_forward(ldm.modules.diffusionmodules.openaimodel.UNetModel.forward)
-ldm_original_forward = patches.patch(__file__, ldm.modules.diffusionmodules.openaimodel.UNetModel, "forward", ldm_patched_forward)
+# ldm_original_forward = patches.patch(__file__, ldm.modules.diffusionmodules.openaimodel.UNetModel, "forward", ldm_patched_forward)
 
 sgm_patched_forward = sd_unet.create_unet_forward(sgm.modules.diffusionmodules.openaimodel.UNetModel.forward)
-sgm_original_forward = patches.patch(__file__, sgm.modules.diffusionmodules.openaimodel.UNetModel, "forward", sgm_patched_forward)
+# sgm_original_forward = patches.patch(__file__, sgm.modules.diffusionmodules.openaimodel.UNetModel, "forward", sgm_patched_forward)
 
 
 def weighted_loss(sd_model, pred, target, mean=True):
-    #Calculate the weight normally, but ignore the mean
+    # Calculate the weight normally, but ignore the mean
     loss = sd_model._old_get_loss(pred, target, mean=False)
 
-    #Check if we have weights available
-    weight = getattr(sd_model, '_custom_loss_weight', None)
+    # Check if we have weights available
+    weight = getattr(sd_model, "_custom_loss_weight", None)
     if weight is not None:
         loss *= weight
 
-    #Return the loss, as mean if specified
+    # Return the loss, as mean if specified
     return loss.mean() if mean else loss
+
 
 def weighted_forward(sd_model, x, c, w, *args, **kwargs):
     try:
-        #Temporarily append weights to a place accessible during loss calc
+        # Temporarily append weights to a place accessible during loss calc
         sd_model._custom_loss_weight = w
 
-        #Replace 'get_loss' with a weight-aware one. Otherwise we need to reimplement 'forward' completely
-        #Keep 'get_loss', but don't overwrite the previous old_get_loss if it's already set
-        if not hasattr(sd_model, '_old_get_loss'):
+        # Replace 'get_loss' with a weight-aware one. Otherwise we need to reimplement 'forward' completely
+        # Keep 'get_loss', but don't overwrite the previous old_get_loss if it's already set
+        if not hasattr(sd_model, "_old_get_loss"):
             sd_model._old_get_loss = sd_model.get_loss
         sd_model.get_loss = MethodType(weighted_loss, sd_model)
 
-        #Run the standard forward function, but with the patched 'get_loss'
+        # Run the standard forward function, but with the patched 'get_loss'
         return sd_model.forward(x, c, *args, **kwargs)
     finally:
         try:
-            #Delete temporary weights if appended
+            # Delete temporary weights if appended
             del sd_model._custom_loss_weight
         except AttributeError:
             pass
 
-        #If we have an old loss function, reset the loss function to the original one
-        if hasattr(sd_model, '_old_get_loss'):
+        # If we have an old loss function, reset the loss function to the original one
+        if hasattr(sd_model, "_old_get_loss"):
             sd_model.get_loss = sd_model._old_get_loss
             del sd_model._old_get_loss
 
+
 def apply_weighted_forward(sd_model):
-    #Add new function 'weighted_forward' that can be called to calc weighted loss
+    # Add new function 'weighted_forward' that can be called to calc weighted loss
     sd_model.weighted_forward = MethodType(weighted_forward, sd_model)
+
 
 def undo_weighted_forward(sd_model):
     try:
@@ -132,7 +134,7 @@ class StableDiffusionModelHijack:
 
 
 class EmbeddingsWithFixes(torch.nn.Module):
-    def __init__(self, wrapped, embeddings, textual_inversion_key='clip_l'):
+    def __init__(self, wrapped, embeddings, textual_inversion_key="clip_l"):
         super().__init__()
         self.wrapped = wrapped
         self.embeddings = embeddings
@@ -154,7 +156,7 @@ class EmbeddingsWithFixes(torch.nn.Module):
                 vec = embedding.vec[self.textual_inversion_key] if isinstance(embedding.vec, dict) else embedding.vec
                 emb = devices.cond_cast_unet(vec)
                 emb_len = min(tensor.shape[0] - offset - 1, emb.shape[0])
-                tensor = torch.cat([tensor[0:offset + 1], emb[0:emb_len], tensor[offset + 1 + emb_len:]])
+                tensor = torch.cat([tensor[0 : offset + 1], emb[0:emb_len], tensor[offset + 1 + emb_len :]])
 
             vecs.append(tensor)
 
@@ -165,7 +167,7 @@ def add_circular_option_to_conv_2d():
     conv2d_constructor = torch.nn.Conv2d.__init__
 
     def conv2d_constructor_circular(self, *args, **kwargs):
-        return conv2d_constructor(self, *args, padding_mode='circular', **kwargs)
+        return conv2d_constructor(self, *args, padding_mode="circular", **kwargs)
 
     torch.nn.Conv2d.__init__ = conv2d_constructor_circular
 
@@ -180,7 +182,7 @@ def register_buffer(self, name, attr):
 
     if type(attr) == torch.Tensor:
         if attr.device != devices.device:
-            attr = attr.to(device=devices.device, dtype=(torch.float32 if devices.device.type == 'mps' else None))
+            attr = attr.to(device=devices.device, dtype=(torch.float32 if devices.device.type == "mps" else None))
 
     setattr(self, name, attr)
 

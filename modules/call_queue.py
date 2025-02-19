@@ -69,9 +69,9 @@ def wrap_gradio_call(func, extra_outputs=None, add_stats=False):
             shared.state.job_count = 0
 
             if extra_outputs_array is None:
-                extra_outputs_array = [None, '']
+                extra_outputs_array = [None, ""]
 
-            error_message = f'{type(e).__name__}: {e}'
+            error_message = f"{type(e).__name__}: {e}"
             res = extra_outputs_array + [f"<div class='error'>{html.escape(error_message)}</div>"]
 
         devices.torch_gc()
@@ -89,19 +89,19 @@ def wrap_gradio_call(func, extra_outputs=None, add_stats=False):
         elapsed_s = elapsed % 60
         elapsed_text = f"{elapsed_s:.1f} sec."
         if elapsed_m > 0:
-            elapsed_text = f"{elapsed_m} min. "+elapsed_text
+            elapsed_text = f"{elapsed_m} min. " + elapsed_text
 
         if run_memmon:
-            mem_stats = {k: -(v//-(1024*1024)) for k, v in shared.mem_mon.stop().items()}
-            active_peak = mem_stats['active_peak']
-            reserved_peak = mem_stats['reserved_peak']
-            sys_peak = mem_stats['system_peak']
-            sys_total = mem_stats['total']
-            sys_pct = sys_peak/max(sys_total, 1) * 100
+            mem_stats = {k: -(v // -(1024 * 1024)) for k, v in shared.mem_mon.stop().items()}
+            active_peak = mem_stats["active_peak"]
+            reserved_peak = mem_stats["reserved_peak"]
+            sys_peak = mem_stats["system_peak"]
+            sys_total = mem_stats["total"]
+            sys_pct = sys_peak / max(sys_total, 1) * 100
 
             toltip_a = "Active: peak amount of video memory used during generation (excluding cached data)"
-            toltip_r = "Reserved: total amout of video memory allocated by the Torch library "
-            toltip_sys = "System: peak amout of video memory allocated by all running programs, out of total capacity"
+            toltip_r = "Reserved: total amount of video memory allocated by the Torch library "
+            toltip_sys = "System: peak amount of video memory allocated by all running programs, out of total capacity"
 
             text_a = f"<abbr title='{toltip_a}'>A</abbr>: <span class='measurement'>{active_peak/1024:.2f} GB</span>"
             text_r = f"<abbr title='{toltip_r}'>R</abbr>: <span class='measurement'>{reserved_peak/1024:.2f} GB</span>"
@@ -109,7 +109,7 @@ def wrap_gradio_call(func, extra_outputs=None, add_stats=False):
 
             vram_html = f"<p class='vram'>{text_a}, <wbr>{text_r}, <wbr>{text_sys}</p>"
         else:
-            vram_html = ''
+            vram_html = ""
 
         # last item is always HTML
         res[-1] += f"<div class='performance'><p class='time'>Time taken: <wbr><span class='measurement'>{elapsed_text}</span></p>{vram_html}</div>"
