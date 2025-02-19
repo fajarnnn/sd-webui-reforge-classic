@@ -1,8 +1,8 @@
 import os
-import torch
-import safetensors.torch
 
-from modules import shared, devices, errors, hashes
+import safetensors.torch
+import torch
+from modules import devices, errors, hashes, shared
 
 
 class Embedding:
@@ -34,7 +34,7 @@ class Embedding:
                 r = (r * 281 ^ int(v) * 997) & 0xFFFFFFFF
             return r
 
-        self.cached_checksum = f'{const_hash(self.vec.reshape(-1) * 100) & 0xffff:04x}'
+        self.cached_checksum = f"{const_hash(self.vec.reshape(-1) * 100) & 0xffff:04x}"
         return self.cached_checksum
 
     def set_hash(self, v):
@@ -88,7 +88,7 @@ class EmbeddingDatabase:
         if first_id not in self.ids_lookup:
             self.ids_lookup[first_id] = []
         if name in self.word_embeddings:
-            lookup = [x for x in self.ids_lookup[first_id] if x[1].name!=name]
+            lookup = [x for x in self.ids_lookup[first_id] if x[1].name != name]
         else:
             lookup = self.ids_lookup[first_id]
         if embedding is not None:
@@ -97,7 +97,7 @@ class EmbeddingDatabase:
         if embedding is None:
             if name in self.word_embeddings:
                 del self.word_embeddings[name]
-            if len(self.ids_lookup[first_id])==0:
+            if len(self.ids_lookup[first_id]) == 0:
                 del self.ids_lookup[first_id]
             return None
         self.word_embeddings[name] = embedding
@@ -112,14 +112,14 @@ class EmbeddingDatabase:
         name, ext = os.path.splitext(filename)
         ext = ext.upper()
 
-        if ext in ('.BIN', '.PT'):
+        if ext in (".BIN", ".PT"):
             data = torch.load(path, map_location="cpu")
-        elif ext in ('.SAFETENSORS',):
+        elif ext in (".SAFETENSORS",):
             data = safetensors.torch.load_file(path, device="cpu")
         else:
-            if ext in ('.PNG', '.WEBP', '.JXL', '.AVIF'):
+            if ext in (".PNG", ".WEBP", ".JXL", ".AVIF"):
                 second_ext = os.path.splitext(name)[1]
-                if second_ext.upper() != '.PREVIEW':
+                if second_ext.upper() != ".PREVIEW":
                     raise NotImplementedError("Image-Embedding is not supported...")
             return
 
@@ -181,29 +181,29 @@ class EmbeddingDatabase:
             return None, None
 
         for ids, embedding in possible_matches:
-            if tokens[offset:offset + len(ids)] == ids:
+            if tokens[offset : offset + len(ids)] == ids:
                 return embedding, len(ids)
 
         return None, None
 
 
-def create_embedding_from_data(data, name, filename='unknown embedding file', filepath=None):
-    if 'string_to_param' in data:  # textual inversion embeddings
-        param_dict = data['string_to_param']
-        param_dict = getattr(param_dict, '_parameters', param_dict)  # fix for torch 1.12.1 loading saved file from torch 1.11
-        assert len(param_dict) == 1, 'embedding file has multiple terms in it'
+def create_embedding_from_data(data, name, filename="unknown embedding file", filepath=None):
+    if "string_to_param" in data:  # textual inversion embeddings
+        param_dict = data["string_to_param"]
+        param_dict = getattr(param_dict, "_parameters", param_dict)  # fix for torch 1.12.1 loading saved file from torch 1.11
+        assert len(param_dict) == 1, "embedding file has multiple terms in it"
         emb = next(iter(param_dict.items()))[1]
         vec = emb.detach().to(devices.device, dtype=torch.float32)
         shape = vec.shape[-1]
         vectors = vec.shape[0]
 
-    elif type(data) == dict and 'clip_g' in data and 'clip_l' in data:  # SDXL embedding
+    elif type(data) == dict and "clip_g" in data and "clip_l" in data:  # SDXL embedding
         vec = {k: v.detach().to(devices.device, dtype=torch.float32) for k, v in data.items()}
-        shape = data['clip_g'].shape[-1] + data['clip_l'].shape[-1]
-        vectors = data['clip_g'].shape[0]
+        shape = data["clip_g"].shape[-1] + data["clip_l"].shape[-1]
+        vectors = data["clip_g"].shape[0]
 
     elif type(data) == dict and type(next(iter(data.values()))) == torch.Tensor:  # diffuser concepts
-        assert len(data.keys()) == 1, 'embedding file has multiple terms in it'
+        assert len(data.keys()) == 1, "embedding file has multiple terms in it"
         emb = next(iter(data.values()))
         if len(emb.shape) == 1:
             emb = emb.unsqueeze(0)
@@ -215,14 +215,14 @@ def create_embedding_from_data(data, name, filename='unknown embedding file', fi
         raise LookupError(f"Couldn't identify {filename}...")
 
     embedding = Embedding(vec, name)
-    embedding.step = data.get('step', None)
-    embedding.sd_checkpoint = data.get('sd_checkpoint', None)
-    embedding.sd_checkpoint_name = data.get('sd_checkpoint_name', None)
+    embedding.step = data.get("step", None)
+    embedding.sd_checkpoint = data.get("sd_checkpoint", None)
+    embedding.sd_checkpoint_name = data.get("sd_checkpoint_name", None)
     embedding.vectors = vectors
     embedding.shape = shape
 
     if filepath:
         embedding.filename = filepath
-        embedding.set_hash(hashes.sha256(filepath, "textual_inversion/" + name) or '')
+        embedding.set_hash(hashes.sha256(filepath, "textual_inversion/" + name) or "")
 
     return embedding

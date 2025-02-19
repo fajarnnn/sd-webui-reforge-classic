@@ -3,12 +3,11 @@ Credit: ComfyUI
 https://github.com/comfyanonymous/ComfyUI/blob/v0.3.7/comfy_extras/nodes_model_advanced.py#L257
 """
 
-from modules.infotext_utils import PasteField
-from modules.shared import opts
-from modules import scripts
-
 import gradio as gr
 import torch
+from modules import scripts
+from modules.infotext_utils import PasteField
+from modules.shared import opts
 
 
 class ScriptRescaleCFG(scripts.ScriptBuiltinUI):
