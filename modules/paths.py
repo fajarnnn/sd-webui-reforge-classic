@@ -13,25 +13,24 @@ def mute_sdxl_imports():
 
     module = Dummy()
     module.LPIPS = None
-    sys.modules['taming.modules.losses.lpips'] = module
+    sys.modules["taming.modules.losses.lpips"] = module
 
     module = Dummy()
     module.StableDataModuleFromConfig = None
-    sys.modules['sgm.data'] = module
+    sys.modules["sgm.data"] = module
 
 
-# data_path = cmd_opts_pre.data
 sys.path.insert(0, script_path)
 
-sd_path = os.path.abspath(os.path.join(script_path, 'repositories' ,'stable-diffusion-stability-ai'))
+sd_path = os.path.abspath(os.path.join(script_path, "repositories", "stable-diffusion-stability-ai"))
 assert os.path.exists(sd_path), "Couldn't find Stable Diffusion"
 
 mute_sdxl_imports()
 
 path_dirs = [
-    (sd_path, 'ldm', 'Stable Diffusion', []),
-    ('ldm_patched', 'k_diffusion/sampling.py', 'k_diffusion', []),
-    (os.path.join(sd_path, '../generative-models'), 'sgm', 'Stable Diffusion XL', ["sgm"]),
+    (sd_path, "ldm", "Stable Diffusion", []),
+    ("ldm_patched", "k_diffusion/sampling.py", "k_diffusion", []),
+    (os.path.join(sd_path, "../generative-models"), "sgm", "Stable Diffusion XL", ["sgm"]),
 ]
 
 paths = {}

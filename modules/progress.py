@@ -129,7 +129,7 @@ def progressapi(req: ProgressRequest):
                 if opts.live_previews_image_format == "png":
                     save_kwargs = {"optimize": False, "compress_level": 1}
                 else:
-                    save_kwargs = {"quality": 50}
+                    save_kwargs = {"optimize": False, "quality": 50}
 
                 image.save(buffered, format=opts.live_previews_image_format, **save_kwargs)
                 base64_image = base64.b64encode(buffered.getvalue()).decode("ascii")

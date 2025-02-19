@@ -1,12 +1,7 @@
 import os
-import sys
 
 
 def initialize_forge():
-    for bad in ("--lowvram", "--medvram", "--medvram-sdxl"):
-        if bad in sys.argv:
-            print(f'"{bad}" arg has been deprecated in Forge...')
-
     from ldm_patched.modules import args_parser
 
     args_parser.args, _ = args_parser.parser.parse_known_args()
