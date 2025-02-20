@@ -30,7 +30,7 @@ class Timer:
         self.start = time.time()
         self.records = {}
         self.total = 0
-        self.base_category = ''
+        self.base_category = ""
         self.print_log = print_log
         self.subcategory_level = 0
 
@@ -65,25 +65,21 @@ class Timer:
     def summary(self):
         res = f"{self.total:.1f}s"
 
-        additions = [(category, time_taken) for category, time_taken in self.records.items() if time_taken >= 0.1 and '/' not in category]
+        additions = [(category, time_taken) for category, time_taken in self.records.items() if time_taken >= 0.1 and "/" not in category]
         if not additions:
             return res
 
-        res += " ("
-        res += ", ".join([f"{category}: {time_taken:.1f}s" for category, time_taken in additions])
-        res += ")"
-
-        return res
+        return "".join([res, " (", ", ".join([f"{category}: {time_taken:.1f}s" for category, time_taken in additions]), ")"])
 
     def dump(self):
-        return {'total': self.total, 'records': self.records}
+        return {"total": self.total, "records": self.records}
 
     def reset(self):
         self.__init__()
 
 
 parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument("--log-startup", action='store_true', help="print a detailed log of what's happening at startup")
+parser.add_argument("--log-startup", action="store_true", help="print a detailed log of what's happening at startup")
 args = parser.parse_known_args()[0]
 
 startup_timer = Timer(print_log=args.log_startup)

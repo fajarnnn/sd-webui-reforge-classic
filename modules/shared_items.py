@@ -17,8 +17,7 @@ def refresh_vae_list():
 
 
 def cross_attention_optimizations():
-    import modules.sd_hijack
-    return ["Automatic"] + [x.title() for x in modules.sd_hijack.optimizers] + ["None"]
+    return ["Automatic"]
 
 
 def sd_unet_items():
@@ -86,10 +85,7 @@ def ui_reorder_categories():
 
     sections = {}
     for script in scripts.scripts_txt2img.scripts + scripts.scripts_img2img.scripts:
-        if (
-            isinstance(script.section, str)
-            and script.section not in ui_reorder_categories_builtin_items
-        ):
+        if isinstance(script.section, str) and script.section not in ui_reorder_categories_builtin_items:
             sections[script.section] = 1
 
     yield from sections
@@ -99,8 +95,8 @@ def ui_reorder_categories():
 
 class Shared(sys.modules[__name__].__class__):
     """
-    this class is here to provide sd_model field as a property, so that it can be created and loaded on demand rather than
-    at program startup.
+    this class is here to provide sd_model field as a property,
+    so that it can be created and loaded on demand rather than at program startup.
     """
 
     sd_model_val = None
@@ -108,13 +104,11 @@ class Shared(sys.modules[__name__].__class__):
     @property
     def sd_model(self):
         import modules.sd_models
-
         return modules.sd_models.model_data.get_sd_model()
 
     @sd_model.setter
     def sd_model(self, value):
         import modules.sd_models
-
         modules.sd_models.model_data.set_sd_model(value)
 
 

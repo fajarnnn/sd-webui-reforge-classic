@@ -1,9 +1,10 @@
-from __future__ import annotations
+from typing import TYPE_CHECKING
 
-import torch.nn
+if TYPE_CHECKING:
+    import torch.nn
 
 
-def get_param(model) -> torch.nn.Parameter:
+def get_param(model) -> "torch.nn.Parameter":
     """
     Find the first parameter in a model or module.
     """

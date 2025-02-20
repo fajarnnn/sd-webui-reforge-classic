@@ -18,7 +18,7 @@ class State:
     job_no = 0
     job_count = 0
     processing_has_refined_job_count = False
-    job_timestamp = '0'
+    job_timestamp = "0"
     sampling_step = 0
     sampling_steps = 0
     current_latent = None

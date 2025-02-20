@@ -102,9 +102,7 @@ def get_dict():
         "Environment": get_environment(),
         "Config": get_config(),
         "Startup": timer.startup_record,
-        "Packages": sorted(
-            [f"{pkg.key}=={pkg.version}" for pkg in pkg_resources.working_set]
-        ),
+        "Packages": sorted([f"{pkg.key}=={pkg.version}" for pkg in pkg_resources.working_set]),
     }
 
     return res
@@ -139,10 +137,7 @@ def get_torch_sysinfo():
         import torch.utils.collect_env
 
         env = torch.utils.collect_env.get_env_info()._asdict()
-        info = {
-            k: re.split(re_newline, str(v)) if "\n" in str(v) else v
-            for k, v in env.items()
-        }
+        info = {k: re.split(re_newline, str(v)) if "\n" in str(v) else v for k, v in env.items()}
         return info
     except Exception as e:
         return str(e)
@@ -160,11 +155,7 @@ def get_extensions(*, enabled):
                 "remote": x.remote,
             }
 
-        return [
-            to_json(x)
-            for x in extensions.extensions
-            if not x.is_builtin and x.enabled == enabled
-        ]
+        return [to_json(x) for x in extensions.extensions if not x.is_builtin and x.enabled == enabled]
     except Exception as e:
         return str(e)
 
