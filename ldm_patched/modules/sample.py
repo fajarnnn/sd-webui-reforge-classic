@@ -2,8 +2,6 @@
 # 2nd edit by Forge Official
 
 
-import math
-
 import ldm_patched.modules.conds
 import ldm_patched.modules.model_management
 import ldm_patched.modules.samplers

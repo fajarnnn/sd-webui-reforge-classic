@@ -15,7 +15,6 @@ from ldm_patched.modules import model_management
 from . import (
     clip_vision,
     diffusers_convert,
-    gligen,
     model_base,
     model_detection,
     sd1_clip,
@@ -616,18 +615,6 @@ def load_clip(ckpt_paths, embedding_directory=None):
         if len(u) > 0:
             print("clip unexpected:", u)
     return clip
-
-
-def load_gligen(ckpt_path):
-    data = ldm_patched.modules.utils.load_torch_file(ckpt_path, safe_load=True)
-    model = gligen.load_gligen(data)
-    if model_management.should_use_fp16():
-        model = model.half()
-    return ldm_patched.modules.model_patcher.ModelPatcher(
-        model,
-        load_device=model_management.get_torch_device(),
-        offload_device=model_management.unet_offload_device(),
-    )
 
 
 def load_checkpoint(
