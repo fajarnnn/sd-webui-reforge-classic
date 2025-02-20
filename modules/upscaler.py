@@ -8,8 +8,8 @@ import modules.shared
 from modules import modelloader, shared
 
 
-LANCZOS = getattr(Image, "Resampling", Image).LANCZOS
-NEAREST = getattr(Image, "Resampling", Image).NEAREST
+LANCZOS = getattr(Image, "LANCZOS", Image.Resampling.LANCZOS)
+NEAREST = getattr(Image, "NEAREST", Image.Resampling.LANCZOS)
 
 # hardcode
 UPSCALE_ITERATIONS = 4

@@ -22,7 +22,7 @@ from modules import sd_samplers, shared, script_callbacks, errors
 from modules.paths_internal import roboto_ttf_file
 from modules.shared import opts
 
-LANCZOS = (Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS)
+LANCZOS = getattr(Image, "LANCZOS", Image.Resampling.LANCZOS)
 
 
 def get_font(fontsize: int):
@@ -54,7 +54,7 @@ def image_grid(imgs, batch_size=1, rows=None):
     script_callbacks.image_grid_callback(params)
 
     w, h = imgs[0].size
-    grid = Image.new('RGB', size=(params.cols * w, params.rows * h), color='black')
+    grid = Image.new("RGB", size=(params.cols * w, params.rows * h), color="black")
 
     for i, img in enumerate(params.imgs):
         grid.paste(img, box=(i % params.cols * w, i // params.cols * h))
@@ -65,9 +65,7 @@ def image_grid(imgs, batch_size=1, rows=None):
 class Grid(namedtuple("_Grid", ["tiles", "tile_w", "tile_h", "image_w", "image_h", "overlap"])):
     @property
     def tile_count(self) -> int:
-        """
-        The total number of tiles in the grid.
-        """
+        """The total number of tiles in the grid"""
         return sum(len(row[2]) for row in self.tiles)
 
 
@@ -111,7 +109,7 @@ def combine_grid(grid):
     def make_mask_image(r):
         r = r * 255 / grid.overlap
         r = r.astype(np.uint8)
-        return Image.fromarray(r, 'L')
+        return Image.fromarray(r, "L")
 
     mask_w = make_mask_image(np.arange(grid.overlap, dtype=np.float32).reshape((1, grid.overlap)).repeat(grid.tile_h, axis=0))
     mask_h = make_mask_image(np.arange(grid.overlap, dtype=np.float32).reshape((grid.overlap, 1)).repeat(grid.image_w, axis=1))
@@ -138,7 +136,7 @@ def combine_grid(grid):
 
 
 class GridAnnotation:
-    def __init__(self, text='', is_active=True):
+    def __init__(self, text="", is_active=True):
         self.text = text
         self.is_active = is_active
         self.size = None
@@ -146,14 +144,14 @@ class GridAnnotation:
 
 def draw_grid_annotations(im, width, height, hor_texts, ver_texts, margin=0):
 
-    color_active = ImageColor.getcolor(opts.grid_text_active_color, 'RGB')
-    color_inactive = ImageColor.getcolor(opts.grid_text_inactive_color, 'RGB')
-    color_background = ImageColor.getcolor(opts.grid_background_color, 'RGB')
+    color_active = ImageColor.getcolor(opts.grid_text_active_color, "RGB")
+    color_inactive = ImageColor.getcolor(opts.grid_text_inactive_color, "RGB")
+    color_background = ImageColor.getcolor(opts.grid_background_color, "RGB")
 
     def wrap(drawing, text, font, line_length):
-        lines = ['']
+        lines = [""]
         for word in text.split():
-            line = f'{lines[-1]} {word}'.strip()
+            line = f"{lines[-1]} {word}".strip()
             if drawing.textlength(line, font=font) <= line_length:
                 lines[-1] = line
             else:
@@ -184,8 +182,8 @@ def draw_grid_annotations(im, width, height, hor_texts, ver_texts, margin=0):
     cols = im.width // width
     rows = im.height // height
 
-    assert cols == len(hor_texts), f'bad number of horizontal texts: {len(hor_texts)}; must be {cols}'
-    assert rows == len(ver_texts), f'bad number of vertical texts: {len(ver_texts)}; must be {rows}'
+    assert cols == len(hor_texts), f"bad number of horizontal texts: {len(hor_texts)}; must be {cols}"
+    assert rows == len(ver_texts), f"bad number of vertical texts: {len(ver_texts)}; must be {rows}"
 
     calc_img = Image.new("RGB", (1, 1), color_background)
     calc_d = ImageDraw.Draw(calc_img)
@@ -208,11 +206,11 @@ def draw_grid_annotations(im, width, height, hor_texts, ver_texts, margin=0):
 
     pad_top = 0 if sum(hor_text_heights) == 0 else max(hor_text_heights) + line_spacing * 2
 
-    result = Image.new("RGB", (im.width + pad_left + margin * (cols-1), im.height + pad_top + margin * (rows-1)), color_background)
+    result = Image.new("RGB", (im.width + pad_left + margin * (cols - 1), im.height + pad_top + margin * (rows - 1)), color_background)
 
     for row in range(rows):
         for col in range(cols):
-            cell = im.crop((width * col, height * row, width * (col+1), height * (row+1)))
+            cell = im.crop((width * col, height * row, width * (col + 1), height * (row + 1)))
             result.paste(cell, (pad_left + (width + margin) * col, pad_top + (height + margin) * row))
 
     d = ImageDraw.Draw(result)
@@ -247,7 +245,7 @@ def draw_prompt_matrix(im, width, height, all_prompts, margin=0):
 
 def resize_image(resize_mode, im, width, height, upscaler_name=None):
     """
-    Resizes an image with the specified resize_mode, width, and height.
+    Resizes an image with the specified resize_mode, width, and height
 
     Args:
         resize_mode: The mode to use when resizing the image.
@@ -263,7 +261,7 @@ def resize_image(resize_mode, im, width, height, upscaler_name=None):
     upscaler_name = upscaler_name or opts.upscaler_for_img2img
 
     def resize(im, w, h):
-        if upscaler_name is None or upscaler_name == "None" or im.mode == 'L':
+        if upscaler_name is None or upscaler_name == "None" or im.mode == "L":
             return im.resize((w, h), resample=LANCZOS)
 
         scale = max(w / im.width, h / im.height)
@@ -323,9 +321,9 @@ def resize_image(resize_mode, im, width, height, upscaler_name=None):
 
 
 invalid_filename_chars = '#<>:"/\\|?*\n\r\t'
-invalid_filename_prefix = ' '
-invalid_filename_postfix = ' .'
-re_nonletters = re.compile(r'[\s' + string.punctuation + ']+')
+invalid_filename_prefix = " "
+invalid_filename_postfix = " ."
+re_nonletters = re.compile(r"[\s" + string.punctuation + "]+")
 re_pattern = re.compile(r"(.*?)(?:\[([^\[\]]+)\]|$)")
 re_pattern_arg = re.compile(r"(.*)<([^>]*)>$")
 max_filename_part_length = 128
@@ -337,9 +335,9 @@ def sanitize_filename_part(text, replace_spaces=True):
         return None
 
     if replace_spaces:
-        text = text.replace(' ', '_')
+        text = text.replace(" ", "_")
 
-    text = text.translate({ord(x): '_' for x in invalid_filename_chars})
+    text = text.translate({ord(x): "_" for x in invalid_filename_chars})
     text = text.lstrip(invalid_filename_prefix)[:max_filename_part_length]
     text = text.rstrip(invalid_filename_postfix)
     return text
@@ -347,39 +345,39 @@ def sanitize_filename_part(text, replace_spaces=True):
 
 class FilenameGenerator:
     replacements = {
-        'seed': lambda self: self.seed if self.seed is not None else '',
-        'seed_first': lambda self: self.seed if self.p.batch_size == 1 else self.p.all_seeds[0],
-        'seed_last': lambda self: NOTHING_AND_SKIP_PREVIOUS_TEXT if self.p.batch_size == 1 else self.p.all_seeds[-1],
-        'steps': lambda self:  self.p and self.p.steps,
-        'cfg': lambda self: self.p and self.p.cfg_scale,
-        'width': lambda self: self.image.width,
-        'height': lambda self: self.image.height,
-        'styles': lambda self: self.p and sanitize_filename_part(", ".join([style for style in self.p.styles if not style == "None"]) or "None", replace_spaces=False),
-        'sampler': lambda self: self.p and sanitize_filename_part(self.p.sampler_name, replace_spaces=False),
-        'model_hash': lambda self: getattr(self.p, "sd_model_hash", shared.sd_model.sd_model_hash),
-        'model_name': lambda self: sanitize_filename_part(shared.sd_model.sd_checkpoint_info.name_for_extra, replace_spaces=False),
-        'date': lambda self: datetime.datetime.now().strftime('%Y-%m-%d'),
-        'datetime': lambda self, *args: self.datetime(*args),  # accepts formats: [datetime], [datetime<Format>], [datetime<Format><Time Zone>]
-        'job_timestamp': lambda self: getattr(self.p, "job_timestamp", shared.state.job_timestamp),
-        'prompt_hash': lambda self, *args: self.string_hash(self.prompt, *args),
-        'negative_prompt_hash': lambda self, *args: self.string_hash(self.p.negative_prompt, *args),
-        'full_prompt_hash': lambda self, *args: self.string_hash(f"{self.p.prompt} {self.p.negative_prompt}", *args),  # a space in between to create a unique string
-        'prompt': lambda self: sanitize_filename_part(self.prompt),
-        'prompt_no_styles': lambda self: self.prompt_no_style(),
-        'prompt_spaces': lambda self: sanitize_filename_part(self.prompt, replace_spaces=False),
-        'prompt_words': lambda self: self.prompt_words(),
-        'batch_number': lambda self: NOTHING_AND_SKIP_PREVIOUS_TEXT if self.p.batch_size == 1 or self.zip else self.p.batch_index + 1,
-        'batch_size': lambda self: self.p.batch_size,
-        'generation_number': lambda self: NOTHING_AND_SKIP_PREVIOUS_TEXT if (self.p.n_iter == 1 and self.p.batch_size == 1) or self.zip else self.p.iteration * self.p.batch_size + self.p.batch_index + 1,
-        'hasprompt': lambda self, *args: self.hasprompt(*args),  # accepts formats:[hasprompt<prompt1|default><prompt2>..]
-        'clip_skip': lambda self: opts.data["CLIP_stop_at_last_layers"],
-        'denoising': lambda self: self.p.denoising_strength if self.p and self.p.denoising_strength else NOTHING_AND_SKIP_PREVIOUS_TEXT,
-        'user': lambda self: self.p.user,
-        'vae_filename': lambda self: self.get_vae_filename(),
-        'none': lambda self: '',  # Overrides the default, so you can get just the sequence number
-        'image_hash': lambda self, *args: self.image_hash(*args)  # accepts formats: [image_hash<length>] default full hash
+        "seed": lambda self: self.seed if self.seed is not None else "",
+        "seed_first": lambda self: self.seed if self.p.batch_size == 1 else self.p.all_seeds[0],
+        "seed_last": lambda self: NOTHING_AND_SKIP_PREVIOUS_TEXT if self.p.batch_size == 1 else self.p.all_seeds[-1],
+        "steps": lambda self: self.p and self.p.steps,
+        "cfg": lambda self: self.p and self.p.cfg_scale,
+        "width": lambda self: self.image.width,
+        "height": lambda self: self.image.height,
+        "styles": lambda self: self.p and sanitize_filename_part(", ".join([style for style in self.p.styles if not style == "None"]) or "None", replace_spaces=False),
+        "sampler": lambda self: self.p and sanitize_filename_part(self.p.sampler_name, replace_spaces=False),
+        "model_hash": lambda self: getattr(self.p, "sd_model_hash", shared.sd_model.sd_model_hash),
+        "model_name": lambda self: sanitize_filename_part(shared.sd_model.sd_checkpoint_info.name_for_extra, replace_spaces=False),
+        "date": lambda self: datetime.datetime.now().strftime("%Y-%m-%d"),
+        "datetime": lambda self, *args: self.datetime(*args),  # accepts formats: [datetime], [datetime<Format>], [datetime<Format><Time Zone>]
+        "job_timestamp": lambda self: getattr(self.p, "job_timestamp", shared.state.job_timestamp),
+        "prompt_hash": lambda self, *args: self.string_hash(self.prompt, *args),
+        "negative_prompt_hash": lambda self, *args: self.string_hash(self.p.negative_prompt, *args),
+        "full_prompt_hash": lambda self, *args: self.string_hash(f"{self.p.prompt} {self.p.negative_prompt}", *args),  # a space in between to create a unique string
+        "prompt": lambda self: sanitize_filename_part(self.prompt),
+        "prompt_no_styles": lambda self: self.prompt_no_style(),
+        "prompt_spaces": lambda self: sanitize_filename_part(self.prompt, replace_spaces=False),
+        "prompt_words": lambda self: self.prompt_words(),
+        "batch_number": lambda self: NOTHING_AND_SKIP_PREVIOUS_TEXT if self.p.batch_size == 1 or self.zip else self.p.batch_index + 1,
+        "batch_size": lambda self: self.p.batch_size,
+        "generation_number": lambda self: NOTHING_AND_SKIP_PREVIOUS_TEXT if (self.p.n_iter == 1 and self.p.batch_size == 1) or self.zip else self.p.iteration * self.p.batch_size + self.p.batch_index + 1,
+        "hasprompt": lambda self, *args: self.hasprompt(*args),  # accepts formats:[hasprompt<prompt1|default><prompt2>..]
+        "clip_skip": lambda self: opts.data["CLIP_stop_at_last_layers"],
+        "denoising": lambda self: self.p.denoising_strength if self.p and self.p.denoising_strength else NOTHING_AND_SKIP_PREVIOUS_TEXT,
+        "user": lambda self: self.p.user,
+        "vae_filename": lambda self: self.get_vae_filename(),
+        "none": lambda self: "",  # Overrides the default, so you can get just the sequence number
+        "image_hash": lambda self, *args: self.image_hash(*args),  # accepts formats: [image_hash<length>] default full hash
     }
-    default_time_format = '%Y%m%d%H%M%S'
+    default_time_format = "%Y%m%d%H%M%S"
 
     def __init__(self, p, seed, prompt, image, zip=False):
         self.p = p
@@ -397,12 +395,11 @@ class FilenameGenerator:
             return "NoneType"
 
         file_name = os.path.basename(sd_vae.loaded_vae_file)
-        split_file_name = file_name.split('.')
-        if len(split_file_name) > 1 and split_file_name[0] == '':
+        split_file_name = file_name.split(".")
+        if len(split_file_name) > 1 and split_file_name[0] == "":
             return split_file_name[1]  # if the first character of the filename is "." then [1] is obtained.
         else:
             return split_file_name[0]
-
 
     def hasprompt(self, *args):
         lower = self.prompt.lower()
@@ -415,9 +412,9 @@ class FilenameGenerator:
                 expected = division[0].lower()
                 default = division[1] if len(division) > 1 else ""
                 if lower.find(expected) >= 0:
-                    outres = f'{outres}{expected}'
+                    outres = f"{outres}{expected}"
                 else:
-                    outres = outres if default == "" else f'{outres}{default}'
+                    outres = outres if default == "" else f"{outres}{default}"
         return sanitize_filename_part(outres)
 
     def prompt_no_style(self):
@@ -428,9 +425,9 @@ class FilenameGenerator:
         for style in shared.prompt_styles.get_style_prompts(self.p.styles):
             if style:
                 for part in style.split("{prompt}"):
-                    prompt_no_style = prompt_no_style.replace(part, "").replace(", ,", ",").strip().strip(',')
+                    prompt_no_style = prompt_no_style.replace(part, "").replace(", ,", ",").strip().strip(",")
 
-                prompt_no_style = prompt_no_style.replace(style, "").strip().strip(',').strip()
+                prompt_no_style = prompt_no_style.replace(style, "").strip().strip(",").strip()
 
         return sanitize_filename_part(prompt_no_style, replace_spaces=False)
 
@@ -438,7 +435,7 @@ class FilenameGenerator:
         words = [x for x in re_nonletters.split(self.prompt or "") if x]
         if len(words) == 0:
             words = ["empty"]
-        return sanitize_filename_part(" ".join(words[0:opts.directories_max_prompt_words]), replace_spaces=False)
+        return sanitize_filename_part(" ".join(words[0 : opts.directories_max_prompt_words]), replace_spaces=False)
 
     def datetime(self, *args):
         time_datetime = datetime.datetime.now()
@@ -466,7 +463,7 @@ class FilenameGenerator:
         return hashlib.sha256(text.encode()).hexdigest()[0:length]
 
     def apply(self, x):
-        res = ''
+        res = ""
 
         for m in re_pattern.finditer(x):
             text, pattern = m.groups()
@@ -498,7 +495,7 @@ class FilenameGenerator:
                     res += text + str(replacement)
                     continue
 
-            res += f'{text}[{pattern}]'
+            res += f"{text}[{pattern}]"
 
         return res
 
@@ -506,17 +503,16 @@ class FilenameGenerator:
 def get_next_sequence_number(path, basename):
     """
     Determines and returns the next sequence number to use when saving an image in the specified directory.
-
     The sequence starts at 0.
     """
     result = -1
-    if basename != '':
+    if basename != "":
         basename = f"{basename}-"
 
     prefix_length = len(basename)
     for p in os.listdir(path):
         if p.startswith(basename):
-            parts = os.path.splitext(p[prefix_length:])[0].split('-')  # splits the filename (removing the basename first if one is defined, so the sequence number is always the first element)
+            parts = os.path.splitext(p[prefix_length:])[0].split("-")  # splits the filename (removing the basename first if one is defined, so the sequence number is always the first element)
             try:
                 result = max(int(parts[0]), result)
             except ValueError:
@@ -525,7 +521,7 @@ def get_next_sequence_number(path, basename):
     return result + 1
 
 
-def save_image_with_geninfo(image, geninfo, filename, extension=None, existing_pnginfo=None, pnginfo_section_name='parameters'):
+def save_image_with_geninfo(image, geninfo, filename, extension=None, existing_pnginfo=None, pnginfo_section_name="parameters"):
     """
     Saves image to filename, including geninfo as text information for generation info.
     For PNG images, geninfo is added to existing pnginfo dictionary using the pnginfo_section_name argument as key.
@@ -537,7 +533,7 @@ def save_image_with_geninfo(image, geninfo, filename, extension=None, existing_p
 
     image_format = Image.registered_extensions()[extension]
 
-    if extension.lower() in ('.png', '.heif'):
+    if extension.lower() in (".png", ".heif"):
         existing_pnginfo = existing_pnginfo or {}
         if opts.enable_pnginfo:
             existing_pnginfo[pnginfo_section_name] = geninfo
@@ -558,30 +554,31 @@ def save_image_with_geninfo(image, geninfo, filename, extension=None, existing_p
         image.save(filename, format=image_format, quality=opts.jpeg_quality, lossless=opts.webp_lossless)
 
         if opts.enable_pnginfo and geninfo is not None:
-            exif_bytes = piexif.dump({
-                "Exif": {
-                    piexif.ExifIFD.UserComment: piexif.helper.UserComment.dump(geninfo or "", encoding="unicode")
-                },
-            })
+            exif_bytes = piexif.dump(
+                {
+                    "Exif": {piexif.ExifIFD.UserComment: piexif.helper.UserComment.dump(geninfo or "", encoding="unicode")},
+                }
+            )
 
             piexif.insert(exif_bytes, filename)
-    elif extension.lower() == '.avif':
+    elif extension.lower() == ".avif":
         if opts.enable_pnginfo and geninfo is not None:
-            exif_bytes = piexif.dump({
-                "Exif": {
-                    piexif.ExifIFD.UserComment: piexif.helper.UserComment.dump(geninfo or "", encoding="unicode")
-                },
-            })
+            exif_bytes = piexif.dump(
+                {
+                    "Exif": {piexif.ExifIFD.UserComment: piexif.helper.UserComment.dump(geninfo or "", encoding="unicode")},
+                }
+            )
 
-        image.save(filename,format=image_format, exif=exif_bytes)
+        image.save(filename, format=image_format, exif=exif_bytes)
     elif extension.lower() == ".gif":
         image.save(filename, format=image_format, comment=geninfo)
     else:
         image.save(filename, format=image_format, quality=opts.jpeg_quality)
 
 
-def save_image(image, path, basename, seed=None, prompt=None, extension='png', info=None, short_filename=False, no_prompt=False, grid=False, pnginfo_section_name='parameters', p=None, existing_info=None, forced_filename=None, suffix="", save_to_dirs=None):
-    """Save an image.
+def save_image(image, path, basename, seed=None, prompt=None, extension="png", info=None, short_filename=False, no_prompt=False, grid=False, pnginfo_section_name="parameters", p=None, existing_info=None, forced_filename=None, suffix="", save_to_dirs=None):
+    """
+    Save an image
 
     Args:
         image (`PIL.Image`):
@@ -617,14 +614,14 @@ def save_image(image, path, basename, seed=None, prompt=None, extension='png', i
 
     # WebP and JPG formats have maximum dimension limits of 16383 and 65535 respectively. switch to PNG which has a much higher limit
     if (image.height > 65535 or image.width > 65535) and extension.lower() in ("jpg", "jpeg") or (image.height > 16383 or image.width > 16383) and extension.lower() == "webp":
-        print('Image dimensions too large; saving as PNG')
+        print("Image dimensions too large; saving as PNG")
         extension = ".png"
 
     if save_to_dirs is None:
         save_to_dirs = (grid and opts.grid_save_to_dirs) or (not grid and opts.save_to_dirs and not no_prompt)
 
     if save_to_dirs:
-        dirname = namegen.apply(opts.directories_filename_pattern or "[prompt_words]").lstrip(' ').rstrip('\\ /')
+        dirname = namegen.apply(opts.directories_filename_pattern or "[prompt_words]").lstrip(" ").rstrip("\\ /")
         path = os.path.join(path, dirname)
 
     os.makedirs(path, exist_ok=True)
@@ -639,7 +636,7 @@ def save_image(image, path, basename, seed=None, prompt=None, extension='png', i
 
         file_decoration = namegen.apply(file_decoration) + suffix
 
-        add_number = opts.save_images_add_number or file_decoration == ''
+        add_number = opts.save_images_add_number or file_decoration == ""
 
         if file_decoration != "" and add_number:
             file_decoration = f"-{file_decoration}"
@@ -648,7 +645,7 @@ def save_image(image, path, basename, seed=None, prompt=None, extension='png', i
             basecount = get_next_sequence_number(path, basename)
             fullfn = None
             for i in range(500):
-                fn = f"{basecount + i:05}" if basename == '' else f"{basename}-{basecount + i:04}"
+                fn = f"{basecount + i:05}" if basename == "" else f"{basename}-{basecount + i:04}"
                 fullfn = os.path.join(path, f"{fn}{file_decoration}.{extension}")
                 if not os.path.exists(fullfn):
                     break
@@ -685,9 +682,9 @@ def save_image(image, path, basename, seed=None, prompt=None, extension='png', i
         os.replace(temp_file_path, filename)
 
     fullfn_without_extension, extension = os.path.splitext(params.filename)
-    if hasattr(os, 'statvfs'):
+    if hasattr(os, "statvfs"):
         max_name_len = os.statvfs(path).f_namemax
-        fullfn_without_extension = fullfn_without_extension[:max_name_len - max(4, len(extension))]
+        fullfn_without_extension = fullfn_without_extension[: max_name_len - max(4, len(extension))]
         params.filename = fullfn_without_extension + extension
         fullfn = params.filename
     _atomically_save_image(image, fullfn_without_extension, extension)
@@ -727,16 +724,28 @@ def save_image(image, path, basename, seed=None, prompt=None, extension='png', i
 
 
 IGNORED_INFO_KEYS = {
-    'jfif', 'jfif_version', 'jfif_unit', 'jfif_density', 'dpi', 'exif',
-    'loop', 'background', 'timestamp', 'duration', 'progressive', 'progression',
-    'icc_profile', 'chromaticity', 'photoshop',
+    "jfif",
+    "jfif_version",
+    "jfif_unit",
+    "jfif_density",
+    "dpi",
+    "exif",
+    "loop",
+    "background",
+    "timestamp",
+    "duration",
+    "progressive",
+    "progression",
+    "icc_profile",
+    "chromaticity",
+    "photoshop",
 }
 
 
 def read_info_from_image(image: Image.Image) -> tuple[str | None, dict]:
     items = (image.info or {}).copy()
 
-    geninfo = items.pop('parameters', None)
+    geninfo = items.pop("parameters", None)
 
     if "exif" in items:
         exif_data = items["exif"]
@@ -745,16 +754,16 @@ def read_info_from_image(image: Image.Image) -> tuple[str | None, dict]:
         except OSError:
             # memory / exif was not valid so piexif tried to read from a file
             exif = None
-        exif_comment = (exif or {}).get("Exif", {}).get(piexif.ExifIFD.UserComment, b'')
+        exif_comment = (exif or {}).get("Exif", {}).get(piexif.ExifIFD.UserComment, b"")
         try:
             exif_comment = piexif.helper.UserComment.load(exif_comment)
         except ValueError:
-            exif_comment = exif_comment.decode('utf8', errors="ignore")
+            exif_comment = exif_comment.decode("utf8", errors="ignore")
 
         if exif_comment:
             geninfo = exif_comment
-    elif "comment" in items: # for gif
-        geninfo = items["comment"].decode('utf8', errors="ignore")
+    elif "comment" in items:  # for gif
+        geninfo = items["comment"].decode("utf8", errors="ignore")
 
     for field in IGNORED_INFO_KEYS:
         items.pop(field, None)
@@ -764,9 +773,11 @@ def read_info_from_image(image: Image.Image) -> tuple[str | None, dict]:
             json_info = json.loads(items["Comment"])
             sampler = sd_samplers.samplers_map.get(json_info["sampler"], "Euler a")
 
-            geninfo = f"""{items["Description"]}
+            geninfo = f"""
+{items["Description"]}
 Negative prompt: {json_info["uc"]}
-Steps: {json_info["steps"]}, Sampler: {sampler}, CFG scale: {json_info["scale"]}, Seed: {json_info["seed"]}, Size: {image.width}x{image.height}, Clip skip: 2, ENSD: 31337"""
+Steps: {json_info["steps"]}, Sampler: {sampler}, CFG scale: {json_info["scale"]}, Seed: {json_info["seed"]}, Size: {image.width}x{image.height}, Clip skip: 2, ENSD: 31337
+""".strip()
         except Exception:
             errors.report("Error parsing NovelAI image generation parameters", exc_info=True)
 
@@ -784,8 +795,8 @@ def image_data(data):
         pass
 
     try:
-        text = data.decode('utf8')
-        assert len(text) < 10000
+        text = data.decode("utf8")
+        assert len(text) < 8192
         return text, None
 
     except Exception:
@@ -794,13 +805,15 @@ def image_data(data):
     return gr.skip(), None
 
 
-def flatten(img, bgcolor):
-    """replaces transparency with bgcolor (example: "#ffffff"), returning an RGB mode image with no transparency"""
+def flatten(img: Image.Image, bgcolor: str):
+    """
+    replaces transparency with bgcolor (example: "#ffffff")
+    returns an RGB mode image with no transparency
+    """
 
     if img.mode == "RGBA":
-        background = Image.new('RGBA', img.size, bgcolor)
+        background = Image.new("RGBA", img.size, bgcolor)
         background.paste(img, mask=img)
         img = background
 
-    return img.convert('RGB')
-
+    return img.convert("RGB")
