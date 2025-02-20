@@ -21,7 +21,6 @@ parser.add_argument("--skip-prepare-environment", action="store_true", help="lau
 parser.add_argument("--skip-install", action="store_true", help="launch.py argument: skip installation of packages")
 parser.add_argument("--dump-sysinfo", action="store_true", help="launch.py argument: dump limited sysinfo file (without information about extensions, options) to disk and quit")
 parser.add_argument("--loglevel", type=str, help="log level; one of: CRITICAL, ERROR, WARNING, INFO, DEBUG", default=None)
-parser.add_argument("--do-not-download-clip", action="store_true", help="do not download CLIP model even if it's not included in the checkpoint")
 parser.add_argument("--data-dir", type=normalized_filepath, default=os.path.dirname(os.path.dirname(os.path.realpath(__file__))), help="base path where all user data is stored")
 parser.add_argument("--model-ref", type=normalized_filepath, default=None, help="base path for all models")
 parser.add_argument("--config", type=normalized_filepath, default=sd_default_config, help="path to config which constructs model")
@@ -63,7 +62,6 @@ parser.add_argument("--gradio-debug", action="store_true", help="launch gradio w
 parser.add_argument("--gradio-auth", type=str, help='set gradio authentication like "username:password"; or comma-delimit multiple like "u1:p1,u2:p2,u3:p3"', default=None)
 parser.add_argument("--gradio-auth-path", type=normalized_filepath, help='set gradio authentication file path ex. "/path/to/auth/file" same auth format as --gradio-auth', default=None)
 parser.add_argument("--gradio-allowed-path", action="append", help="add path to gradio's allowed_paths, make it possible to serve files from it", default=[data_path])
-parser.add_argument("--opt-channelslast", action="store_true", help="change memory type for stable diffusion to channels last")
 parser.add_argument("--styles-file", type=str, action="append", help="path or wildcard path of styles files, allow multiple entries.", default=[])
 parser.add_argument("--autolaunch", action="store_true", help="open the webui URL in the system's default browser upon launch", default=False)
 parser.add_argument("--theme", type=str, help="launches the UI with light or dark theme", default=None)
@@ -93,7 +91,6 @@ parser.add_argument("--api-server-stop", action="store_true", help="enable serve
 parser.add_argument("--timeout-keep-alive", type=int, default=30, help="set timeout_keep_alive for uvicorn")
 parser.add_argument("--disable-all-extensions", action="store_true", help="prevent all extensions from running regardless of any other settings", default=False)
 parser.add_argument("--disable-extra-extensions", action="store_true", help="prevent all extensions except built-in from running regardless of any other settings", default=False)
-parser.add_argument("--skip-load-model-at-start", action="store_true", help="if load a model at web start, only take effect when --nowebui")
 
 # Arguments added by Forge
 parser.add_argument("--forge-ref-a1111-home", type=Path, help="Look for models in an existing A1111 checkout's path", default=None)
