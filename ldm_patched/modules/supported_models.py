@@ -246,57 +246,6 @@ class SDXL(supported_models_base.BASE):
         return supported_models_base.ClipTarget(sdxl_clip.SDXLTokenizer, sdxl_clip.SDXLClipModel)
 
 
-class SSD1B(SDXL):
-    unet_config = {
-        "model_channels": 320,
-        "use_linear_in_transformer": True,
-        "transformer_depth": [0, 0, 2, 2, 4, 4],
-        "context_dim": 2048,
-        "adm_in_channels": 2816,
-        "use_temporal_attention": False,
-    }
-
-
-class Segmind_Vega(SDXL):
-    unet_config = {
-        "model_channels": 320,
-        "use_linear_in_transformer": True,
-        "transformer_depth": [0, 0, 1, 1, 2, 2],
-        "context_dim": 2048,
-        "adm_in_channels": 2816,
-        "use_temporal_attention": False,
-    }
-
-
-class SD_X4Upscaler(SD20):
-    unet_config = {
-        "context_dim": 1024,
-        "model_channels": 256,
-        "in_channels": 7,
-        "use_linear_in_transformer": True,
-        "adm_in_channels": None,
-        "use_temporal_attention": False,
-    }
-
-    unet_extra_config = {
-        "disable_self_attentions": [True, True, True, False],
-        "num_classes": 1000,
-        "num_heads": 8,
-        "num_head_channels": -1,
-    }
-
-    latent_format = latent_formats.SD_X4
-
-    sampling_settings = {
-        "linear_start": 0.0001,
-        "linear_end": 0.02,
-    }
-
-    def get_model(self, state_dict, prefix="", device=None):
-        out = model_base.SD_X4Upscaler(self, device=device)
-        return out
-
-
 models = [
     SD15,
     SD20,
@@ -304,7 +253,4 @@ models = [
     SD21UnclipH,
     SDXLRefiner,
     SDXL,
-    SSD1B,
-    Segmind_Vega,
-    SD_X4Upscaler,
 ]

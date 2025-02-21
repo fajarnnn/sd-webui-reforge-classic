@@ -9,12 +9,15 @@ import ldm_patched.modules.conds
 import ldm_patched.modules.model_management
 import ldm_patched.modules.ops
 import torch
+
 from ldm_patched.ldm.modules.diffusionmodules.openaimodel import Timestep, UNetModel
-from ldm_patched.ldm.modules.diffusionmodules.upscaling import (
-    ImageConcatWithNoiseAugmentation,
-)
-from ldm_patched.ldm.modules.encoders.noise_aug_modules import (
-    CLIPEmbeddingNoiseAugmentation,
+from ldm_patched.ldm.modules.diffusionmodules.upscaling import ImageConcatWithNoiseAugmentation
+from ldm_patched.ldm.modules.encoders.noise_aug_modules import CLIPEmbeddingNoiseAugmentation
+from ldm_patched.modules.model_sampling import (
+    EPS,
+    V_PREDICTION,
+    ModelSamplingContinuousEDM,
+    ModelSamplingDiscrete,
 )
 
 from modules.shared import opts
@@ -26,14 +29,6 @@ class ModelType(Enum):
     EPS = 1
     V_PREDICTION = 2
     V_PREDICTION_EDM = 3
-
-
-from ldm_patched.modules.model_sampling import (
-    EPS,
-    V_PREDICTION,
-    ModelSamplingContinuousEDM,
-    ModelSamplingDiscrete,
-)
 
 
 def model_sampling(model_config, model_type):
@@ -69,15 +64,13 @@ class BaseModel(torch.nn.Module):
                     operations = ldm_patched.modules.ops.fp8_ops
                     print("using fast fp8 ops")
                 else:
-                    print("\n\nWARNING: fast fp8 ops is not supported\n\n")
+                    print("\n\nERROR: fast fp8 ops is not supported\n\n")
             if operations is None:
                 if self.manual_cast_dtype is not None:
                     operations = ldm_patched.modules.ops.manual_cast
                 else:
                     operations = ldm_patched.modules.ops.disable_weight_init
-            self.diffusion_model = UNetModel(
-                **unet_config, device=device, operations=operations
-            )
+            self.diffusion_model = UNetModel(**unet_config, device=device, operations=operations)
 
         self.model_type = model_type
         self.model_sampling = model_sampling(model_config, model_type)
@@ -164,23 +157,15 @@ class BaseModel(torch.nn.Module):
                     "center",
                 )
 
-            concat_latent_image = utils.resize_to_batch_size(
-                concat_latent_image, noise.shape[0]
-            )
+            concat_latent_image = utils.resize_to_batch_size(concat_latent_image, noise.shape[0])
 
             if len(denoise_mask.shape) == len(noise.shape):
                 denoise_mask = denoise_mask[:, :1]
 
-            denoise_mask = denoise_mask.reshape(
-                (-1, 1, denoise_mask.shape[-2], denoise_mask.shape[-1])
-            )
+            denoise_mask = denoise_mask.reshape((-1, 1, denoise_mask.shape[-2], denoise_mask.shape[-1]))
             if denoise_mask.shape[-2:] != noise.shape[-2:]:
-                denoise_mask = utils.common_upscale(
-                    denoise_mask, noise.shape[-1], noise.shape[-2], "bilinear", "center"
-                )
-            denoise_mask = utils.resize_to_batch_size(
-                denoise_mask.round(), noise.shape[0]
-            )
+                denoise_mask = utils.common_upscale(denoise_mask, noise.shape[-1], noise.shape[-2], "bilinear", "center")
+            denoise_mask = utils.resize_to_batch_size(denoise_mask.round(), noise.shape[0])
 
             def blank_inpaint_image_like(latent_image):
                 blank_image = torch.ones_like(latent_image)
@@ -196,9 +181,7 @@ class BaseModel(torch.nn.Module):
                     if ck == "mask":
                         cond_concat.append(denoise_mask.to(device))
                     elif ck == "masked_image":
-                        cond_concat.append(
-                            concat_latent_image.to(device)
-                        )  # NOTE: the latent_image should be masked by the mask in pixel space
+                        cond_concat.append(concat_latent_image.to(device))  # NOTE: the latent_image should be masked by the mask in pixel space
                 else:
                     if ck == "mask":
                         cond_concat.append(torch.ones_like(noise)[:, :1])
@@ -240,34 +223,20 @@ class BaseModel(torch.nn.Module):
     def process_latent_out(self, latent):
         return self.latent_format.process_out(latent)
 
-    def state_dict_for_saving(
-        self, clip_state_dict=None, vae_state_dict=None, clip_vision_state_dict=None
-    ):
+    def state_dict_for_saving(self, clip_state_dict=None, vae_state_dict=None, clip_vision_state_dict=None):
         extra_sds = []
         if clip_state_dict is not None:
-            extra_sds.append(
-                self.model_config.process_clip_state_dict_for_saving(clip_state_dict)
-            )
+            extra_sds.append(self.model_config.process_clip_state_dict_for_saving(clip_state_dict))
         if vae_state_dict is not None:
-            extra_sds.append(
-                self.model_config.process_vae_state_dict_for_saving(vae_state_dict)
-            )
+            extra_sds.append(self.model_config.process_vae_state_dict_for_saving(vae_state_dict))
         if clip_vision_state_dict is not None:
-            extra_sds.append(
-                self.model_config.process_clip_vision_state_dict_for_saving(
-                    clip_vision_state_dict
-                )
-            )
+            extra_sds.append(self.model_config.process_clip_vision_state_dict_for_saving(clip_vision_state_dict))
 
         unet_state_dict = self.diffusion_model.state_dict()
-        unet_state_dict = self.model_config.process_unet_state_dict_for_saving(
-            unet_state_dict
-        )
+        unet_state_dict = self.model_config.process_unet_state_dict_for_saving(unet_state_dict)
 
         if self.get_dtype() == torch.float16:
-            extra_sds = map(
-                lambda sd: utils.convert_sd_to(sd, torch.float16), extra_sds
-            )
+            extra_sds = map(lambda sd: utils.convert_sd_to(sd, torch.float16), extra_sds)
 
         if self.model_type == ModelType.V_PREDICTION:
             unet_state_dict["v_pred"] = torch.tensor([])
@@ -282,17 +251,10 @@ class BaseModel(torch.nn.Module):
 
     def memory_required(self, input_shape):
         area = input_shape[0] * input_shape[2] * input_shape[3]
-        dtype = (
-            self.manual_cast_dtype
-            if self.manual_cast_dtype is not None
-            else self.get_dtype()
-        )
+        dtype = self.manual_cast_dtype if self.manual_cast_dtype is not None else self.get_dtype()
         dtype_size = ldm_patched.modules.model_management.dtype_size(dtype)
 
-        if (
-            ldm_patched.modules.model_management.xformers_enabled()
-            or ldm_patched.modules.model_management.pytorch_attention_flash_attention()
-        ):
+        if ldm_patched.modules.model_management.xformers_enabled() or ldm_patched.modules.model_management.pytorch_attention_flash_attention():
             scaler = 1.28
         else:
             scaler = 1.65
@@ -302,9 +264,7 @@ class BaseModel(torch.nn.Module):
         return scaler * area * dtype_size * 16384
 
 
-def unclip_adm(
-    unclip_conditioning, device, noise_augmentor, noise_augment_merge=0.0, seed=None
-):
+def unclip_adm(unclip_conditioning, device, noise_augmentor, noise_augment_merge=0.0, seed=None):
     adm_inputs = []
     weights = []
     noise_aug = []
@@ -406,11 +366,7 @@ class SDXLRefiner(BaseModel):
         out.append(self.embedder(torch.Tensor([crop_h])))
         out.append(self.embedder(torch.Tensor([crop_w])))
         out.append(self.embedder(torch.Tensor([aesthetic_score])))
-        flat = (
-            torch.flatten(torch.cat(out))
-            .unsqueeze(dim=0)
-            .repeat(clip_pooled.shape[0], 1)
-        )
+        flat = torch.flatten(torch.cat(out)).unsqueeze(dim=0).repeat(clip_pooled.shape[0], 1)
         return torch.cat((clip_pooled.to(flat.device), flat), dim=1)
 
 
@@ -444,11 +400,7 @@ class SDXL(BaseModel):
         out.append(self.embedder(torch.Tensor([crop_w])))
         out.append(self.embedder(torch.Tensor([target_height])))
         out.append(self.embedder(torch.Tensor([target_width])))
-        flat = (
-            torch.flatten(torch.cat(out))
-            .unsqueeze(dim=0)
-            .repeat(clip_pooled.shape[0], 1)
-        )
+        flat = torch.flatten(torch.cat(out)).unsqueeze(dim=0).repeat(clip_pooled.shape[0], 1)
         return torch.cat((clip_pooled.to(flat.device), flat), dim=1)
 
 
@@ -475,15 +427,11 @@ class SD_X4Upscaler(BaseModel):
             image = torch.zeros_like(noise)[:, :3]
 
         if image.shape[1:] != noise.shape[1:]:
-            image = utils.common_upscale(
-                image.to(device), noise.shape[-1], noise.shape[-2], "bilinear", "center"
-            )
+            image = utils.common_upscale(image.to(device), noise.shape[-1], noise.shape[-2], "bilinear", "center")
 
         noise_level = torch.tensor([noise_level], device=device)
         if noise_augment > 0:
-            image, noise_level = self.noise_augmentor(
-                image.to(device), noise_level=noise_level, seed=seed
-            )
+            image, noise_level = self.noise_augmentor(image.to(device), noise_level=noise_level, seed=seed)
 
         image = utils.resize_to_batch_size(image, noise.shape[0])
 
