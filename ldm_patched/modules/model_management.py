@@ -136,9 +136,7 @@ total_ram = psutil.virtual_memory().total / (1024 * 1024)
 print("Total VRAM {:0.0f} MB, total RAM {:0.0f} MB".format(total_vram, total_ram))
 if not args.always_normal_vram and not args.always_cpu:
     if lowvram_available and total_vram <= 4096:
-        print(
-            "Trying to enable lowvram mode because your GPU seems to have 4GB or less. If you don't want this use: --always-normal-vram"
-        )
+        print("Trying to enable lowvram mode because your GPU seems to have 4GB or less. If you don't want this use: --always-normal-vram")
         set_vram_to = VRAMState.LOW_VRAM
 
 try:
@@ -168,6 +166,7 @@ else:
             print("xformers version:", XFORMERS_VERSION)
             if XFORMERS_VERSION.startswith("0.0.18"):
                 from modules.errors import print_error_explanation
+
                 print_error_explanation(
                     """
                     WARNING: This version of xformers has a major bug where you will get black images when generating high resolution images.
@@ -210,17 +209,9 @@ try:
     if is_nvidia():
         torch_version = torch.version.__version__
         if int(torch_version[0]) >= 2:
-            if (
-                ENABLE_PYTORCH_ATTENTION is False
-                and args.attention_split is False
-                and args.attention_quad is False
-            ):
+            if ENABLE_PYTORCH_ATTENTION is False and args.attention_split is False and args.attention_quad is False:
                 ENABLE_PYTORCH_ATTENTION = True
-            if (
-                torch.cuda.is_bf16_supported()
-                and torch.cuda.get_device_properties(torch.cuda.current_device()).major
-                >= 8
-            ):
+            if torch.cuda.is_bf16_supported() and torch.cuda.get_device_properties(torch.cuda.current_device()).major >= 8:
                 VAE_DTYPE = torch.bfloat16
     if is_intel_xpu():
         if args.attention_split is False and args.attention_quad is False:
@@ -299,9 +290,7 @@ def get_torch_device_name(device):
                 allocator_backend = torch.cuda.get_allocator_backend()
             except:
                 allocator_backend = ""
-            return "{} {} : {}".format(
-                device, torch.cuda.get_device_name(device), allocator_backend
-            )
+            return "{} {} : {}".format(device, torch.cuda.get_device_name(device), allocator_backend)
         else:
             return "{}".format(device.type)
     elif is_intel_xpu():
@@ -315,21 +304,14 @@ try:
     print("Device:", torch_device_name)
 except:
     torch_device_name = ""
-    print("Could not pick default device.")
+    print("Could not identify torch device")
 
 if "rtx" in torch_device_name.lower():
-    if not args.cuda_malloc:
-        print(
-            "Hint: your device supports --cuda-malloc for potential speed improvements."
-        )
-        if not args.cuda_stream:
-            print(
-                "Hint: your device supports --cuda-stream for potential speed improvements."
-            )
-            if not args.pin_shared_memory:
-                print(
-                    "Hint: your device supports --pin-shared-memory for potential speed improvements."
-                )
+    if not (args.cuda_malloc or args.cuda_stream or args.pin_shared_memory):
+        print("Hint: your device supports --cuda-malloc for potential speed improvements")
+        print("Hint: your device supports --cuda-stream for potential speed improvements")
+        print("Hint: your device supports --pin-shared-memory for potential speed improvements")
+
 
 current_loaded_models = []
 
@@ -372,9 +354,7 @@ class LoadedModel:
         self.model.model_patches_to(self.model.model_dtype())
 
         try:
-            self.real_model = self.model.patch_model(
-                device_to=patch_model_to
-            )  # TODO: do something with loras and offloading to CPU
+            self.real_model = self.model.patch_model(device_to=patch_model_to)  # TODO: do something with loras and offloading to CPU
         except Exception as e:
             self.model.unpatch_model(self.model.offload_device)
             self.model_unload()
@@ -399,9 +379,7 @@ class LoadedModel:
                     else:
                         real_async_memory += module_mem
                         m.to(self.model.offload_device)
-                        if PIN_SHARED_MEMORY and is_device_cpu(
-                            self.model.offload_device
-                        ):
+                        if PIN_SHARED_MEMORY and is_device_cpu(self.model.offload_device):
                             m._apply(lambda x: x.pin_memory())
                 elif hasattr(m, "weight"):
                     m.to(self.device)
@@ -444,9 +422,7 @@ class LoadedModel:
             self.model.model_patches_to(self.model.offload_device)
 
     def __eq__(self, other):
-        return (
-            self.model is other.model
-        )  # and self.memory_required == other.memory_required
+        return self.model is other.model  # and self.memory_required == other.memory_required
 
 
 def minimum_inference_memory():
@@ -485,9 +461,7 @@ def free_memory(memory_required, device, keep_loaded=[]):
         soft_empty_cache()
     else:
         if vram_state != VRAMState.HIGH_VRAM:
-            mem_free_total, mem_free_torch = get_free_memory(
-                device, torch_free_too=True
-            )
+            mem_free_total, mem_free_torch = get_free_memory(device, torch_free_too=True)
             if mem_free_torch > mem_free_total * 0.25:
                 soft_empty_cache()
 
@@ -524,16 +498,12 @@ def load_models_gpu(models, memory_required=0):
 
         return
 
-    print(
-        f"Begin to load {len(models_to_load)} model{'s' if len(models_to_load) > 1 else ''}"
-    )
+    print(f"Begin to load {len(models_to_load)} model{'s' if len(models_to_load) > 1 else ''}")
 
     total_memory_required = {}
     for loaded_model in models_to_load:
         unload_model_clones(loaded_model.model)
-        total_memory_required[loaded_model.device] = total_memory_required.get(
-            loaded_model.device, 0
-        ) + loaded_model.model_memory_required(loaded_model.device)
+        total_memory_required[loaded_model.device] = total_memory_required.get(loaded_model.device, 0) + loaded_model.model_memory_required(loaded_model.device)
 
     for device in total_memory_required:
         if device != torch.device("cpu"):
@@ -553,32 +523,16 @@ def load_models_gpu(models, memory_required=0):
 
         async_kept_memory = -1
 
-        if lowvram_available and (
-            vram_set_state is VRAMState.LOW_VRAM
-            or vram_set_state is VRAMState.NORMAL_VRAM
-        ):
+        if lowvram_available and (vram_set_state is VRAMState.LOW_VRAM or vram_set_state is VRAMState.NORMAL_VRAM):
             model_memory = loaded_model.model_memory_required(torch_dev)
             current_free_mem = get_free_memory(torch_dev)
             minimal_inference_memory = minimum_inference_memory()
-            estimated_remaining_memory = (
-                current_free_mem - model_memory - minimal_inference_memory
-            )
+            estimated_remaining_memory = current_free_mem - model_memory - minimal_inference_memory
 
-            print(
-                "[Memory Management] Current Free GPU Memory (MB) = ",
-                current_free_mem / (1024 * 1024),
-            )
-            print(
-                "[Memory Management] Model Memory (MB) = ", model_memory / (1024 * 1024)
-            )
-            print(
-                "[Memory Management] Minimal Inference Memory (MB) = ",
-                minimal_inference_memory / (1024 * 1024),
-            )
-            print(
-                "[Memory Management] Estimated Remaining GPU Memory (MB) = ",
-                estimated_remaining_memory / (1024 * 1024),
-            )
+            print("[Memory Management] Current Free GPU Memory (MB) = ", current_free_mem / (1024 * 1024))
+            print("[Memory Management] Model Memory (MB) = ", model_memory / (1024 * 1024))
+            print("[Memory Management] Minimal Inference Memory (MB) = ", minimal_inference_memory / (1024 * 1024))
+            print("[Memory Management] Estimated Remaining GPU Memory (MB) = ", estimated_remaining_memory / (1024 * 1024))
 
             if estimated_remaining_memory < 0:
                 vram_set_state = VRAMState.LOW_VRAM
@@ -695,14 +649,12 @@ def unet_dtype(device=None, model_params=0):
     return torch.float32
 
 
-# None means no manual cast
 def unet_manual_cast(weight_dtype, inference_device):
+    """None means no manual cast"""
     if weight_dtype is torch.float32:
         return None
 
-    fp16_supported = ldm_patched.modules.model_management.should_use_fp16(
-        inference_device, prioritize_performance=False
-    )
+    fp16_supported = ldm_patched.modules.model_management.should_use_fp16(inference_device, prioritize_performance=False)
     if fp16_supported and weight_dtype is torch.float16:
         return None
 
@@ -827,13 +779,9 @@ def cast_to_device(tensor, device, dtype, copy=False):
         if copy:
             if tensor.device == device:
                 return tensor.to(dtype, copy=copy, non_blocking=non_blocking)
-            return tensor.to(device, copy=copy, non_blocking=non_blocking).to(
-                dtype, non_blocking=non_blocking
-            )
+            return tensor.to(device, copy=copy, non_blocking=non_blocking).to(dtype, non_blocking=non_blocking)
         else:
-            return tensor.to(device, non_blocking=non_blocking).to(
-                dtype, non_blocking=non_blocking
-            )
+            return tensor.to(device, non_blocking=non_blocking).to(dtype, non_blocking=non_blocking)
     else:
         return tensor.to(device, dtype, copy=copy, non_blocking=non_blocking)
 
@@ -898,9 +846,7 @@ def get_free_memory(dev=None, torch_free_too=False):
             mem_allocated = stats["allocated_bytes.all.current"]
             mem_reserved = stats["reserved_bytes.all.current"]
             mem_free_torch = mem_reserved - mem_active
-            mem_free_total = (
-                torch.xpu.get_device_properties(dev).total_memory - mem_allocated
-            )
+            mem_free_total = torch.xpu.get_device_properties(dev).total_memory - mem_allocated
         else:
             stats = torch.cuda.memory_stats(dev)
             mem_active = stats["active_bytes.all.current"]
@@ -939,9 +885,7 @@ def is_device_mps(device):
     return False
 
 
-def should_use_fp16(
-    device=None, model_params=0, prioritize_performance=True, manual_cast=False
-):
+def should_use_fp16(device=None, model_params=0, prioritize_performance=True, manual_cast=False):
     global directml_enabled
 
     if device is not None:
@@ -1036,52 +980,10 @@ def soft_empty_cache(force=False):
     elif is_intel_xpu():
         torch.xpu.empty_cache()
     elif torch.cuda.is_available():
-        if (
-            force or is_nvidia()
-        ):  # This seems to make things worse on ROCm so I only do it for cuda
+        if force or is_nvidia():  # This seems to make things worse on ROCm so I only do it for cuda
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()
 
 
 def unload_all_models():
     free_memory(1e30, get_torch_device())
-
-
-def resolve_lowvram_weight(weight, model, key):  # TODO: remove
-    return weight
-
-
-# TODO: might be cleaner to put this somewhere else
-import threading
-
-
-class InterruptProcessingException(Exception):
-    pass
-
-
-interrupt_processing_mutex = threading.RLock()
-
-interrupt_processing = False
-
-
-def interrupt_current_processing(value=True):
-    global interrupt_processing
-    global interrupt_processing_mutex
-    with interrupt_processing_mutex:
-        interrupt_processing = value
-
-
-def processing_interrupted():
-    global interrupt_processing
-    global interrupt_processing_mutex
-    with interrupt_processing_mutex:
-        return interrupt_processing
-
-
-def throw_exception_if_processing_interrupted():
-    global interrupt_processing
-    global interrupt_processing_mutex
-    with interrupt_processing_mutex:
-        if interrupt_processing:
-            interrupt_processing = False
-            raise InterruptProcessingException()

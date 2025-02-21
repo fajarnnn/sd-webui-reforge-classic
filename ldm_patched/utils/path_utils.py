@@ -4,7 +4,7 @@
 import os
 import time
 
-supported_pt_extensions = set([".ckpt", ".pt", ".bin", ".pth", ".safetensors"])
+supported_pt_extensions = {".ckpt", ".pt", ".bin", ".pth", ".safetensors"}
 
 folder_names_and_paths = {}
 

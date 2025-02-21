@@ -10,9 +10,7 @@ from typing import Tuple, Union
 
 import ldm_patched.modules.ops
 import torch
-from ldm_patched.ldm.modules.distributions.distributions import (
-    DiagonalGaussianDistribution,
-)
+from ldm_patched.ldm.modules.distributions.distributions import DiagonalGaussianDistribution
 from ldm_patched.ldm.modules.ema import LitEma
 from ldm_patched.ldm.util import instantiate_from_config
 
@@ -136,9 +134,7 @@ class AutoencodingEngine(AbstractAutoencoder):
         x = self.decoder(z, **kwargs)
         return x
 
-    def forward(
-        self, x: torch.Tensor, **additional_decode_kwargs
-    ) -> Tuple[torch.Tensor, torch.Tensor, dict]:
+    def forward(self, x: torch.Tensor, **additional_decode_kwargs) -> Tuple[torch.Tensor, torch.Tensor, dict]:
         z, reg_log = self.encode(x, return_reg_log=True)
         dec = self.decode(z, **additional_decode_kwargs)
         return z, dec, reg_log
@@ -175,9 +171,7 @@ class AutoencodingEngineLegacy(AutoencodingEngine):
         params = super().get_autoencoder_params()
         return params
 
-    def encode(
-        self, x: torch.Tensor, return_reg_log: bool = False
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, dict]]:
+    def encode(self, x: torch.Tensor, return_reg_log: bool = False) -> Union[torch.Tensor, Tuple[torch.Tensor, dict]]:
         if self.max_batch_size is None:
             z = self.encoder(x)
             z = self.quant_conv(z)
@@ -220,8 +214,6 @@ class AutoencoderKL(AutoencodingEngineLegacy):
         if "lossconfig" in kwargs:
             kwargs["loss_config"] = kwargs.pop("lossconfig")
         super().__init__(
-            regularizer_config={
-                "target": "ldm_patched.ldm.models.autoencoder.DiagonalGaussianRegularizer"
-            },
+            regularizer_config={"target": "ldm_patched.ldm.models.autoencoder.DiagonalGaussianRegularizer"},
             **kwargs,
         )

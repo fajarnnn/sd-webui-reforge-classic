@@ -1,8 +1,6 @@
 # Reference: https://github.com/comfyanonymous/ComfyUI
 
 
-import torch
-
 from . import latent_formats, model_base, utils
 
 
@@ -58,7 +56,9 @@ class BASE:
             )
         else:
             out = model_base.BaseModel(
-                self, model_type=self.model_type(state_dict, prefix), device=device
+                self,
+                model_type=self.model_type(state_dict, prefix),
+                device=device,
             )
         if self.inpaint_model():
             out.set_inpaint()

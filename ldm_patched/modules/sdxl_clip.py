@@ -21,9 +21,7 @@ class SDXLClipG(sd1_clip.SDClipModel):
             layer = "hidden"
             layer_idx = -2
 
-        textmodel_json_config = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "clip_config_bigg.json"
-        )
+        textmodel_json_config = os.path.join(os.path.dirname(os.path.realpath(__file__)), "clip_config_bigg.json")
         super().__init__(
             device=device,
             freeze=freeze,
@@ -101,6 +99,4 @@ class SDXLClipModel(torch.nn.Module):
 
 class SDXLRefinerClipModel(sd1_clip.SD1ClipModel):
     def __init__(self, device="cpu", dtype=None):
-        super().__init__(
-            device=device, dtype=dtype, clip_name="g", clip_model=SDXLClipG
-        )
+        super().__init__(device=device, dtype=dtype, clip_name="g", clip_model=SDXLClipG)

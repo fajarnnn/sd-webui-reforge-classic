@@ -41,11 +41,7 @@ def cast_bias_weight(s, input=None, dtype=None, device=None, bias_dtype=None):
 
     bias, signal = None, None
 
-    with (
-        stream.stream_context()(stream.mover_stream)
-        if stream.using_stream
-        else contextlib.nullcontext()
-    ):
+    with stream.stream_context()(stream.mover_stream) if stream.using_stream else contextlib.nullcontext():
         if s.bias is not None:
             bias = cast_to_device(
                 s.bias,
@@ -179,9 +175,7 @@ class disable_weight_init:
         def forward_ldm_patched_cast_weights(self, input):
             weight, bias, signal = cast_bias_weight(self, input)
             with main_stream_worker(weight, bias, signal):
-                return torch.nn.functional.layer_norm(
-                    input, self.normalized_shape, weight, bias, self.eps
-                )
+                return torch.nn.functional.layer_norm(input, self.normalized_shape, weight, bias, self.eps)
 
         def forward(self, *args, **kwargs):
             if self.ldm_patched_cast_weights:
@@ -249,11 +243,7 @@ def fp8_linear(self, input):
         inn = torch.clamp(input, min=-448, max=448).view(-1, input_shape[2]).to(dtype)
     else:
         scale_input = scale_input.to(input_device)
-        inn = (
-            (input * (1.0 / scale_input).to(input_dtype))
-            .view(-1, input_shape[2])
-            .to(dtype)
-        )
+        inn = (input * (1.0 / scale_input).to(input_dtype)).view(-1, input_shape[2]).to(dtype)
 
     with main_stream_worker(w, bias, signal):
         o = torch._scaled_mm(
@@ -282,8 +272,7 @@ class fp8_ops(manual_cast):
             return None
 
         def forward_ldm_patched_cast_weights(self, input):
-            out = fp8_linear(self, input)
-            if out is not None:
+            if (out := fp8_linear(self, input)) is not None:
                 return out
 
             weight, bias, signal = cast_bias_weight(self, input)

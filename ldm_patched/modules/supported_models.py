@@ -34,26 +34,17 @@ class SD15(supported_models_base.BASE):
     def process_clip_state_dict(self, state_dict):
         k = list(state_dict.keys())
         for x in k:
-            if x.startswith("cond_stage_model.transformer.") and not x.startswith(
-                "cond_stage_model.transformer.text_model."
-            ):
+            if x.startswith("cond_stage_model.transformer.") and not x.startswith("cond_stage_model.transformer.text_model."):
                 y = x.replace(
                     "cond_stage_model.transformer.",
                     "cond_stage_model.transformer.text_model.",
                 )
                 state_dict[y] = state_dict.pop(x)
 
-        if (
-            "cond_stage_model.transformer.text_model.embeddings.position_ids"
-            in state_dict
-        ):
-            ids = state_dict[
-                "cond_stage_model.transformer.text_model.embeddings.position_ids"
-            ]
+        if "cond_stage_model.transformer.text_model.embeddings.position_ids" in state_dict:
+            ids = state_dict["cond_stage_model.transformer.text_model.embeddings.position_ids"]
             if ids.dtype == torch.float32:
-                state_dict[
-                    "cond_stage_model.transformer.text_model.embeddings.position_ids"
-                ] = ids.round()
+                state_dict["cond_stage_model.transformer.text_model.embeddings.position_ids"] = ids.round()
 
         replace_prefix = {}
         replace_prefix["cond_stage_model."] = "cond_stage_model.clip_l."
@@ -65,9 +56,7 @@ class SD15(supported_models_base.BASE):
         return utils.state_dict_prefix_replace(state_dict, replace_prefix)
 
     def clip_target(self):
-        return supported_models_base.ClipTarget(
-            sd1_clip.SD1Tokenizer, sd1_clip.SD1ClipModel
-        )
+        return supported_models_base.ClipTarget(sd1_clip.SD1Tokenizer, sd1_clip.SD1ClipModel)
 
 
 class SD20(supported_models_base.BASE):
@@ -82,22 +71,16 @@ class SD20(supported_models_base.BASE):
     latent_format = latent_formats.SD15
 
     def model_type(self, state_dict, prefix=""):
-        if (
-            self.unet_config["in_channels"] == 4
-        ):  # SD2.0 inpainting models are not v prediction
+        if self.unet_config["in_channels"] == 4:  # SD2.0 inpainting models are not v prediction
             k = "{}output_blocks.11.1.transformer_blocks.0.norm1.bias".format(prefix)
             out = state_dict[k]
-            if (
-                torch.std(out, unbiased=False) > 0.09
-            ):  # not sure how well this will actually work. I guess we will find out.
+            if torch.std(out, unbiased=False) > 0.09:  # not sure how well this will actually work. I guess we will find out.
                 return model_base.ModelType.V_PREDICTION
         return model_base.ModelType.EPS
 
     def process_clip_state_dict(self, state_dict):
         replace_prefix = {}
-        replace_prefix["conditioner.embedders.0.model."] = (
-            "cond_stage_model.model."  # SD2 in sgm format
-        )
+        replace_prefix["conditioner.embedders.0.model."] = "cond_stage_model.model."  # SD2 in sgm format
         state_dict = utils.state_dict_prefix_replace(state_dict, replace_prefix)
 
         state_dict = utils.transformers_convert(
@@ -116,9 +99,7 @@ class SD20(supported_models_base.BASE):
         return state_dict
 
     def clip_target(self):
-        return supported_models_base.ClipTarget(
-            sd2_clip.SD2Tokenizer, sd2_clip.SD2ClipModel
-        )
+        return supported_models_base.ClipTarget(sd2_clip.SD2Tokenizer, sd2_clip.SD2ClipModel)
 
 
 class SD21UnclipL(SD20):
@@ -184,21 +165,15 @@ class SDXLRefiner(supported_models_base.BASE):
             "cond_stage_model.clip_g.transformer.text_model.",
             32,
         )
-        keys_to_replace["conditioner.embedders.0.model.text_projection"] = (
-            "cond_stage_model.clip_g.text_projection"
-        )
-        keys_to_replace["conditioner.embedders.0.model.logit_scale"] = (
-            "cond_stage_model.clip_g.logit_scale"
-        )
+        keys_to_replace["conditioner.embedders.0.model.text_projection"] = "cond_stage_model.clip_g.text_projection"
+        keys_to_replace["conditioner.embedders.0.model.logit_scale"] = "cond_stage_model.clip_g.logit_scale"
 
         state_dict = utils.state_dict_key_replace(state_dict, keys_to_replace)
         return state_dict
 
     def process_clip_state_dict_for_saving(self, state_dict):
         replace_prefix = {}
-        state_dict_g = diffusers_convert.convert_text_enc_state_dict_v20(
-            state_dict, "clip_g"
-        )
+        state_dict_g = diffusers_convert.convert_text_enc_state_dict_v20(state_dict, "clip_g")
         if "clip_g.transformer.text_model.embeddings.position_ids" in state_dict_g:
             state_dict_g.pop("clip_g.transformer.text_model.embeddings.position_ids")
         replace_prefix["clip_g"] = "conditioner.embedders.0.model"
@@ -206,9 +181,7 @@ class SDXLRefiner(supported_models_base.BASE):
         return state_dict_g
 
     def clip_target(self):
-        return supported_models_base.ClipTarget(
-            sdxl_clip.SDXLTokenizer, sdxl_clip.SDXLRefinerClipModel
-        )
+        return supported_models_base.ClipTarget(sdxl_clip.SDXLTokenizer, sdxl_clip.SDXLRefinerClipModel)
 
 
 class SDXL(supported_models_base.BASE):
@@ -230,9 +203,7 @@ class SDXL(supported_models_base.BASE):
             return model_base.ModelType.EPS
 
     def get_model(self, state_dict, prefix="", device=None):
-        out = model_base.SDXL(
-            self, model_type=self.model_type(state_dict, prefix), device=device
-        )
+        out = model_base.SDXL(self, model_type=self.model_type(state_dict, prefix), device=device)
         if self.inpaint_model():
             out.set_inpaint()
         return out
@@ -241,24 +212,16 @@ class SDXL(supported_models_base.BASE):
         keys_to_replace = {}
         replace_prefix = {}
 
-        replace_prefix["conditioner.embedders.0.transformer.text_model"] = (
-            "cond_stage_model.clip_l.transformer.text_model"
-        )
+        replace_prefix["conditioner.embedders.0.transformer.text_model"] = "cond_stage_model.clip_l.transformer.text_model"
         state_dict = utils.transformers_convert(
             state_dict,
             "conditioner.embedders.1.model.",
             "cond_stage_model.clip_g.transformer.text_model.",
             32,
         )
-        keys_to_replace["conditioner.embedders.1.model.text_projection"] = (
-            "cond_stage_model.clip_g.text_projection"
-        )
-        keys_to_replace["conditioner.embedders.1.model.text_projection.weight"] = (
-            "cond_stage_model.clip_g.text_projection"
-        )
-        keys_to_replace["conditioner.embedders.1.model.logit_scale"] = (
-            "cond_stage_model.clip_g.logit_scale"
-        )
+        keys_to_replace["conditioner.embedders.1.model.text_projection"] = "cond_stage_model.clip_g.text_projection"
+        keys_to_replace["conditioner.embedders.1.model.text_projection.weight"] = "cond_stage_model.clip_g.text_projection"
+        keys_to_replace["conditioner.embedders.1.model.logit_scale"] = "cond_stage_model.clip_g.logit_scale"
 
         state_dict = utils.state_dict_prefix_replace(state_dict, replace_prefix)
         state_dict = utils.state_dict_key_replace(state_dict, keys_to_replace)
@@ -267,9 +230,7 @@ class SDXL(supported_models_base.BASE):
     def process_clip_state_dict_for_saving(self, state_dict):
         replace_prefix = {}
         keys_to_replace = {}
-        state_dict_g = diffusers_convert.convert_text_enc_state_dict_v20(
-            state_dict, "clip_g"
-        )
+        state_dict_g = diffusers_convert.convert_text_enc_state_dict_v20(state_dict, "clip_g")
         if "clip_g.transformer.text_model.embeddings.position_ids" in state_dict_g:
             state_dict_g.pop("clip_g.transformer.text_model.embeddings.position_ids")
         for k in state_dict:
@@ -282,9 +243,7 @@ class SDXL(supported_models_base.BASE):
         return state_dict_g
 
     def clip_target(self):
-        return supported_models_base.ClipTarget(
-            sdxl_clip.SDXLTokenizer, sdxl_clip.SDXLClipModel
-        )
+        return supported_models_base.ClipTarget(sdxl_clip.SDXLTokenizer, sdxl_clip.SDXLClipModel)
 
 
 class SSD1B(SDXL):
