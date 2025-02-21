@@ -60,14 +60,14 @@ try:
 
     if torch.xpu.is_available():
         xpu_available = True
-except:
+except Exception:
     pass
 
 try:
     if torch.backends.mps.is_available():
         cpu_state = CPUState.MPS
         import torch.mps
-except:
+except Exception:
     pass
 
 if args.always_cpu:
@@ -141,7 +141,7 @@ if not args.always_normal_vram and not args.always_cpu:
 
 try:
     OOM_EXCEPTION = torch.cuda.OutOfMemoryError
-except:
+except Exception:
     OOM_EXCEPTION = Exception
 
 if directml_enabled:
@@ -159,7 +159,7 @@ else:
         XFORMERS_IS_AVAILABLE = True
         try:
             XFORMERS_IS_AVAILABLE = xformers._has_cpp_library
-        except:
+        except Exception:
             pass
         try:
             XFORMERS_VERSION = xformers.version.__version__
@@ -174,9 +174,9 @@ else:
                     """.strip()
                 )
                 XFORMERS_ENABLED_VAE = False
-        except:
+        except Exception:
             pass
-    except:
+    except Exception:
         XFORMERS_IS_AVAILABLE = False
 
 if args.disable_sage:
@@ -216,7 +216,7 @@ try:
     if is_intel_xpu():
         if args.attention_split is False and args.attention_quad is False:
             ENABLE_PYTORCH_ATTENTION = True
-except:
+except Exception:
     pass
 
 if is_intel_xpu():
@@ -288,7 +288,7 @@ def get_torch_device_name(device):
         if device.type == "cuda":
             try:
                 allocator_backend = torch.cuda.get_allocator_backend()
-            except:
+            except Exception:
                 allocator_backend = ""
             return "{} {} : {}".format(device, torch.cuda.get_device_name(device), allocator_backend)
         else:
@@ -302,7 +302,7 @@ def get_torch_device_name(device):
 try:
     torch_device_name = get_torch_device_name(get_torch_device())
     print("Device:", torch_device_name)
-except:
+except Exception:
     torch_device_name = ""
     print("Could not identify torch device")
 
@@ -576,7 +576,7 @@ def dtype_size(dtype):
     else:
         try:
             dtype_size = dtype.itemsize
-        except:  # Old pytorch doesn't have .itemsize
+        except Exception:  # Old pytorch doesn't have .itemsize
             pass
     return dtype_size
 
@@ -885,6 +885,7 @@ def is_device_mps(device):
     return False
 
 
+@lru_cache(maxsize=4, typed=False)
 def should_use_fp16(device=None, model_params=0, prioritize_performance=True, manual_cast=False):
     global directml_enabled
 

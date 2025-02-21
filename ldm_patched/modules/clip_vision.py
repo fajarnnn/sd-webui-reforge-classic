@@ -25,12 +25,8 @@ class Output:
 
 
 def clip_preprocess(image, size=224):
-    mean = torch.tensor(
-        [0.48145466, 0.4578275, 0.40821073], device=image.device, dtype=image.dtype
-    )
-    std = torch.tensor(
-        [0.26862954, 0.26130258, 0.27577711], device=image.device, dtype=image.dtype
-    )
+    mean = torch.tensor([0.48145466, 0.4578275, 0.40821073], device=image.device, dtype=image.dtype)
+    std = torch.tensor([0.26862954, 0.26130258, 0.27577711], device=image.device, dtype=image.dtype)
     image = image.movedim(-1, 1)
     if not (image.shape[2] == size and image.shape[3] == size):
         scale = size / min(image.shape[2], image.shape[3])
@@ -52,13 +48,9 @@ class ClipVisionModel:
         config = CLIPVisionConfig.from_json_file(json_config)
 
         self.load_device = ldm_patched.modules.model_management.text_encoder_device()
-        self.offload_device = (
-            ldm_patched.modules.model_management.text_encoder_offload_device()
-        )
+        self.offload_device = ldm_patched.modules.model_management.text_encoder_offload_device()
 
-        if ldm_patched.modules.model_management.should_use_fp16(
-            self.load_device, prioritize_performance=False
-        ):
+        if ldm_patched.modules.model_management.should_use_fp16(self.load_device, prioritize_performance=False):
             self.dtype = torch.float16
         else:
             self.dtype = torch.float32
@@ -68,9 +60,7 @@ class ClipVisionModel:
                 self.model = CLIPVisionModelWithProjection(config)
 
         self.model.to(self.dtype)
-        self.patcher = ldm_patched.modules.model_patcher.ModelPatcher(
-            self.model, load_device=self.load_device, offload_device=self.offload_device
-        )
+        self.patcher = ldm_patched.modules.model_patcher.ModelPatcher(self.model, load_device=self.load_device, offload_device=self.offload_device)
 
     def load_sd(self, sd):
         return self.model.load_state_dict(sd, strict=False)
@@ -80,21 +70,13 @@ class ClipVisionModel:
 
     def encode_image(self, image):
         ldm_patched.modules.model_management.load_model_gpu(self.patcher)
-        pixel_values = ldm_patched.modules.clip_vision.clip_preprocess(
-            image.to(self.load_device)
-        )
+        pixel_values = ldm_patched.modules.clip_vision.clip_preprocess(image.to(self.load_device))
         outputs = self.model(pixel_values=pixel_values, output_hidden_states=True)
 
         o = Output()
-        o["last_hidden_state"] = outputs.last_hidden_state.to(
-            ldm_patched.modules.model_management.intermediate_device()
-        )
-        o["penultimate_hidden_states"] = outputs.hidden_states[-2].to(
-            ldm_patched.modules.model_management.intermediate_device()
-        )
-        o["image_embeds"] = outputs.image_embeds.to(
-            ldm_patched.modules.model_management.intermediate_device()
-        )
+        o["last_hidden_state"] = outputs.last_hidden_state.to(ldm_patched.modules.model_management.intermediate_device())
+        o["penultimate_hidden_states"] = outputs.hidden_states[-2].to(ldm_patched.modules.model_management.intermediate_device())
+        o["image_embeds"] = outputs.image_embeds.to(ldm_patched.modules.model_management.intermediate_device())
 
         return o
 
@@ -103,15 +85,9 @@ def convert_to_transformers(sd, prefix):
     sd_k = sd.keys()
     if "{}transformer.resblocks.0.attn.in_proj_weight".format(prefix) in sd_k:
         keys_to_replace = {
-            "{}class_embedding".format(
-                prefix
-            ): "vision_model.embeddings.class_embedding",
-            "{}conv1.weight".format(
-                prefix
-            ): "vision_model.embeddings.patch_embedding.weight",
-            "{}positional_embedding".format(
-                prefix
-            ): "vision_model.embeddings.position_embedding.weight",
+            "{}class_embedding".format(prefix): "vision_model.embeddings.class_embedding",
+            "{}conv1.weight".format(prefix): "vision_model.embeddings.patch_embedding.weight",
+            "{}positional_embedding".format(prefix): "vision_model.embeddings.position_embedding.weight",
             "{}ln_post.bias".format(prefix): "vision_model.post_layernorm.bias",
             "{}ln_post.weight".format(prefix): "vision_model.post_layernorm.weight",
             "{}ln_pre.bias".format(prefix): "vision_model.pre_layrnorm.bias",
@@ -123,9 +99,7 @@ def convert_to_transformers(sd, prefix):
                 sd[keys_to_replace[x]] = sd.pop(x)
 
         if "{}proj".format(prefix) in sd_k:
-            sd["visual_projection.weight"] = sd.pop("{}proj".format(prefix)).transpose(
-                0, 1
-            )
+            sd["visual_projection.weight"] = sd.pop("{}proj".format(prefix)).transpose(0, 1)
 
         sd = transformers_convert(sd, prefix, "vision_model.", 48)
     else:
@@ -138,17 +112,11 @@ def load_clipvision_from_sd(sd, prefix="", convert_keys=False):
     if convert_keys:
         sd = convert_to_transformers(sd, prefix)
     if "vision_model.encoder.layers.47.layer_norm1.weight" in sd:
-        json_config = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "clip_vision_config_g.json"
-        )
+        json_config = os.path.join(os.path.dirname(os.path.realpath(__file__)), "clip_vision_config_g.json")
     elif "vision_model.encoder.layers.30.layer_norm1.weight" in sd:
-        json_config = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "clip_vision_config_h.json"
-        )
+        json_config = os.path.join(os.path.dirname(os.path.realpath(__file__)), "clip_vision_config_h.json")
     elif "vision_model.encoder.layers.22.layer_norm1.weight" in sd:
-        json_config = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "clip_vision_config_vitl.json"
-        )
+        json_config = os.path.join(os.path.dirname(os.path.realpath(__file__)), "clip_vision_config_vitl.json")
     else:
         return None
 

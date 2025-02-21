@@ -8,10 +8,6 @@ import ldm_patched.modules.utils
 import torch
 
 
-def lcm(a, b):  # TODO: eventually replace by math.lcm (added in python3.9)
-    return abs(a * b) // math.gcd(a, b)
-
-
 class CONDRegular:
     def __init__(self, cond):
         self.cond = cond
@@ -20,11 +16,7 @@ class CONDRegular:
         return self.__class__(cond)
 
     def process_cond(self, batch_size, device, **kwargs):
-        return self._copy_with(
-            ldm_patched.modules.utils.repeat_to_batch_size(self.cond, batch_size).to(
-                device
-            )
-        )
+        return self._copy_with(ldm_patched.modules.utils.repeat_to_batch_size(self.cond, batch_size).to(device))
 
     def can_concat(self, other):
         if self.cond.shape != other.cond.shape:
@@ -41,9 +33,7 @@ class CONDRegular:
 class CONDNoiseShape(CONDRegular):
     def process_cond(self, batch_size, device, area, **kwargs):
         data = self.cond[:, :, area[2] : area[0] + area[2], area[3] : area[1] + area[3]]
-        return self._copy_with(
-            ldm_patched.modules.utils.repeat_to_batch_size(data, batch_size).to(device)
-        )
+        return self._copy_with(ldm_patched.modules.utils.repeat_to_batch_size(data, batch_size).to(device))
 
 
 class CONDCrossAttn(CONDRegular):
@@ -54,11 +44,9 @@ class CONDCrossAttn(CONDRegular):
             if s1[0] != s2[0] or s1[2] != s2[2]:  # these 2 cases should not happen
                 return False
 
-            mult_min = lcm(s1[1], s2[1])
+            mult_min = math.lcm(s1[1], s2[1])
             diff = mult_min // min(s1[1], s2[1])
-            if (
-                diff > 4
-            ):  # arbitrary limit on the padding because it's probably going to impact performance negatively if it's too much
+            if diff > 4:  # arbitrary limit on the padding because it's probably going to impact performance negatively if it's too much
                 return False
         return True
 
@@ -67,30 +55,12 @@ class CONDCrossAttn(CONDRegular):
         crossattn_max_len = self.cond.shape[1]
         for x in others:
             c = x.cond
-            crossattn_max_len = lcm(crossattn_max_len, c.shape[1])
+            crossattn_max_len = math.lcm(crossattn_max_len, c.shape[1])
             conds.append(c)
 
         out = []
         for c in conds:
             if c.shape[1] < crossattn_max_len:
-                c = c.repeat(
-                    1, crossattn_max_len // c.shape[1], 1
-                )  # padding with repeat doesn't change result
+                c = c.repeat(1, crossattn_max_len // c.shape[1], 1)  # padding with repeat doesn't change result
             out.append(c)
         return torch.cat(out)
-
-
-class CONDConstant(CONDRegular):
-    def __init__(self, cond):
-        self.cond = cond
-
-    def process_cond(self, batch_size, device, **kwargs):
-        return self._copy_with(self.cond)
-
-    def can_concat(self, other):
-        if self.cond != other.cond:
-            return False
-        return True
-
-    def concat(self, others):
-        return self.cond
