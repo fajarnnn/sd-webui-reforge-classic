@@ -113,7 +113,7 @@ def restore_with_face_helper(
 
 
 class CommonFaceRestoration(face_restoration.FaceRestoration):
-    net: torch.Module | None
+    net: torch.nn.Module | None
     model_url: str
     model_download_name: str
 
@@ -138,7 +138,7 @@ class CommonFaceRestoration(face_restoration.FaceRestoration):
     def get_device(self):
         return devices.get_optimal_device()
 
-    def load_net(self) -> torch.Module:
+    def load_net(self) -> torch.nn.Module:
         raise NotImplementedError
 
     def restore_with_helper(

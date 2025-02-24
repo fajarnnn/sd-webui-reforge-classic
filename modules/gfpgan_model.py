@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import logging
-
 import torch
 import os
 
@@ -14,9 +12,6 @@ from modules import (
     shared,
 )
 
-logger = logging.getLogger(__name__)
-model_url = "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth"
-model_download_name = "GFPGANv1.4.pth"
 gfpgan_face_restorer: face_restoration.FaceRestoration | None = None
 
 
@@ -24,13 +19,13 @@ class FaceRestorerGFPGAN(face_restoration_utils.CommonFaceRestoration):
     def name(self):
         return "GFPGAN"
 
-    def load_net(self) -> torch.Module:
+    def load_net(self) -> torch.nn.Module:
         os.makedirs(self.model_path, exist_ok=True)
         for model_path in modelloader.load_models(
             model_path=self.model_path,
-            model_url=model_url,
+            model_url="https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth",
             command_path=self.model_path,
-            download_name=model_download_name,
+            download_name="GFPGANv1.4.pth",
             ext_filter=[".pth"],
         ):
             return modelloader.load_spandrel_model(
@@ -51,7 +46,7 @@ class FaceRestorerGFPGAN(face_restoration_utils.CommonFaceRestoration):
 def gfpgan_fix_faces(np_image):
     if gfpgan_face_restorer:
         return gfpgan_face_restorer.restore(np_image)
-    logger.warning("GFPGAN face restorer not set up")
+    print("WARNING: GFPGAN face restorer was not set up")
     return np_image
 
 

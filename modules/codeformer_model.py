@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import logging
-
 import torch
 import os
 
@@ -14,9 +12,6 @@ from modules import (
     shared,
 )
 
-logger = logging.getLogger(__name__)
-model_url = "https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer.pth"
-model_download_name = "codeformer-v0.1.0.pth"
 codeformer: face_restoration.FaceRestoration | None = None
 
 
@@ -24,13 +19,13 @@ class FaceRestorerCodeFormer(face_restoration_utils.CommonFaceRestoration):
     def name(self):
         return "CodeFormer"
 
-    def load_net(self) -> torch.Module:
+    def load_net(self) -> torch.nn.Module:
         os.makedirs(self.model_path, exist_ok=True)
         for model_path in modelloader.load_models(
             model_path=self.model_path,
-            model_url=model_url,
+            model_url="https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer.pth",
             command_path=self.model_path,
-            download_name=model_download_name,
+            download_name="codeformer-v0.1.0.pth",
             ext_filter=[".pth"],
         ):
             return modelloader.load_spandrel_model(
