@@ -1,14 +1,11 @@
-import torch
 import cv2
-
-from ldm_patched.modules.model_patcher import ModelPatcher
-from ldm_patched.modules import model_management
 import ldm_patched.modules.clip_vision
-
-from modules_forge.shared import add_supported_preprocessor, preprocessor_dir
-from modules_forge.forge_util import resize_image_with_pad
-from modules_forge.forge_util import numpy_to_pytorch
+import torch
+from ldm_patched.modules import model_management
+from ldm_patched.modules.model_patcher import ModelPatcher
 from modules.modelloader import load_file_from_url
+from modules_forge.forge_util import numpy_to_pytorch, resize_image_with_pad
+from modules_forge.shared import add_supported_preprocessor, preprocessor_dir
 
 
 class PreprocessorParameter:
@@ -52,14 +49,7 @@ class Preprocessor:
         self.use_soft_projection_in_hr_fix: bool = False
         self.expand_mask_when_resize_and_fill: bool = False
 
-    def setup_model_patcher(
-        self,
-        model,
-        load_device=None,
-        offload_device=None,
-        dtype=torch.float16,
-        **kwargs
-    ):
+    def setup_model_patcher(self, model, load_device=None, offload_device=None, dtype=torch.float16, **kwargs):
         if load_device is None:
             load_device = model_management.get_torch_device()
 
@@ -72,12 +62,7 @@ class Preprocessor:
         model.eval()
         model = model.to(device=offload_device, dtype=dtype)
 
-        self.model_patcher = ModelPatcher(
-            model=model,
-            load_device=load_device,
-            offload_device=offload_device,
-            **kwargs
-        )
+        self.model_patcher = ModelPatcher(model=model, load_device=load_device, offload_device=offload_device, **kwargs)
 
         self.model_patcher.dtype = dtype
         return self.model_patcher
@@ -100,15 +85,7 @@ class Preprocessor:
     def process_after_every_sampling(self, process, params, *args, **kwargs):
         pass
 
-    def __call__(
-        self,
-        input_image,
-        resolution,
-        slider_1=None,
-        slider_2=None,
-        input_mask=None,
-        **kwargs
-    ):
+    def __call__(self, input_image, resolution, slider_1=None, slider_2=None, input_mask=None, **kwargs):
         return input_image
 
 

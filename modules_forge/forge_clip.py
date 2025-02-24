@@ -1,6 +1,6 @@
-from modules.sd_hijack_clip import FrozenCLIPEmbedderWithCustomWords
 from ldm_patched.modules import model_management
 from modules import sd_models
+from modules.sd_hijack_clip import FrozenCLIPEmbedderWithCustomWords
 from modules.shared import opts
 
 

@@ -1,24 +1,24 @@
-import torch
-import numpy as np
-import time
 import random
 import string
-import cv2
+import time
 
+import cv2
+import numpy as np
+import torch
 from ldm_patched.modules import model_management
 
 
 def prepare_free_memory(aggressive=False):
     if aggressive:
         model_management.unload_all_models()
-        print("Cleanup all memory.")
+        print("Cleanup all memory")
         return
 
     model_management.free_memory(
         memory_required=model_management.minimum_inference_memory(),
         device=model_management.get_torch_device(),
     )
-    print("Cleanup minimal inference memory.")
+    print("Cleanup minimal inference memory")
 
 
 def apply_circular_forge(model, tiling_enabled=False):
@@ -109,8 +109,5 @@ def resize_image_with_pad(img, resolution):
 
 
 def lazy_memory_management(model):
-    required_memory = (
-        model_management.module_size(model)
-        + model_management.minimum_inference_memory()
-    )
+    required_memory = model_management.module_size(model) + model_management.minimum_inference_memory()
     model_management.free_memory(required_memory, device=model_management.get_torch_device())

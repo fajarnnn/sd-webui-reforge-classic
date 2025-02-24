@@ -1,4 +1,4 @@
-def gradio_compile(items, prefix):
+def gradio_compile(items: dict, prefix: str):
     names = []
     for k, v in items["required"].items():
         t = v[0]

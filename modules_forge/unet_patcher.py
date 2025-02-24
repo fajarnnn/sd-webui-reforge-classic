@@ -1,6 +1,6 @@
 import copy
-import torch
 
+import torch
 from ldm_patched.modules.model_patcher import ModelPatcher
 from ldm_patched.modules.sample import convert_cond
 from ldm_patched.modules.samplers import encode_model_conds

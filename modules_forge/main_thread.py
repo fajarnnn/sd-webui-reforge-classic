@@ -4,10 +4,9 @@ Other gradio calls (like those from extensions) are not influenced.
 By using one single thread to process all major calls, model moving is significantly faster.
 """
 
+import threading
 import time
 import traceback
-import threading
-
 
 lock = threading.Lock()
 last_id = 0

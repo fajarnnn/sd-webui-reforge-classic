@@ -1,26 +1,21 @@
-import torch
 import contextlib
 
-from ldm_patched.modules import model_management
-from ldm_patched.modules import model_detection
-
-from ldm_patched.modules.sd import VAE, CLIP, load_model_weights
+import ldm_patched.modules.clip_vision
 import ldm_patched.modules.model_patcher
 import ldm_patched.modules.utils
-import ldm_patched.modules.clip_vision
-
-from omegaconf import OmegaConf
+import open_clip
+import torch
+from ldm_patched.ldm.util import instantiate_from_config
+from ldm_patched.modules import model_detection, model_management
+from ldm_patched.modules.model_base import ModelType, model_sampling
+from ldm_patched.modules.sd import CLIP, VAE, load_model_weights
+from modules import sd_hijack, shared
 from modules.sd_models_config import find_checkpoint_config
-from modules import shared
-from modules import sd_hijack
 from modules.sd_models_types import WebuiSdModel
 from modules.sd_models_xl import extend_sdxl
-from ldm_patched.ldm.util import instantiate_from_config
 from modules_forge import forge_clip
 from modules_forge.unet_patcher import UnetPatcher
-from ldm_patched.modules.model_base import model_sampling, ModelType
-
-import open_clip
+from omegaconf import OmegaConf
 from transformers import CLIPTextModel, CLIPTokenizer
 
 
@@ -54,11 +49,7 @@ def no_clip():
     backup_CLIPTokenizer = CLIPTokenizer.from_pretrained
 
     try:
-        open_clip.create_model_and_transforms = lambda *args, **kwargs: (
-            FakeObject(),
-            None,
-            None,
-        )
+        open_clip.create_model_and_transforms = lambda *args, **kwargs: (FakeObject(), None, None)
         CLIPTextModel.from_pretrained = lambda *args, **kwargs: FakeObject()
         CLIPTokenizer.from_pretrained = lambda *args, **kwargs: FakeObject()
         yield
@@ -69,14 +60,7 @@ def no_clip():
         CLIPTokenizer.from_pretrained = backup_CLIPTokenizer
 
 
-def load_checkpoint_guess_config(
-    sd,
-    output_vae=True,
-    output_clip=True,
-    output_clipvision=False,
-    embedding_directory=None,
-    output_model=True,
-) -> ForgeObjects:
+def load_checkpoint_guess_config(sd, output_vae=True, output_clip=True, output_clipvision=False, embedding_directory=None, output_model=True) -> ForgeObjects:
     clip = None
     clipvision = None
     vae = None
@@ -100,9 +84,7 @@ def load_checkpoint_guess_config(
 
     if model_config.clip_vision_prefix is not None:
         if output_clipvision:
-            clipvision = ldm_patched.modules.clip_vision.load_clipvision_from_sd(
-                sd, model_config.clip_vision_prefix, True
-            )
+            clipvision = ldm_patched.modules.clip_vision.load_clipvision_from_sd(sd, model_config.clip_vision_prefix, True)
 
     if output_model:
         initial_load_device = model_management.unet_initial_load_device(parameters, unet_dtype)
@@ -111,9 +93,7 @@ def load_checkpoint_guess_config(
         model.load_model_weights(sd, "model.diffusion_model.")
 
     if output_vae:
-        vae_sd = ldm_patched.modules.utils.state_dict_prefix_replace(
-            sd, {"first_stage_model.": ""}, filter_keys=True
-        )
+        vae_sd = ldm_patched.modules.utils.state_dict_prefix_replace(sd, {"first_stage_model.": ""}, filter_keys=True)
         vae_sd = model_config.process_vae_state_dict(vae_sd)
         vae = VAE(sd=vae_sd)
 
@@ -155,19 +135,13 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
     timer.record("forge solving config")
 
     if hasattr(a1111_config.model.params, "network_config"):
-        a1111_config.model.params.network_config.target = (
-            "modules_forge.forge_loader.FakeObject"
-        )
+        a1111_config.model.params.network_config.target = "modules_forge.forge_loader.FakeObject"
 
     if hasattr(a1111_config.model.params, "unet_config"):
-        a1111_config.model.params.unet_config.target = (
-            "modules_forge.forge_loader.FakeObject"
-        )
+        a1111_config.model.params.unet_config.target = "modules_forge.forge_loader.FakeObject"
 
     if hasattr(a1111_config.model.params, "first_stage_config"):
-        a1111_config.model.params.first_stage_config.target = (
-            "modules_forge.forge_loader.FakeObject"
-        )
+        a1111_config.model.params.first_stage_config.target = "modules_forge.forge_loader.FakeObject"
 
     with no_clip():
         sd_model: WebuiSdModel = instantiate_from_config(a1111_config.model)
@@ -201,9 +175,7 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
                 embedder.tokenizer = forge_objects.clip.tokenizer.clip_l.tokenizer
                 embedder.transformer = forge_objects.clip.cond_stage_model.clip_l.transformer
                 model_embeddings = embedder.transformer.text_model.embeddings
-                model_embeddings.token_embedding = sd_hijack.EmbeddingsWithFixes(
-                    model_embeddings.token_embedding, sd_hijack.model_hijack
-                )
+                model_embeddings.token_embedding = sd_hijack.EmbeddingsWithFixes(model_embeddings.token_embedding, sd_hijack.model_hijack)
                 embedder = forge_clip.CLIP_SD_XL_L(embedder, sd_hijack.model_hijack)
                 conditioner.embedders[i] = embedder
                 text_cond_models.append(embedder)
@@ -212,11 +184,7 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
                 embedder.transformer = forge_objects.clip.cond_stage_model.clip_g.transformer
                 embedder.text_projection = forge_objects.clip.cond_stage_model.clip_g.text_projection
                 model_embeddings = embedder.transformer.text_model.embeddings
-                model_embeddings.token_embedding = sd_hijack.EmbeddingsWithFixes(
-                    model_embeddings.token_embedding,
-                    sd_hijack.model_hijack,
-                    textual_inversion_key="clip_g",
-                )
+                model_embeddings.token_embedding = sd_hijack.EmbeddingsWithFixes(model_embeddings.token_embedding, sd_hijack.model_hijack, textual_inversion_key="clip_g")
                 embedder = forge_clip.CLIP_SD_XL_G(embedder, sd_hijack.model_hijack)
                 conditioner.embedders[i] = embedder
                 text_cond_models.append(embedder)
@@ -229,24 +197,14 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
         sd_model.cond_stage_model.tokenizer = forge_objects.clip.tokenizer.clip_l.tokenizer
         sd_model.cond_stage_model.transformer = forge_objects.clip.cond_stage_model.clip_l.transformer
         model_embeddings = sd_model.cond_stage_model.transformer.text_model.embeddings
-        model_embeddings.token_embedding = sd_hijack.EmbeddingsWithFixes(
-            model_embeddings.token_embedding, sd_hijack.model_hijack
-        )
-        sd_model.cond_stage_model = forge_clip.CLIP_SD_15_L(
-            sd_model.cond_stage_model, sd_hijack.model_hijack
-        )
-    elif (
-        type(sd_model.cond_stage_model).__name__ == "FrozenOpenCLIPEmbedder"
-    ):  # SD21 Clip
+        model_embeddings.token_embedding = sd_hijack.EmbeddingsWithFixes(model_embeddings.token_embedding, sd_hijack.model_hijack)
+        sd_model.cond_stage_model = forge_clip.CLIP_SD_15_L(sd_model.cond_stage_model, sd_hijack.model_hijack)
+    elif type(sd_model.cond_stage_model).__name__ == "FrozenOpenCLIPEmbedder":  # SD21 Clip
         sd_model.cond_stage_model.tokenizer = forge_objects.clip.tokenizer.clip_h.tokenizer
         sd_model.cond_stage_model.transformer = forge_objects.clip.cond_stage_model.clip_h.transformer
         model_embeddings = sd_model.cond_stage_model.transformer.text_model.embeddings
-        model_embeddings.token_embedding = sd_hijack.EmbeddingsWithFixes(
-            model_embeddings.token_embedding, sd_hijack.model_hijack
-        )
-        sd_model.cond_stage_model = forge_clip.CLIP_SD_21_H(
-            sd_model.cond_stage_model, sd_hijack.model_hijack
-        )
+        model_embeddings.token_embedding = sd_hijack.EmbeddingsWithFixes(model_embeddings.token_embedding, sd_hijack.model_hijack)
+        sd_model.cond_stage_model = forge_clip.CLIP_SD_21_H(sd_model.cond_stage_model, sd_hijack.model_hijack)
     else:
         raise NotImplementedError(f"Bad Clip Class Name: {type(sd_model.cond_stage_model).__name__}")
 
@@ -260,9 +218,7 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
     timer.record("calculate hash")
 
     if getattr(sd_model, "parameterization", None) == "v":
-        sd_model.forge_objects.unet.model.model_sampling = model_sampling(
-            sd_model.forge_objects.unet.model.model_config, ModelType.V_PREDICTION
-        )
+        sd_model.forge_objects.unet.model.model_sampling = model_sampling(sd_model.forge_objects.unet.model.model_config, ModelType.V_PREDICTION)
         sd_model.alphas_cumprod_original = sd_model.alphas_cumprod
 
     sd_model.ztsnr = ztsnr
@@ -283,11 +239,7 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
     @torch.inference_mode()
     def patched_encode_first_stage(x):
         sample = sd_model.forge_objects.vae.encode(x.movedim(1, -1) * 0.5 + 0.5)
-        sample = (
-            sd_model.forge_objects.unet.model.model_config.latent_format.process_in(
-                sample
-            )
-        )
+        sample = sd_model.forge_objects.unet.model.model_config.latent_format.process_in(sample)
         return sample.to(x)
 
     sd_model.ema_scope = lambda *args, **kwargs: contextlib.nullcontext()
@@ -328,30 +280,20 @@ def apply_alpha_schedule_override(sd_model, p=None):
     - rescales the alpha schedule to have zero terminal SNR
     """
 
-    if not (
-        hasattr(sd_model, "alphas_cumprod")
-        and hasattr(sd_model, "alphas_cumprod_original")
-    ):
+    if not (hasattr(sd_model, "alphas_cumprod") and hasattr(sd_model, "alphas_cumprod_original")):
         return
 
     sd_model.alphas_cumprod = sd_model.alphas_cumprod_original.to(shared.device)
 
     if shared.opts.use_downcasted_alpha_bar:
         if p is not None:
-            p.extra_generation_params["Downcast alphas_cumprod"] = (
-                shared.opts.use_downcasted_alpha_bar
-            )
+            p.extra_generation_params["Downcast alphas_cumprod"] = shared.opts.use_downcasted_alpha_bar
         sd_model.alphas_cumprod = sd_model.alphas_cumprod.half().to(shared.device)
 
-    if (
-        getattr(sd_model, "ztsnr", False)
-        or shared.opts.sd_noise_schedule == "Zero Terminal SNR"
-    ):
+    if getattr(sd_model, "ztsnr", False) or shared.opts.sd_noise_schedule == "Zero Terminal SNR":
         if p is not None:
             p.extra_generation_params["Noise Schedule"] = shared.opts.sd_noise_schedule
-        sd_model.alphas_cumprod = rescale_zero_terminal_snr_abar(
-            sd_model.alphas_cumprod
-        ).to(shared.device)
+        sd_model.alphas_cumprod = rescale_zero_terminal_snr_abar(sd_model.alphas_cumprod).to(shared.device)
 
 
 ForgeSD = ForgeObjects

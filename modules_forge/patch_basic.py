@@ -30,7 +30,7 @@ def build_loaded(module, loader_name):
                         os.remove(backup_file)
                     os.replace(path, backup_file)
                     exc += f'Forge has moved the corrupted file to "{backup_file}"\n'
-                    exc += f"Please try downloading the model again\n"
+                    exc += "Please try downloading the model again\n"
             print(exc)
             raise ValueError from None
 

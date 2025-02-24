@@ -1,9 +1,8 @@
-import os
-import ldm_patched.modules.utils
 import argparse
+import os
 
+import ldm_patched.modules.utils
 from modules.paths_internal import models_path
-
 
 parser = argparse.ArgumentParser()
 

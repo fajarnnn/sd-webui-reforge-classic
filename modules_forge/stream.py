@@ -1,9 +1,7 @@
 # https://github.com/AUTOMATIC1111/stable-diffusion-webui/pull/14855
 
 import torch
-
-from ldm_patched.modules import args_parser
-from ldm_patched.modules import model_management
+from ldm_patched.modules import args_parser, model_management
 
 
 def stream_context():
@@ -32,7 +30,7 @@ def get_current_stream():
                 torch.zeros((1, 1)).to(device, torch.float32)
             stream.synchronize()
             return stream
-    except:
+    except Exception:
         return None
 
 
@@ -52,7 +50,7 @@ def get_new_stream():
                 torch.zeros((1, 1)).to(device, torch.float32)
             stream.synchronize()
             return stream
-    except:
+    except Exception:
         return None
 
 

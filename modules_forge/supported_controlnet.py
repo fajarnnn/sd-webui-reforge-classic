@@ -1,12 +1,9 @@
-import torch
 import os
 
-from ldm_patched.modules.controlnet import ControlLora, ControlNet, load_t2i_adapter
-import ldm_patched.modules.utils
 import ldm_patched.controlnet
-
-from lib_controlnet.logging import logger
-
+import ldm_patched.modules.utils
+import torch
+from ldm_patched.modules.controlnet import ControlLora, ControlNet, load_t2i_adapter
 from modules_forge.controlnet import apply_controlnet_advanced
 from modules_forge.shared import add_supported_control_model
 
@@ -49,11 +46,7 @@ class ControlNetPatcher(ControlModelPatcher):
 
         if "controlnet_cond_embedding.conv_in.weight" in controlnet_data:
             unet_dtype = ldm_patched.modules.model_management.unet_dtype()
-            controlnet_config = (
-                ldm_patched.modules.model_detection.unet_config_from_diffusers_unet(
-                    controlnet_data, unet_dtype
-                )
-            )
+            controlnet_config = ldm_patched.modules.model_detection.unet_config_from_diffusers_unet(controlnet_data, unet_dtype)
             diffusers_keys = ldm_patched.modules.utils.unet_to_diffusers(controlnet_config)
             diffusers_keys["controlnet_mid_block.weight"] = "middle_block_out.0.weight"
             diffusers_keys["controlnet_mid_block.bias"] = "middle_block_out.0.bias"
@@ -91,9 +84,9 @@ class ControlNetPatcher(ControlModelPatcher):
                 if k in controlnet_data:
                     new_sd[diffusers_keys[k]] = controlnet_data.pop(k)
 
-            leftover_keys = controlnet_data.keys()
-            if len(leftover_keys) > 0:
-                logger.debug(f"leftover keys: {leftover_keys}")
+            # leftover_keys = controlnet_data.keys()
+            # if len(leftover_keys) > 0:
+            #     logger.debug(f"leftover keys: {leftover_keys}")
             controlnet_data = new_sd
 
         pth_key = "control_model.zero_convs.0.0.weight"
@@ -113,11 +106,7 @@ class ControlNetPatcher(ControlModelPatcher):
 
         if controlnet_config is None:
             unet_dtype = ldm_patched.modules.model_management.unet_dtype()
-            controlnet_config = (
-                ldm_patched.modules.model_detection.model_config_from_unet(
-                    controlnet_data, prefix, unet_dtype, True
-                ).unet_config
-            )
+            controlnet_config = ldm_patched.modules.model_detection.model_config_from_unet(controlnet_data, prefix, unet_dtype, True).unet_config
         load_device = ldm_patched.modules.model_management.get_torch_device()
         manual_cast_dtype = ldm_patched.modules.model_management.unet_manual_cast(unet_dtype, load_device)
         if manual_cast_dtype is not None:
@@ -128,7 +117,7 @@ class ControlNetPatcher(ControlModelPatcher):
 
         if pth:
             if "difference" in controlnet_data:
-                logger.warn("Please use an official model for the best performance")
+                print("WARNING: Please use an official ControlNet model for the best performance")
 
             class WeightsLoader(torch.nn.Module):
                 pass
@@ -139,7 +128,7 @@ class ControlNetPatcher(ControlModelPatcher):
         else:
             missing, unexpected = control_model.load_state_dict(controlnet_data, strict=False)
 
-        logger.debug(missing, unexpected)
+        # logger.debug(missing, unexpected)
 
         global_average_pooling = False
         filename = os.path.splitext(ckpt_path)[0]
