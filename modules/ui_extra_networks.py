@@ -1,50 +1,52 @@
-import functools
+import html
+import json
 import os.path
 import urllib.parse
-from pathlib import Path
-from typing import Optional, Union
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
+from typing import Optional
 
-from modules import shared, ui_extra_networks_user_metadata, errors, extra_networks, util
-from modules.images import read_info_from_image, save_image_with_geninfo
 import gradio as gr
-import json
-import html
 from fastapi.exceptions import HTTPException
-
+from modules import (
+    errors,
+    extra_networks,
+    shared,
+    ui_extra_networks_user_metadata,
+    util,
+)
+from modules.images import read_info_from_image, save_image_with_geninfo
 from modules.infotext_utils import image_from_url_text
 
 extra_pages = []
 allowed_dirs = set()
-default_allowed_preview_extensions = ["png", "jpg", "jpeg", "webp", "gif"]
-
-@functools.cache
-def allowed_preview_extensions_with_extra(extra_extensions=None):
-    return set(default_allowed_preview_extensions) | set(extra_extensions or [])
 
 
+@lru_cache(maxsize=1, typed=False)
 def allowed_preview_extensions():
-    return allowed_preview_extensions_with_extra((shared.opts.samples_format, ))
+    return ("jpg", "jpeg", "png", "webp")
 
 
 @dataclass
 class ExtraNetworksItem:
-    """Wrapper for dictionaries representing ExtraNetworks items."""
+    """Wrapper for dictionaries representing ExtraNetworks items"""
+
     item: dict
 
 
-def get_tree(paths: Union[str, list[str]], items: dict[str, ExtraNetworksItem]) -> dict:
-    """Recursively builds a directory tree.
+def get_tree(paths: str | list[str], items: dict[str, ExtraNetworksItem]) -> dict:
+    """
+    Recursively builds a directory tree
 
     Args:
-        paths: Path or list of paths to directories. These paths are treated as roots from which
-            the tree will be built.
+        paths: A path or list of paths to directories. These paths are treated as roots from which the tree will be built.
         items: A dictionary associating filepaths to an ExtraNetworksItem instance.
 
     Returns:
-        The result directory tree.
+        The result directory tree
     """
-    if isinstance(paths, (str,)):
+    if isinstance(paths, str):
         paths = [paths]
 
     def _get_tree(_paths: list[str], _root: str):
@@ -53,42 +55,46 @@ def get_tree(paths: Union[str, list[str]], items: dict[str, ExtraNetworksItem]) 
             relpath = os.path.relpath(path, _root)
             if os.path.isdir(path):
                 dir_items = os.listdir(path)
-                # Ignore empty directories.
+                # Ignore empty directories
                 if not dir_items:
                     continue
                 dir_tree = _get_tree([os.path.join(path, x) for x in dir_items], _root)
-                # We only want to store non-empty folders in the tree.
+                # We only want to store non-empty folders in the tree
                 if dir_tree:
                     _res[relpath] = dir_tree
             else:
                 if path not in items:
                     continue
-                # Add the ExtraNetworksItem to the result.
+                # Add the ExtraNetworksItem to the result
                 _res[relpath] = items[path]
         return _res
 
     res = {}
-    # Handle each root directory separately.
-    # Each root WILL have a key/value at the root of the result dict though
-    # the value can be an empty dict if the directory is empty. We want these
-    # placeholders for empty dirs so we can inform the user later.
+    # Handle each root directory separately
+    # Each root WILL have a key/value at the root of the result dict
+    # though the value can be an empty dict if the directory is empty
+    # We want these placeholders for empty dirs so we can inform the user later
     for path in paths:
         root = os.path.dirname(path)
         relpath = os.path.relpath(path, root)
-        # Wrap the path in a list since that is what the `_get_tree` expects.
+        # Wrap the path in a list since that is what the `_get_tree` expects
         res[relpath] = _get_tree([path], root)
         if res[relpath]:
-            # We need to pull the inner path out one for these root dirs.
+            # We need to pull the inner path out one for these root dirs
             res[relpath] = res[relpath][relpath]
 
     return res
 
+
 def register_page(page):
-    """registers extra networks page for the UI; recommend doing it in on_before_ui() callback for extensions"""
+    """
+    registers extra networks page for the UI
+    recommend doing it in on_before_ui() callback for extensions
+    """
 
     extra_pages.append(page)
-    allowed_dirs.clear()
-    allowed_dirs.update(set(sum([x.allowed_directories_for_previews() for x in extra_pages], [])))
+    if len(allowed_dirs) > 0:
+        allowed_dirs.clear()
 
 
 def fetch_file(filename: str = ""):
@@ -97,6 +103,9 @@ def fetch_file(filename: str = ""):
     if not os.path.isfile(filename):
         raise HTTPException(status_code=404, detail="File not found")
 
+    if len(allowed_dirs) == 0:
+        allowed_dirs.update(set(sum([x.allowed_directories_for_previews() for x in extra_pages], [])))
+
     if not any(Path(x).absolute() in Path(filename).absolute().parents for x in allowed_dirs):
         raise ValueError(f"File cannot be fetched: {filename}. Must be in one of directories registered by extra pages.")
 
@@ -104,7 +113,6 @@ def fetch_file(filename: str = ""):
     if ext not in allowed_preview_extensions():
         raise ValueError(f"File cannot be fetched: {filename}. Extensions allowed: {allowed_preview_extensions()}.")
 
-    # would profit from returning 304
     return FileResponse(filename, headers={"Accept-Ranges": "bytes"})
 
 
@@ -147,21 +155,24 @@ def add_pages_to_demo(app):
 
 
 def quote_js(s):
-    s = s.replace('\\', '\\\\')
+    s = s.replace("\\", "\\\\")
     s = s.replace('"', '\\"')
     return f'"{s}"'
+
 
 class ExtraNetworksPage:
     def __init__(self, title):
         self.title = title
         self.name = title.lower()
-        # This is the actual name of the extra networks tab (not txt2img/img2img).
         self.extra_networks_tabname = self.name.replace(" ", "_")
+        """The actual name of the extra networks tab (not txt2img/img2img)"""
+
         self.allow_prompt = True
         self.allow_negative_prompt = False
         self.metadata = {}
         self.items = {}
         self.lister = util.MassFileLister()
+
         # HTML Templates
         self.pane_tpl = shared.html("extra-networks-pane.html")
         self.card_tpl = shared.html("extra-networks-card.html")
@@ -176,34 +187,29 @@ class ExtraNetworksPage:
     def read_user_metadata(self, item, use_cache=True):
         filename = item.get("filename", None)
         metadata = extra_networks.get_user_metadata(filename, lister=self.lister if use_cache else None)
+        item["user_metadata"] = metadata
 
         desc = metadata.get("description", None)
         if desc is not None:
             item["description"] = desc
 
-        item["user_metadata"] = metadata
-
     def link_preview(self, filename):
-        quoted_filename = urllib.parse.quote(filename.replace('\\', '/'))
+        quoted_filename = urllib.parse.quote(filename.replace("\\", "/"))
         mtime, _ = self.lister.mctime(filename)
         return f"./sd_extra_networks/thumb?filename={quoted_filename}&mtime={mtime}"
 
     def search_terms_from_path(self, filename, possible_directories=None):
         abspath = os.path.abspath(filename)
-        for parentdir in (possible_directories if possible_directories is not None else self.allowed_directories_for_previews()):
+        for parentdir in possible_directories if possible_directories is not None else self.allowed_directories_for_previews():
             parentdir = os.path.dirname(os.path.abspath(parentdir))
             if abspath.startswith(parentdir):
                 return os.path.relpath(abspath, parentdir)
 
         return ""
 
-    def create_item_html(
-        self,
-        tabname: str,
-        item: dict,
-        template: Optional[str] = None,
-    ) -> Union[str, dict]:
-        """Generates HTML for a single ExtraNetworks Item.
+    def create_item_html(self, tabname: str, item: dict, template: Optional[str] = None) -> str | dict:
+        """
+        Generates HTML for a single ExtraNetworks Item
 
         Args:
             tabname: The name of the active tab.
@@ -215,12 +221,30 @@ class ExtraNetworksPage:
                 Can be empty if the item is not meant to be shown.
             If no template is passed: A dictionary containing the generated item's attributes.
         """
+
+        local_path = ""
+        filename = item.get("filename", "")
+        for reldir in self.allowed_directories_for_previews():
+            absdir = os.path.abspath(reldir)
+            if filename.startswith(absdir):
+                local_path = filename[len(absdir) :]
+                break
+
+        # if this is true, the item must not be shown in the default view,
+        # and must instead only be shown when searching for it
+        if shared.opts.extra_networks_hidden_models == "Always":
+            search_only = False
+        else:
+            search_only = "/." in local_path or "\\." in local_path
+            if search_only and shared.opts.extra_networks_hidden_models == "Never":
+                return ""
+
         preview = item.get("preview", None)
-        style_height = f"height: {shared.opts.extra_networks_card_height}px;" if shared.opts.extra_networks_card_height else ''
-        style_width = f"width: {shared.opts.extra_networks_card_width}px;" if shared.opts.extra_networks_card_width else ''
+        background_image = f'<img src="{html.escape(preview)}" class="preview" loading="lazy">' if preview else ""
+        style_height = f"height: {shared.opts.extra_networks_card_height}px;" if shared.opts.extra_networks_card_height else ""
+        style_width = f"width: {shared.opts.extra_networks_card_width}px;" if shared.opts.extra_networks_card_width else ""
         style_font_size = f"font-size: {shared.opts.extra_networks_card_text_scale*100}%;"
-        card_style = style_height + style_width + style_font_size
-        background_image = f'<img src="{html.escape(preview)}" class="preview" loading="lazy">' if preview else ''
+        card_style = "".join([style_height, style_width, style_font_size])
 
         onclick = item.get("onclick", None)
         if onclick is None:
@@ -238,8 +262,8 @@ class ExtraNetworksPage:
 
         btn_copy_path = self.btn_copy_path_tpl.format(**{"filename": item["filename"]})
         btn_metadata = ""
-        metadata = item.get("metadata")
-        if metadata:
+        metadata = item.get("metadata", None)
+        if metadata is not None:
             btn_metadata = self.btn_metadata_tpl.format(
                 **{
                     "extra_networks_tabname": self.extra_networks_tabname,
@@ -254,30 +278,7 @@ class ExtraNetworksPage:
             }
         )
 
-        local_path = ""
-        filename = item.get("filename", "")
-        for reldir in self.allowed_directories_for_previews():
-            absdir = os.path.abspath(reldir)
-
-            if filename.startswith(absdir):
-                local_path = filename[len(absdir):]
-
-        # if this is true, the item must not be shown in the default view, and must instead only be
-        # shown when searching for it
-        if shared.opts.extra_networks_hidden_models == "Always":
-            search_only = False
-        else:
-            search_only = "/." in local_path or "\\." in local_path
-
-        if search_only and shared.opts.extra_networks_hidden_models == "Never":
-            return ""
-
-        sort_keys = " ".join(
-            [
-                f'data-sort-{k}="{html.escape(str(v))}"'
-                for k, v in item.get("sort_keys", {}).items()
-            ]
-        ).strip()
+        sort_keys = " ".join([f'data-sort-{k}="{html.escape(str(v))}"' for k, v in item.get("sort_keys", {}).items()]).strip()
 
         search_terms_html = ""
         search_term_template = "<span class='hidden {class}'>{search_term}</span>"
@@ -289,11 +290,11 @@ class ExtraNetworksPage:
                 }
             )
 
-        description = (item.get("description", "") or "" if shared.opts.extra_networks_card_show_desc else "")
+        description = (item.get("description", None) or "") if shared.opts.extra_networks_card_show_desc else ""
         if not shared.opts.extra_networks_card_description_is_html:
             description = html.escape(description)
 
-        # Some items here might not be used depending on HTML template used.
+        # Some items here might not be used depending on HTML template used
         args = {
             "background_image": background_image,
             "card_clicked": onclick,
@@ -313,28 +314,11 @@ class ExtraNetworksPage:
             "extra_networks_tabname": self.extra_networks_tabname,
         }
 
-        if template:
-            return template.format(**args)
-        else:
-            return args
+        return template.format(**args) if template else args
 
-    def create_tree_dir_item_html(
-        self,
-        tabname: str,
-        dir_path: str,
-        content: Optional[str] = None,
-    ) -> Optional[str]:
-        """Generates HTML for a directory item in the tree.
-
-        The generated HTML is of the format:
-        ```html
-        <li class="tree-list-item tree-list-item--has-subitem">
-            <div class="tree-list-content tree-list-content-dir"></div>
-            <ul class="tree-list tree-list--subgroup">
-                {content}
-            </ul>
-        </li>
-        ```
+    def create_tree_dir_item_html(self, tabname: str, dir_path: str, content: Optional[str] = None) -> Optional[str]:
+        """
+        Generates HTML for a directory item in the tree
 
         Args:
             tabname: The name of the active tab.
@@ -342,7 +326,7 @@ class ExtraNetworksPage:
             content: Optional HTML string that will be wrapped by this <ul>.
 
         Returns:
-            HTML formatted string.
+            HTML formatted string
         """
         if not content:
             return None
@@ -364,22 +348,11 @@ class ExtraNetworksPage:
             }
         )
         ul = f"<ul class='tree-list tree-list--subgroup' hidden>{content}</ul>"
-        return (
-            "<li class='tree-list-item tree-list-item--has-subitem' data-tree-entry-type='dir'>"
-            f"{btn}{ul}"
-            "</li>"
-        )
+        return "<li class='tree-list-item tree-list-item--has-subitem' data-tree-entry-type='dir'>" f"{btn}{ul}" "</li>"
 
     def create_tree_file_item_html(self, tabname: str, file_path: str, item: dict) -> str:
-        """Generates HTML for a file item in the tree.
-
-        The generated HTML is of the format:
-        ```html
-        <li class="tree-list-item tree-list-item--subitem">
-            <span data-filterable-item-text hidden></span>
-            <div class="tree-list-content tree-list-content-file"></div>
-        </li>
-        ```
+        """
+        Generates HTML for a file item in the tree
 
         Args:
             tabname: The name of the active tab.
@@ -387,7 +360,7 @@ class ExtraNetworksPage:
             item: Dictionary containing the item information.
 
         Returns:
-            HTML formatted string.
+            HTML formatted string
         """
         item_html_args = self.create_item_html(tabname, item)
         action_buttons = "".join(
@@ -397,7 +370,7 @@ class ExtraNetworksPage:
                 item_html_args["edit_button"],
             ]
         )
-        action_buttons = f"<div class=\"button-row\">{action_buttons}</div>"
+        action_buttons = f'<div class="button-row">{action_buttons}</div>'
         btn = self.btn_tree_tpl.format(
             **{
                 "search_terms": "",
@@ -414,24 +387,21 @@ class ExtraNetworksPage:
                 "action_list_item_action_trailing": action_buttons,
             }
         )
-        return (
-            "<li class='tree-list-item tree-list-item--subitem' data-tree-entry-type='file'>"
-            f"{btn}"
-            "</li>"
-        )
+        return "<li class='tree-list-item tree-list-item--subitem' data-tree-entry-type='file'>" f"{btn}" "</li>"
 
     def create_tree_view_html(self, tabname: str) -> str:
-        """Generates HTML for displaying folders in a tree view.
+        """
+        Generates HTML for displaying folders in a tree view
 
         Args:
             tabname: The name of the active tab.
 
         Returns:
-            HTML string generated for this tree view.
+            HTML string generated for this tree view
         """
         res = ""
 
-        # Setup the tree dictionary.
+        # Setup the tree dictionary
         roots = self.allowed_directories_for_previews()
         tree_items = {v["filename"]: ExtraNetworksItem(v) for v in self.items.values()}
         tree = get_tree([os.path.abspath(x) for x in roots], items=tree_items)
@@ -440,21 +410,21 @@ class ExtraNetworksPage:
             return res
 
         def _build_tree(data: Optional[dict[str, ExtraNetworksItem]] = None) -> Optional[str]:
-            """Recursively builds HTML for a tree.
+            """
+            Recursively builds HTML for a tree
 
             Args:
                 data: Dictionary representing a directory tree. Can be NoneType.
-                    Data keys should be absolute paths from the root and values
-                    should be subdirectory trees or an ExtraNetworksItem.
+                    Data keys should be absolute paths from the root and
+                    values should be subdirectory trees or an ExtraNetworksItem.
 
             Returns:
-                If data is not None: HTML string
-                Else: None
+                None if data is None; otherwise HTML string
             """
             if not data:
                 return None
 
-            # Lists for storing <li> items html for directories and files separately.
+            # Lists for storing <li> items html for directories and files separately
             _dir_li = []
             _file_li = []
 
@@ -464,30 +434,31 @@ class ExtraNetworksPage:
                 else:
                     _dir_li.append(self.create_tree_dir_item_html(tabname, k, _build_tree(v)))
 
-            # Directories should always be displayed before files so we order them here.
+            # Directories should always be displayed before files so we order them here
             return "".join(_dir_li) + "".join(_file_li)
 
-        # Add each root directory to the tree.
+        # Add each root directory to the tree
         for k, v in sorted(tree.items(), key=lambda x: shared.natural_sort_key(x[0])):
             item_html = self.create_tree_dir_item_html(tabname, k, _build_tree(v))
-            # Only add non-empty entries to the tree.
+            # Only add non-empty entries to the tree
             if item_html is not None:
                 res += item_html
 
         return f"<ul class='tree-list tree-list--tree'>{res}</ul>"
 
     def create_card_view_html(self, tabname: str, *, none_message) -> str:
-        """Generates HTML for the network Card View section for a tab.
+        """
+        Generates HTML for the network Card View section for a tab
 
         This HTML goes into the `extra-networks-pane.html` <div> with
-        `id='{tabname}_{extra_networks_tabname}_cards`.
+        `id='{tabname}_{extra_networks_tabname}_cards`
 
         Args:
             tabname: The name of the active tab.
             none_message: HTML text to show when there are no cards.
 
         Returns:
-            HTML formatted string.
+            HTML formatted string
         """
         res = ""
         for item in self.items.values():
@@ -500,7 +471,8 @@ class ExtraNetworksPage:
         return res
 
     def create_html(self, tabname, *, empty=False):
-        """Generates an HTML string for the current pane.
+        """
+        Generates an HTML string for the current pane
 
         The generated HTML uses `extra-networks-pane.html` as a template.
 
@@ -509,7 +481,7 @@ class ExtraNetworksPage:
             empty: create an empty HTML page with no items
 
         Returns:
-            HTML formatted string.
+            HTML formatted string
         """
         self.lister.reset()
         self.metadata = {}
@@ -517,7 +489,7 @@ class ExtraNetworksPage:
         items_list = [] if empty else self.list_items()
         self.items = {x["name"]: x for x in items_list}
 
-        # Populate the instance metadata for each item.
+        # Populate the instance metadata for each item
         for item in self.items.values():
             metadata = item.get("metadata")
             if metadata:
@@ -529,11 +501,16 @@ class ExtraNetworksPage:
         data_sortdir = shared.opts.extra_networks_card_order
         data_sortmode = shared.opts.extra_networks_card_order_field.lower().replace("sort", "").replace(" ", "_").rstrip("_").strip()
         data_sortkey = f"{data_sortmode}-{data_sortdir}-{len(self.items)}"
-        tree_view_btn_extra_class = ""
+
         tree_view_div_extra_class = "hidden"
-        if shared.opts.extra_networks_tree_view_default_enabled:
-            tree_view_btn_extra_class = "extra-network-control--enabled"
-            tree_view_div_extra_class = ""
+        if shared.opts.extra_networks_tree_view_enable:
+            if shared.opts.extra_networks_tree_view_default_enabled:
+                tree_view_btn_extra_class = "extra-network-control--enabled"
+                tree_view_div_extra_class = ""
+            else:
+                tree_view_btn_extra_class = ""
+        else:
+            tree_view_btn_extra_class = "hidden"
 
         return self.pane_tpl.format(
             **{
@@ -544,7 +521,7 @@ class ExtraNetworksPage:
                 "data_sortdir": data_sortdir,
                 "tree_view_btn_extra_class": tree_view_btn_extra_class,
                 "tree_view_div_extra_class": tree_view_div_extra_class,
-                "tree_html": self.create_tree_view_html(tabname),
+                "tree_html": self.create_tree_view_html(tabname) if shared.opts.extra_networks_tree_view_enable else "",
                 "items_html": self.create_card_view_html(tabname, none_message="Loading..." if empty else None),
             }
         )
@@ -559,9 +536,7 @@ class ExtraNetworksPage:
         return []
 
     def get_sort_keys(self, path):
-        """
-        List of default keys used for sorting in the UI.
-        """
+        """List of default keys used for sorting in the UI"""
         pth = Path(path)
         mtime, ctime = self.lister.mctime(path)
         return {
@@ -572,10 +547,7 @@ class ExtraNetworksPage:
         }
 
     def find_preview(self, path):
-        """
-        Find a preview PNG for a given path (without extension) and call link_preview on it.
-        """
-
+        """Find a preview PNG for a given path (without extension) and call link_preview on it"""
         potential_files = sum([[f"{path}.{ext}", f"{path}.preview.{ext}"] for ext in allowed_preview_extensions()], [])
 
         for file in potential_files:
@@ -585,13 +557,10 @@ class ExtraNetworksPage:
         return None
 
     def find_description(self, path):
-        """
-        Find and read a description file for a given path (without extension).
-        """
+        """Find and read a description file for a given path (without extension)"""
         for file in [f"{path}.txt", f"{path}.description.txt"]:
             if not self.lister.exists(file):
                 continue
-
             try:
                 with open(file, "r", encoding="utf-8", errors="replace") as f:
                     return f.read()
@@ -608,8 +577,9 @@ def initialize():
 
 
 def register_default_pages():
-    from modules.ui_extra_networks_textual_inversion import ExtraNetworksPageTextualInversion
     from modules.ui_extra_networks_checkpoints import ExtraNetworksPageCheckpoints
+    from modules.ui_extra_networks_textual_inversion import ExtraNetworksPageTextualInversion
+
     register_page(ExtraNetworksPageTextualInversion())
     register_page(ExtraNetworksPageCheckpoints())
 
@@ -669,19 +639,14 @@ def create_ui(interface: gr.Blocks, unrelated_tabs, tabname):
             ui.user_metadata_editors.append(editor)
             related_tabs.append(tab)
 
-    ui.button_save_preview = gr.Button('Save preview', elem_id=f"{tabname}_save_preview", visible=False)
-    ui.preview_target_filename = gr.Textbox('Preview save filename', elem_id=f"{tabname}_preview_filename", visible=False)
+    ui.button_save_preview = gr.Button("Save preview", elem_id=f"{tabname}_save_preview", visible=False)
+    ui.preview_target_filename = gr.Textbox("Preview save filename", elem_id=f"{tabname}_preview_filename", visible=False)
 
     for tab in unrelated_tabs:
         tab.select(fn=None, _js=f"function(){{extraNetworksUnrelatedTabSelected('{tabname}');}}", inputs=[], outputs=[], show_progress=False)
 
     for page, tab in zip(ui.stored_extra_pages, related_tabs):
-        jscode = (
-            "function(){{"
-            f"extraNetworksTabSelected('{tabname}', '{tabname}_{page.extra_networks_tabname}_prompts', {str(page.allow_prompt).lower()}, {str(page.allow_negative_prompt).lower()}, '{tabname}_{page.extra_networks_tabname}');"
-            f"applyExtraNetworkFilter('{tabname}_{page.extra_networks_tabname}');"
-            "}}"
-        )
+        jscode = "function(){{" f"extraNetworksTabSelected('{tabname}', '{tabname}_{page.extra_networks_tabname}_prompts', {str(page.allow_prompt).lower()}, {str(page.allow_negative_prompt).lower()}, '{tabname}_{page.extra_networks_tabname}');" f"applyExtraNetworkFilter('{tabname}_{page.extra_networks_tabname}');" "}}"
         tab.select(fn=None, _js=jscode, inputs=[], outputs=[], show_progress=False)
 
         def refresh():
@@ -718,7 +683,7 @@ def setup_ui(ui, gallery):
         # this function is here for backwards compatibility and likely will be removed soon
 
         if len(images) == 0:
-            print("There is no image in gallery to save as a preview.")
+            print("There is no image in gallery to save as a preview...")
             return [page.create_html(ui.tabname) for page in ui.stored_extra_pages]
 
         index = int(index)
@@ -735,18 +700,13 @@ def setup_ui(ui, gallery):
                 is_allowed = True
                 break
 
-        assert is_allowed, f'writing to {filename} is not allowed'
+        assert is_allowed, f"writing to {filename} is not allowed"
 
         save_image_with_geninfo(image, geninfo, filename)
 
         return [page.create_html(ui.tabname) for page in ui.stored_extra_pages]
 
-    ui.button_save_preview.click(
-        fn=save_preview,
-        _js="function(x, y, z){return [selected_gallery_index(), y, z]}",
-        inputs=[ui.preview_target_filename, gallery, ui.preview_target_filename],
-        outputs=[*ui.pages]
-    )
+    ui.button_save_preview.click(fn=save_preview, _js="function(x, y, z){return [selected_gallery_index(), y, z]}", inputs=[ui.preview_target_filename, gallery, ui.preview_target_filename], outputs=[*ui.pages])
 
     for editor in ui.user_metadata_editors:
         editor.setup_ui(gallery)

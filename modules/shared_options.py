@@ -276,9 +276,18 @@ options_templates.update(
     options_section(
         ("extra_networks", "Extra Networks", "sd"),
         {
-            "extra_networks_show_hidden_directories": OptionInfo(True, "Show hidden directories").info('directory is hidden if its name starts with ".".'),
-            "extra_networks_dir_button_function": OptionInfo(False, "Add a '/' to the beginning of directory buttons").info("Buttons will display the contents of the selected directory without acting as a search filter."),
-            "extra_networks_hidden_models": OptionInfo("When searched", "Show cards for models in hidden directories", gr.Radio, {"choices": ["Always", "When searched", "Never"]}).info('"When searched" option will only show the item when the search string has 4 characters or more'),
+            "extra_networks_tree_view_explanation": OptionHTML(
+                """
+<b>Tree View</b> is a rather... "controversial" feature,
+which adds a folder structure to visualize the ExtraNetworks.
+However, the resulting UI is quite... sluggish.
+                """
+            ),
+            "extra_networks_tree_view_enable": OptionInfo(False, "Enable the Tree View").needs_reload_ui(),
+            "extra_networks_tree_view_default_enabled": OptionInfo(False, "Show the Tree View by default").needs_reload_ui(),
+            "extra_networks_show_hidden_directories": OptionInfo(False, "Show hidden directories").info("directory is hidden if its name starts with a ."),
+            "extra_networks_dir_button_function": OptionInfo(False, "Add a '/' to the beginning of directory buttons").info("Buttons will display the contents of the selected directory without acting as a search filter"),
+            "extra_networks_hidden_models": OptionInfo("When searched", "Show cards for models in hidden directories", gr.Radio, {"choices": ["Always", "When searched", "Never"]}).info('"When searched" option will only show the item when the search string contains 4 characters or more'),
             "extra_networks_default_multiplier": OptionInfo(1.0, "Default multiplier for extra networks", gr.Slider, {"minimum": 0.0, "maximum": 2.0, "step": 0.01}),
             "extra_networks_card_width": OptionInfo(0, "Card width for Extra Networks").info("in pixels"),
             "extra_networks_card_height": OptionInfo(0, "Card height for Extra Networks").info("in pixels"),
@@ -287,7 +296,6 @@ options_templates.update(
             "extra_networks_card_description_is_html": OptionInfo(False, "Treat card description as HTML"),
             "extra_networks_card_order_field": OptionInfo("Path", "Default order field for Extra Networks cards", gr.Dropdown, {"choices": ["Path", "Name", "Date Created", "Date Modified"]}).needs_reload_ui(),
             "extra_networks_card_order": OptionInfo("Ascending", "Default order for Extra Networks cards", gr.Dropdown, {"choices": ["Ascending", "Descending"]}).needs_reload_ui(),
-            "extra_networks_tree_view_default_enabled": OptionInfo(False, "Enables the Extra Networks directory tree view by default").needs_reload_ui(),
             "extra_networks_add_text_separator": OptionInfo(" ", "Extra networks separator").info("extra text to add before <...> when adding extra network to prompt"),
             "ui_extra_networks_tab_reorder": OptionInfo("", "Extra networks tab order").needs_reload_ui(),
             "textual_inversion_add_hashes_to_infotext": OptionInfo(True, "Add Textual Inversion hashes to infotext"),
