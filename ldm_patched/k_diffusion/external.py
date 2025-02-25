@@ -1,7 +1,5 @@
-"""
-Credit:  https://github.com/crowsonkb/k-diffusion/blob/v0.0.16/k_diffusion/external.py
-License: MIT
-"""
+# Credit:   https://github.com/crowsonkb/k-diffusion/blob/v0.0.16/k_diffusion/external.py
+# License:  MIT
 
 import math
 
@@ -32,24 +30,15 @@ class VDenoiser(nn.Module):
         return (t * math.pi / 2).tan()
 
     def loss(self, input, noise, sigma, **kwargs):
-        c_skip, c_out, c_in = [
-            utils.append_dims(x, input.ndim) for x in self.get_scalings(sigma)
-        ]
+        c_skip, c_out, c_in = [utils.append_dims(x, input.ndim) for x in self.get_scalings(sigma)]
         noised_input = input + noise * utils.append_dims(sigma, input.ndim)
-        model_output = self.inner_model(
-            noised_input * c_in, self.sigma_to_t(sigma), **kwargs
-        )
+        model_output = self.inner_model(noised_input * c_in, self.sigma_to_t(sigma), **kwargs)
         target = (input - c_skip * noised_input) / c_out
         return (model_output - target).pow(2).flatten(1).mean(1)
 
     def forward(self, input, sigma, **kwargs):
-        c_skip, c_out, c_in = [
-            utils.append_dims(x, input.ndim) for x in self.get_scalings(sigma)
-        ]
-        return (
-            self.inner_model(input * c_in, self.sigma_to_t(sigma), **kwargs) * c_out
-            + input * c_skip
-        )
+        c_skip, c_out, c_in = [utils.append_dims(x, input.ndim) for x in self.get_scalings(sigma)]
+        return self.inner_model(input * c_in, self.sigma_to_t(sigma), **kwargs) * c_out + input * c_skip
 
 
 class DiscreteSchedule(nn.Module):
@@ -84,12 +73,7 @@ class DiscreteSchedule(nn.Module):
         dists = log_sigma - self.log_sigmas[:, None]
         if quantize:
             return dists.abs().argmin(dim=0).view(sigma.shape)
-        low_idx = (
-            dists.ge(0)
-            .cumsum(dim=0)
-            .argmax(dim=0)
-            .clamp(max=self.log_sigmas.shape[0] - 2)
-        )
+        low_idx = dists.ge(0).cumsum(dim=0).argmax(dim=0).clamp(max=self.log_sigmas.shape[0] - 2)
         high_idx = low_idx + 1
         low, high = self.log_sigmas[low_idx], self.log_sigmas[high_idx]
         w = (low - log_sigma) / (low - high)
@@ -123,17 +107,13 @@ class DiscreteEpsDDPMDenoiser(DiscreteSchedule):
         return self.inner_model(*args, **kwargs)
 
     def loss(self, input, noise, sigma, **kwargs):
-        c_out, c_in = [
-            utils.append_dims(x, input.ndim) for x in self.get_scalings(sigma)
-        ]
+        c_out, c_in = [utils.append_dims(x, input.ndim) for x in self.get_scalings(sigma)]
         noised_input = input + noise * utils.append_dims(sigma, input.ndim)
         eps = self.get_eps(noised_input * c_in, self.sigma_to_t(sigma), **kwargs)
         return (eps - noise).pow(2).flatten(1).mean(1)
 
     def forward(self, input, sigma, **kwargs):
-        c_out, c_in = [
-            utils.append_dims(x, input.ndim) for x in self.get_scalings(sigma)
-        ]
+        c_out, c_in = [utils.append_dims(x, input.ndim) for x in self.get_scalings(sigma)]
         eps = self.get_eps(input * c_in, self.sigma_to_t(sigma), **kwargs)
         return input + eps * c_out
 
@@ -141,12 +121,8 @@ class DiscreteEpsDDPMDenoiser(DiscreteSchedule):
 class OpenAIDenoiser(DiscreteEpsDDPMDenoiser):
     """A wrapper for OpenAI diffusion models"""
 
-    def __init__(
-        self, model, diffusion, quantize=False, has_learned_sigmas=True, device="cpu"
-    ):
-        alphas_cumprod = torch.tensor(
-            diffusion.alphas_cumprod, device=device, dtype=torch.float32
-        )
+    def __init__(self, model, diffusion, quantize=False, has_learned_sigmas=True, device="cpu"):
+        alphas_cumprod = torch.tensor(diffusion.alphas_cumprod, device=device, dtype=torch.float32)
         super().__init__(model, alphas_cumprod, quantize=quantize)
         self.has_learned_sigmas = has_learned_sigmas
 
@@ -185,22 +161,15 @@ class DiscreteVDDPMDenoiser(DiscreteSchedule):
         return self.inner_model(*args, **kwargs)
 
     def loss(self, input, noise, sigma, **kwargs):
-        c_skip, c_out, c_in = [
-            utils.append_dims(x, input.ndim) for x in self.get_scalings(sigma)
-        ]
+        c_skip, c_out, c_in = [utils.append_dims(x, input.ndim) for x in self.get_scalings(sigma)]
         noised_input = input + noise * utils.append_dims(sigma, input.ndim)
         model_output = self.get_v(noised_input * c_in, self.sigma_to_t(sigma), **kwargs)
         target = (input - c_skip * noised_input) / c_out
         return (model_output - target).pow(2).flatten(1).mean(1)
 
     def forward(self, input, sigma, **kwargs):
-        c_skip, c_out, c_in = [
-            utils.append_dims(x, input.ndim) for x in self.get_scalings(sigma)
-        ]
-        return (
-            self.get_v(input * c_in, self.sigma_to_t(sigma), **kwargs) * c_out
-            + input * c_skip
-        )
+        c_skip, c_out, c_in = [utils.append_dims(x, input.ndim) for x in self.get_scalings(sigma)]
+        return self.get_v(input * c_in, self.sigma_to_t(sigma), **kwargs) * c_out + input * c_skip
 
 
 class CompVisVDenoiser(DiscreteVDDPMDenoiser):

@@ -16,7 +16,7 @@ def append_zero(x):
 
 
 def get_sigmas_karras(n, sigma_min, sigma_max, rho=7.0, device="cpu"):
-    """Constructs the noise schedule of Karras et al. (2022)."""
+    """Constructs the noise schedule of Karras et al. (2022)"""
     ramp = torch.linspace(0, 1, n, device=device)
     min_inv_rho = sigma_min ** (1 / rho)
     max_inv_rho = sigma_max ** (1 / rho)
@@ -25,7 +25,7 @@ def get_sigmas_karras(n, sigma_min, sigma_max, rho=7.0, device="cpu"):
 
 
 def get_sigmas_exponential(n, sigma_min, sigma_max, device="cpu"):
-    """Constructs an exponential noise schedule."""
+    """Constructs an exponential noise schedule"""
     sigmas = torch.linspace(
         math.log(sigma_max),
         math.log(sigma_min),
@@ -36,29 +36,27 @@ def get_sigmas_exponential(n, sigma_min, sigma_max, device="cpu"):
 
 
 def get_sigmas_polyexponential(n, sigma_min, sigma_max, rho=1.0, device="cpu"):
-    """Constructs an polynomial in log sigma noise schedule."""
+    """Constructs an polynomial in log sigma noise schedule"""
     ramp = torch.linspace(1, 0, n, device=device) ** rho
-    sigmas = torch.exp(
-        ramp * (math.log(sigma_max) - math.log(sigma_min)) + math.log(sigma_min)
-    )
+    sigmas = torch.exp(ramp * (math.log(sigma_max) - math.log(sigma_min)) + math.log(sigma_min))
     return append_zero(sigmas)
 
 
 def get_sigmas_vp(n, beta_d=19.9, beta_min=0.1, eps_s=1e-3, device="cpu"):
-    """Constructs a continuous VP noise schedule."""
+    """Constructs a continuous VP noise schedule"""
     t = torch.linspace(1, eps_s, n, device=device)
     sigmas = torch.sqrt((beta_d * t**2 / 2 + beta_min * t).expm1())
     return append_zero(sigmas)
 
 
 def to_d(x, sigma, denoised):
-    """Converts a denoiser output to a Karras ODE derivative."""
+    """Converts a denoiser output to a Karras ODE derivative"""
     return (x - denoised) / utils.append_dims(sigma, x.ndim)
 
 
 def get_ancestral_step(sigma_from, sigma_to, eta=1.0):
     """Calculates the noise level (sigma_down) to step down to and the amount
-    of noise to add (sigma_up) when doing an ancestral sampling step."""
+    of noise to add (sigma_up) when doing an ancestral sampling step"""
     if not eta:
         return sigma_to, 0.0
     sigma_up = min(
@@ -74,7 +72,7 @@ def default_noise_sampler(x):
 
 
 class BatchedBrownianTree:
-    """A wrapper around torchsde.BrownianTree that enables batches of entropy."""
+    """A wrapper around torchsde.BrownianTree that enables batches of entropy"""
 
     def __init__(self, x, t0, t1, seed=None, **kwargs):
         self.cpu_tree = True
@@ -92,14 +90,9 @@ class BatchedBrownianTree:
             seed = [seed]
             self.batched = False
         if self.cpu_tree:
-            self.trees = [
-                torchsde.BrownianTree(t0.cpu(), w0.cpu(), t1.cpu(), entropy=s, **kwargs)
-                for s in seed
-            ]
+            self.trees = [torchsde.BrownianTree(t0.cpu(), w0.cpu(), t1.cpu(), entropy=s, **kwargs) for s in seed]
         else:
-            self.trees = [
-                torchsde.BrownianTree(t0, w0, t1, entropy=s, **kwargs) for s in seed
-            ]
+            self.trees = [torchsde.BrownianTree(t0, w0, t1, entropy=s, **kwargs) for s in seed]
 
     @staticmethod
     def sort(a, b):
@@ -108,12 +101,7 @@ class BatchedBrownianTree:
     def __call__(self, t0, t1):
         t0, t1, sign = self.sort(t0, t1)
         if self.cpu_tree:
-            w = torch.stack(
-                [
-                    tree(t0.cpu().float(), t1.cpu().float()).to(t0.dtype).to(t0.device)
-                    for tree in self.trees
-                ]
-            ) * (self.sign * sign)
+            w = torch.stack([tree(t0.cpu().float(), t1.cpu().float()).to(t0.dtype).to(t0.device) for tree in self.trees]) * (self.sign * sign)
         else:
             w = torch.stack([tree(t0, t1) for tree in self.trees]) * (self.sign * sign)
 
@@ -135,9 +123,7 @@ class BrownianTreeNoiseSampler:
             internal timestep.
     """
 
-    def __init__(
-        self, x, sigma_min, sigma_max, seed=None, transform=lambda x: x, cpu=False
-    ):
+    def __init__(self, x, sigma_min, sigma_max, seed=None, transform=lambda x: x, cpu=False):
         self.transform = transform
         t0, t1 = (
             self.transform(torch.as_tensor(sigma_min)),
@@ -166,15 +152,11 @@ def sample_euler(
     s_tmax=float("inf"),
     s_noise=1.0,
 ):
-    """Implements Algorithm 2 (Euler steps) from Karras et al. (2022)."""
+    """Implements Algorithm 2 (Euler steps) from Karras et al. (2022)"""
     extra_args = {} if extra_args is None else extra_args
     s_in = x.new_ones([x.shape[0]])
     for i in trange(len(sigmas) - 1, disable=disable):
-        gamma = (
-            min(s_churn / (len(sigmas) - 1), 2**0.5 - 1)
-            if s_tmin <= sigmas[i] <= s_tmax
-            else 0.0
-        )
+        gamma = min(s_churn / (len(sigmas) - 1), 2**0.5 - 1) if s_tmin <= sigmas[i] <= s_tmax else 0.0
         sigma_hat = sigmas[i] * (gamma + 1)
         if gamma > 0:
             eps = torch.randn_like(x) * s_noise
@@ -209,7 +191,7 @@ def sample_euler_ancestral(
     s_noise=1.0,
     noise_sampler=None,
 ):
-    """Ancestral sampling with Euler method steps."""
+    """Ancestral sampling with Euler method steps"""
     extra_args = {} if extra_args is None else extra_args
     noise_sampler = default_noise_sampler(x) if noise_sampler is None else noise_sampler
     s_in = x.new_ones([x.shape[0]])
@@ -248,15 +230,11 @@ def sample_heun(
     s_tmax=float("inf"),
     s_noise=1.0,
 ):
-    """Implements Algorithm 2 (Heun steps) from Karras et al. (2022)."""
+    """Implements Algorithm 2 (Heun steps) from Karras et al. (2022)"""
     extra_args = {} if extra_args is None else extra_args
     s_in = x.new_ones([x.shape[0]])
     for i in trange(len(sigmas) - 1, disable=disable):
-        gamma = (
-            min(s_churn / (len(sigmas) - 1), 2**0.5 - 1)
-            if s_tmin <= sigmas[i] <= s_tmax
-            else 0.0
-        )
+        gamma = min(s_churn / (len(sigmas) - 1), 2**0.5 - 1) if s_tmin <= sigmas[i] <= s_tmax else 0.0
         sigma_hat = sigmas[i] * (gamma + 1)
         if gamma > 0:
             eps = torch.randn_like(x) * s_noise
@@ -300,15 +278,11 @@ def sample_dpm_2(
     s_tmax=float("inf"),
     s_noise=1.0,
 ):
-    """A sampler inspired by DPM-Solver-2 and Algorithm 2 from Karras et al. (2022)."""
+    """A sampler inspired by DPM-Solver-2 and Algorithm 2 from Karras et al. (2022)"""
     extra_args = {} if extra_args is None else extra_args
     s_in = x.new_ones([x.shape[0]])
     for i in trange(len(sigmas) - 1, disable=disable):
-        gamma = (
-            min(s_churn / (len(sigmas) - 1), 2**0.5 - 1)
-            if s_tmin <= sigmas[i] <= s_tmax
-            else 0.0
-        )
+        gamma = min(s_churn / (len(sigmas) - 1), 2**0.5 - 1) if s_tmin <= sigmas[i] <= s_tmax else 0.0
         sigma_hat = sigmas[i] * (gamma + 1)
         if gamma > 0:
             eps = torch.randn_like(x) * s_noise
@@ -353,7 +327,7 @@ def sample_dpm_2_ancestral(
     s_noise=1.0,
     noise_sampler=None,
 ):
-    """Ancestral sampling with DPM-Solver second-order steps."""
+    """Ancestral sampling with DPM-Solver second-order steps"""
     extra_args = {} if extra_args is None else extra_args
     noise_sampler = default_noise_sampler(x) if noise_sampler is None else noise_sampler
     s_in = x.new_ones([x.shape[0]])
@@ -426,20 +400,15 @@ def sample_lms(model, x, sigmas, extra_args=None, callback=None, disable=None, o
                 }
             )
         cur_order = min(i + 1, order)
-        coeffs = [
-            linear_multistep_coeff(cur_order, sigmas_cpu, i, j)
-            for j in range(cur_order)
-        ]
+        coeffs = [linear_multistep_coeff(cur_order, sigmas_cpu, i, j) for j in range(cur_order)]
         x = x + sum(coeff * d for coeff, d in zip(coeffs, reversed(ds)))
     return x
 
 
 class PIDStepSizeController:
-    """A PID controller for ODE adaptive step size control."""
+    """A PID controller for ODE adaptive step size control"""
 
-    def __init__(
-        self, h, pcoeff, icoeff, dcoeff, order=1, accept_safety=0.81, eps=1e-8
-    ):
+    def __init__(self, h, pcoeff, icoeff, dcoeff, order=1, accept_safety=0.81, eps=1e-8):
         self.h = h
         self.b1 = (pcoeff + icoeff + dcoeff) / order
         self.b2 = -(pcoeff + 2 * dcoeff) / order
@@ -456,9 +425,7 @@ class PIDStepSizeController:
         if not self.errs:
             self.errs = [inv_error, inv_error, inv_error]
         self.errs[0] = inv_error
-        factor = (
-            self.errs[0] ** self.b1 * self.errs[1] ** self.b2 * self.errs[2] ** self.b3
-        )
+        factor = self.errs[0] ** self.b1 * self.errs[1] ** self.b2 * self.errs[2] ** self.b3
         factor = self.limiter(factor)
         accept = factor >= self.accept_safety
         if accept:
@@ -469,7 +436,7 @@ class PIDStepSizeController:
 
 
 class DPMSolver(nn.Module):
-    """DPM-Solver. See https://arxiv.org/abs/2206.00927."""
+    """DPM-Solver. See https://arxiv.org/abs/2206.00927"""
 
     def __init__(self, model, extra_args=None, eps_callback=None, info_callback=None):
         super().__init__()
@@ -488,9 +455,7 @@ class DPMSolver(nn.Module):
         if key in eps_cache:
             return eps_cache[key], eps_cache
         sigma = self.sigma(t) * x.new_ones([x.shape[0]])
-        eps = (
-            x - self.model(x, sigma, *args, **self.extra_args, **kwargs)
-        ) / self.sigma(t)
+        eps = (x - self.model(x, sigma, *args, **self.extra_args, **kwargs)) / self.sigma(t)
         if self.eps_callback is not None:
             self.eps_callback()
         return eps, {key: eps, **eps_cache}
@@ -509,11 +474,7 @@ class DPMSolver(nn.Module):
         s1 = t + r1 * h
         u1 = x - self.sigma(s1) * (r1 * h).expm1() * eps
         eps_r1, eps_cache = self.eps(eps_cache, "eps_r1", u1, s1)
-        x_2 = (
-            x
-            - self.sigma(t_next) * h.expm1() * eps
-            - self.sigma(t_next) / (2 * r1) * h.expm1() * (eps_r1 - eps)
-        )
+        x_2 = x - self.sigma(t_next) * h.expm1() * eps - self.sigma(t_next) / (2 * r1) * h.expm1() * (eps_r1 - eps)
         return x_2, eps_cache
 
     def dpm_solver_3_step(self, x, t, t_next, r1=1 / 3, r2=2 / 3, eps_cache=None):
@@ -524,28 +485,13 @@ class DPMSolver(nn.Module):
         s2 = t + r2 * h
         u1 = x - self.sigma(s1) * (r1 * h).expm1() * eps
         eps_r1, eps_cache = self.eps(eps_cache, "eps_r1", u1, s1)
-        u2 = (
-            x
-            - self.sigma(s2) * (r2 * h).expm1() * eps
-            - self.sigma(s2)
-            * (r2 / r1)
-            * ((r2 * h).expm1() / (r2 * h) - 1)
-            * (eps_r1 - eps)
-        )
+        u2 = x - self.sigma(s2) * (r2 * h).expm1() * eps - self.sigma(s2) * (r2 / r1) * ((r2 * h).expm1() / (r2 * h) - 1) * (eps_r1 - eps)
         eps_r2, eps_cache = self.eps(eps_cache, "eps_r2", u2, s2)
-        x_3 = (
-            x
-            - self.sigma(t_next) * h.expm1() * eps
-            - self.sigma(t_next) / r2 * (h.expm1() / h - 1) * (eps_r2 - eps)
-        )
+        x_3 = x - self.sigma(t_next) * h.expm1() * eps - self.sigma(t_next) / r2 * (h.expm1() / h - 1) * (eps_r2 - eps)
         return x_3, eps_cache
 
-    def dpm_solver_fast(
-        self, x, t_start, t_end, nfe, eta=0.0, s_noise=1.0, noise_sampler=None
-    ):
-        noise_sampler = (
-            default_noise_sampler(x) if noise_sampler is None else noise_sampler
-        )
+    def dpm_solver_fast(self, x, t_start, t_end, nfe, eta=0.0, s_noise=1.0, noise_sampler=None):
+        noise_sampler = default_noise_sampler(x) if noise_sampler is None else noise_sampler
         if not t_end > t_start and eta:
             raise ValueError("eta must be 0 for reverse sampling")
 
@@ -570,22 +516,14 @@ class DPMSolver(nn.Module):
             eps, eps_cache = self.eps(eps_cache, "eps", x, t)
             denoised = x - self.sigma(t) * eps
             if self.info_callback is not None:
-                self.info_callback(
-                    {"x": x, "i": i, "t": ts[i], "t_up": t, "denoised": denoised}
-                )
+                self.info_callback({"x": x, "i": i, "t": ts[i], "t_up": t, "denoised": denoised})
 
             if orders[i] == 1:
-                x, eps_cache = self.dpm_solver_1_step(
-                    x, t, t_next_, eps_cache=eps_cache
-                )
+                x, eps_cache = self.dpm_solver_1_step(x, t, t_next_, eps_cache=eps_cache)
             elif orders[i] == 2:
-                x, eps_cache = self.dpm_solver_2_step(
-                    x, t, t_next_, eps_cache=eps_cache
-                )
+                x, eps_cache = self.dpm_solver_2_step(x, t, t_next_, eps_cache=eps_cache)
             else:
-                x, eps_cache = self.dpm_solver_3_step(
-                    x, t, t_next_, eps_cache=eps_cache
-                )
+                x, eps_cache = self.dpm_solver_3_step(x, t, t_next_, eps_cache=eps_cache)
 
             x = x + su * s_noise * noise_sampler(self.sigma(t), self.sigma(t_next))
 
@@ -608,9 +546,7 @@ class DPMSolver(nn.Module):
         s_noise=1.0,
         noise_sampler=None,
     ):
-        noise_sampler = (
-            default_noise_sampler(x) if noise_sampler is None else noise_sampler
-        )
+        noise_sampler = default_noise_sampler(x) if noise_sampler is None else noise_sampler
         if order not in {2, 3}:
             raise ValueError("order should be 2 or 3")
         forward = t_end > t_start
@@ -622,18 +558,12 @@ class DPMSolver(nn.Module):
         s = t_start
         x_prev = x
         accept = True
-        pid = PIDStepSizeController(
-            h_init, pcoeff, icoeff, dcoeff, 1.5 if eta else order, accept_safety
-        )
+        pid = PIDStepSizeController(h_init, pcoeff, icoeff, dcoeff, 1.5 if eta else order, accept_safety)
         info = {"steps": 0, "nfe": 0, "n_accept": 0, "n_reject": 0}
 
         while s < t_end - 1e-5 if forward else s > t_end + 1e-5:
             eps_cache = {}
-            t = (
-                torch.minimum(t_end, s + pid.h)
-                if forward
-                else torch.maximum(t_end, s + pid.h)
-            )
+            t = torch.minimum(t_end, s + pid.h) if forward else torch.maximum(t_end, s + pid.h)
             if eta:
                 sd, su = get_ancestral_step(self.sigma(s), self.sigma(t), eta)
                 t_ = torch.minimum(t_end, self.t(sd))
@@ -646,16 +576,10 @@ class DPMSolver(nn.Module):
 
             if order == 2:
                 x_low, eps_cache = self.dpm_solver_1_step(x, s, t_, eps_cache=eps_cache)
-                x_high, eps_cache = self.dpm_solver_2_step(
-                    x, s, t_, eps_cache=eps_cache
-                )
+                x_high, eps_cache = self.dpm_solver_2_step(x, s, t_, eps_cache=eps_cache)
             else:
-                x_low, eps_cache = self.dpm_solver_2_step(
-                    x, s, t_, r1=1 / 3, eps_cache=eps_cache
-                )
-                x_high, eps_cache = self.dpm_solver_3_step(
-                    x, s, t_, eps_cache=eps_cache
-                )
+                x_low, eps_cache = self.dpm_solver_2_step(x, s, t_, r1=1 / 3, eps_cache=eps_cache)
+                x_high, eps_cache = self.dpm_solver_3_step(x, s, t_, eps_cache=eps_cache)
             delta = torch.maximum(atol, rtol * torch.maximum(x_low.abs(), x_prev.abs()))
             error = torch.linalg.norm((x_low - x_high) / delta) / x.numel() ** 0.5
             accept = pid.propose_step(error)
@@ -700,7 +624,7 @@ def sample_dpm_fast(
     s_noise=1.0,
     noise_sampler=None,
 ):
-    """DPM-Solver-Fast (fixed step size). See https://arxiv.org/abs/2206.00927."""
+    """DPM-Solver-Fast (fixed step size). See https://arxiv.org/abs/2206.00927"""
     if sigma_min <= 0 or sigma_max <= 0:
         raise ValueError("sigma_min and sigma_max must not be 0")
     with tqdm(total=n, disable=disable) as pbar:
@@ -746,7 +670,7 @@ def sample_dpm_adaptive(
     noise_sampler=None,
     return_info=False,
 ):
-    """DPM-Solver-12 and 23 (adaptive step size). See https://arxiv.org/abs/2206.00927."""
+    """DPM-Solver-12 and 23 (adaptive step size). See https://arxiv.org/abs/2206.00927"""
     if sigma_min <= 0 or sigma_max <= 0:
         raise ValueError("sigma_min and sigma_max must not be 0")
     with tqdm(disable=disable) as pbar:
@@ -792,7 +716,7 @@ def sample_dpmpp_2s_ancestral(
     s_noise=1.0,
     noise_sampler=None,
 ):
-    """Ancestral sampling with DPM-Solver++(2S) second-order steps."""
+    """Ancestral sampling with DPM-Solver++(2S) second-order steps"""
     extra_args = {} if extra_args is None else extra_args
     noise_sampler = default_noise_sampler(x) if noise_sampler is None else noise_sampler
     s_in = x.new_ones([x.shape[0]])
@@ -845,14 +769,10 @@ def sample_dpmpp_sde(
     noise_sampler=None,
     r=1 / 2,
 ):
-    """DPM-Solver++ (stochastic)."""
+    """DPM-Solver++ (stochastic)"""
     sigma_min, sigma_max = sigmas[sigmas > 0].min(), sigmas.max()
     seed = extra_args.get("seed", None)
-    noise_sampler = (
-        BrownianTreeNoiseSampler(x, sigma_min, sigma_max, seed=seed, cpu=True)
-        if noise_sampler is None
-        else noise_sampler
-    )
+    noise_sampler = BrownianTreeNoiseSampler(x, sigma_min, sigma_max, seed=seed, cpu=True) if noise_sampler is None else noise_sampler
     extra_args = {} if extra_args is None else extra_args
     s_in = x.new_ones([x.shape[0]])
     sigma_fn = lambda t: t.neg().exp()
@@ -893,16 +813,14 @@ def sample_dpmpp_sde(
             sd, su = get_ancestral_step(sigma_fn(t), sigma_fn(t_next), eta)
             t_next_ = t_fn(sd)
             denoised_d = (1 - fac) * denoised + fac * denoised_2
-            x = (sigma_fn(t_next_) / sigma_fn(t)) * x - (
-                t - t_next_
-            ).expm1() * denoised_d
+            x = (sigma_fn(t_next_) / sigma_fn(t)) * x - (t - t_next_).expm1() * denoised_d
             x = x + noise_sampler(sigma_fn(t), sigma_fn(t_next)) * s_noise * su
     return x
 
 
 @torch.no_grad()
 def sample_dpmpp_2m(model, x, sigmas, extra_args=None, callback=None, disable=None):
-    """DPM-Solver++(2M)."""
+    """DPM-Solver++(2M)"""
     extra_args = {} if extra_args is None else extra_args
     s_in = x.new_ones([x.shape[0]])
     sigma_fn = lambda t: t.neg().exp()
@@ -947,18 +865,14 @@ def sample_dpmpp_2m_sde(
     noise_sampler=None,
     solver_type="midpoint",
 ):
-    """DPM-Solver++(2M) SDE."""
+    """DPM-Solver++(2M) SDE"""
 
     if solver_type not in {"heun", "midpoint"}:
         raise ValueError("solver_type must be 'heun' or 'midpoint'")
 
     seed = extra_args.get("seed", None)
     sigma_min, sigma_max = sigmas[sigmas > 0].min(), sigmas.max()
-    noise_sampler = (
-        BrownianTreeNoiseSampler(x, sigma_min, sigma_max, seed=seed, cpu=True)
-        if noise_sampler is None
-        else noise_sampler
-    )
+    noise_sampler = BrownianTreeNoiseSampler(x, sigma_min, sigma_max, seed=seed, cpu=True) if noise_sampler is None else noise_sampler
     extra_args = {} if extra_args is None else extra_args
     s_in = x.new_ones([x.shape[0]])
 
@@ -987,30 +901,17 @@ def sample_dpmpp_2m_sde(
             h = s - t
             eta_h = eta * h
 
-            x = (
-                sigmas[i + 1] / sigmas[i] * (-eta_h).exp() * x
-                + (-h - eta_h).expm1().neg() * denoised
-            )
+            x = sigmas[i + 1] / sigmas[i] * (-eta_h).exp() * x + (-h - eta_h).expm1().neg() * denoised
 
             if old_denoised is not None:
                 r = h_last / h
                 if solver_type == "heun":
-                    x = x + ((-h - eta_h).expm1().neg() / (-h - eta_h) + 1) * (
-                        1 / r
-                    ) * (denoised - old_denoised)
+                    x = x + ((-h - eta_h).expm1().neg() / (-h - eta_h) + 1) * (1 / r) * (denoised - old_denoised)
                 elif solver_type == "midpoint":
-                    x = x + 0.5 * (-h - eta_h).expm1().neg() * (1 / r) * (
-                        denoised - old_denoised
-                    )
+                    x = x + 0.5 * (-h - eta_h).expm1().neg() * (1 / r) * (denoised - old_denoised)
 
             if eta:
-                x = (
-                    x
-                    + noise_sampler(sigmas[i], sigmas[i + 1])
-                    * sigmas[i + 1]
-                    * (-2 * eta_h).expm1().neg().sqrt()
-                    * s_noise
-                )
+                x = x + noise_sampler(sigmas[i], sigmas[i + 1]) * sigmas[i + 1] * (-2 * eta_h).expm1().neg().sqrt() * s_noise
 
         old_denoised = denoised
         h_last = h
@@ -1029,15 +930,11 @@ def sample_dpmpp_3m_sde(
     s_noise=1.0,
     noise_sampler=None,
 ):
-    """DPM-Solver++(3M) SDE."""
+    """DPM-Solver++(3M) SDE"""
 
     seed = extra_args.get("seed", None)
     sigma_min, sigma_max = sigmas[sigmas > 0].min(), sigmas.max()
-    noise_sampler = (
-        BrownianTreeNoiseSampler(x, sigma_min, sigma_max, seed=seed, cpu=True)
-        if noise_sampler is None
-        else noise_sampler
-    )
+    noise_sampler = BrownianTreeNoiseSampler(x, sigma_min, sigma_max, seed=seed, cpu=True) if noise_sampler is None else noise_sampler
     extra_args = {} if extra_args is None else extra_args
     s_in = x.new_ones([x.shape[0]])
 
@@ -1083,13 +980,7 @@ def sample_dpmpp_3m_sde(
                 x = x + phi_2 * d
 
             if eta:
-                x = (
-                    x
-                    + noise_sampler(sigmas[i], sigmas[i + 1])
-                    * sigmas[i + 1]
-                    * (-2 * h * eta).expm1().neg().sqrt()
-                    * s_noise
-                )
+                x = x + noise_sampler(sigmas[i], sigmas[i + 1]) * sigmas[i + 1] * (-2 * h * eta).expm1().neg().sqrt() * s_noise
 
         denoised_1, denoised_2 = denoised, denoised_1
         h_1, h_2 = h, h_1
@@ -1109,13 +1000,7 @@ def sample_dpmpp_3m_sde_gpu(
     noise_sampler=None,
 ):
     sigma_min, sigma_max = sigmas[sigmas > 0].min(), sigmas.max()
-    noise_sampler = (
-        BrownianTreeNoiseSampler(
-            x, sigma_min, sigma_max, seed=extra_args.get("seed", None), cpu=False
-        )
-        if noise_sampler is None
-        else noise_sampler
-    )
+    noise_sampler = BrownianTreeNoiseSampler(x, sigma_min, sigma_max, seed=extra_args.get("seed", None), cpu=False) if noise_sampler is None else noise_sampler
     return sample_dpmpp_3m_sde(
         model,
         x,
@@ -1143,13 +1028,7 @@ def sample_dpmpp_2m_sde_gpu(
     solver_type="midpoint",
 ):
     sigma_min, sigma_max = sigmas[sigmas > 0].min(), sigmas.max()
-    noise_sampler = (
-        BrownianTreeNoiseSampler(
-            x, sigma_min, sigma_max, seed=extra_args.get("seed", None), cpu=False
-        )
-        if noise_sampler is None
-        else noise_sampler
-    )
+    noise_sampler = BrownianTreeNoiseSampler(x, sigma_min, sigma_max, seed=extra_args.get("seed", None), cpu=False) if noise_sampler is None else noise_sampler
     return sample_dpmpp_2m_sde(
         model,
         x,
@@ -1178,13 +1057,7 @@ def sample_dpmpp_sde_gpu(
     r=1 / 2,
 ):
     sigma_min, sigma_max = sigmas[sigmas > 0].min(), sigmas.max()
-    noise_sampler = (
-        BrownianTreeNoiseSampler(
-            x, sigma_min, sigma_max, seed=extra_args.get("seed", None), cpu=False
-        )
-        if noise_sampler is None
-        else noise_sampler
-    )
+    noise_sampler = BrownianTreeNoiseSampler(x, sigma_min, sigma_max, seed=extra_args.get("seed", None), cpu=False) if noise_sampler is None else noise_sampler
     return sample_dpmpp_sde(
         model,
         x,
@@ -1206,9 +1079,7 @@ def DDPMSampler_step(x, sigma, sigma_prev, noise, noise_sampler):
 
     mu = (1.0 / alpha).sqrt() * (x - (1 - alpha) * noise / (1 - alpha_cumprod).sqrt())
     if sigma_prev > 0:
-        mu += (
-            (1 - alpha) * (1.0 - alpha_cumprod_prev) / (1.0 - alpha_cumprod)
-        ).sqrt() * noise_sampler(sigma, sigma_prev)
+        mu += ((1 - alpha) * (1.0 - alpha_cumprod_prev) / (1.0 - alpha_cumprod)).sqrt() * noise_sampler(sigma, sigma_prev)
     return mu
 
 
@@ -1251,18 +1122,12 @@ def generic_step_sampler(
 
 
 @torch.no_grad()
-def sample_ddpm(
-    model, x, sigmas, extra_args=None, callback=None, disable=None, noise_sampler=None
-):
-    return generic_step_sampler(
-        model, x, sigmas, extra_args, callback, disable, noise_sampler, DDPMSampler_step
-    )
+def sample_ddpm(model, x, sigmas, extra_args=None, callback=None, disable=None, noise_sampler=None):
+    return generic_step_sampler(model, x, sigmas, extra_args, callback, disable, noise_sampler, DDPMSampler_step)
 
 
 @torch.no_grad()
-def sample_lcm(
-    model, x, sigmas, extra_args=None, callback=None, disable=None, noise_sampler=None
-):
+def sample_lcm(model, x, sigmas, extra_args=None, callback=None, disable=None, noise_sampler=None):
     extra_args = {} if extra_args is None else extra_args
     noise_sampler = default_noise_sampler(x) if noise_sampler is None else noise_sampler
     s_in = x.new_ones([x.shape[0]])
@@ -1303,11 +1168,7 @@ def sample_heunpp2(
     s_in = x.new_ones([x.shape[0]])
     s_end = sigmas[-1]
     for i in trange(len(sigmas) - 1, disable=disable):
-        gamma = (
-            min(s_churn / (len(sigmas) - 1), 2**0.5 - 1)
-            if s_tmin <= sigmas[i] <= s_tmax
-            else 0.0
-        )
+        gamma = min(s_churn / (len(sigmas) - 1), 2**0.5 - 1) if s_tmin <= sigmas[i] <= s_tmax else 0.0
         eps = torch.randn_like(x) * s_noise
         sigma_hat = sigmas[i] * (gamma + 1)
         if gamma > 0:

@@ -44,13 +44,6 @@ def load_torch_file(ckpt, safe_load=False, device=None):
     return sd
 
 
-def save_torch_file(sd, ckpt, metadata=None):
-    if metadata is not None:
-        safetensors.torch.save_file(sd, ckpt, metadata=metadata)
-    else:
-        safetensors.torch.save_file(sd, ckpt)
-
-
 def calculate_parameters(sd, prefix=""):
     params = 0
     for k in sd.keys():
@@ -108,27 +101,19 @@ def transformers_convert(sd, prefix_from, prefix_to, number):
     for resblock in range(number):
         for x in resblock_to_replace:
             for y in ["weight", "bias"]:
-                k = "{}transformer.resblocks.{}.{}.{}".format(
-                    prefix_from, resblock, x, y
-                )
-                k_to = "{}encoder.layers.{}.{}.{}".format(
-                    prefix_to, resblock, resblock_to_replace[x], y
-                )
+                k = "{}transformer.resblocks.{}.{}.{}".format(prefix_from, resblock, x, y)
+                k_to = "{}encoder.layers.{}.{}.{}".format(prefix_to, resblock, resblock_to_replace[x], y)
                 if k in sd:
                     sd[k_to] = sd.pop(k)
 
         for y in ["weight", "bias"]:
-            k_from = "{}transformer.resblocks.{}.attn.in_proj_{}".format(
-                prefix_from, resblock, y
-            )
+            k_from = "{}transformer.resblocks.{}.attn.in_proj_{}".format(prefix_from, resblock, y)
             if k_from in sd:
                 weights = sd.pop(k_from)
                 shape_from = weights.shape[0] // 3
                 for x in range(3):
                     p = ["self_attn.q_proj", "self_attn.k_proj", "self_attn.v_proj"]
-                    k_to = "{}encoder.layers.{}.{}.{}".format(
-                        prefix_to, resblock, p[x], y
-                    )
+                    k_to = "{}encoder.layers.{}.{}.{}".format(prefix_to, resblock, p[x], y)
                     sd[k_to] = weights[shape_from * x : shape_from * (x + 1)]
     return sd
 
@@ -216,44 +201,28 @@ def unet_to_diffusers(unet_config):
         n = 1 + (num_res_blocks[x] + 1) * x
         for i in range(num_res_blocks[x]):
             for b in UNET_MAP_RESNET:
-                diffusers_unet_map[
-                    "down_blocks.{}.resnets.{}.{}".format(x, i, UNET_MAP_RESNET[b])
-                ] = "input_blocks.{}.0.{}".format(n, b)
+                diffusers_unet_map["down_blocks.{}.resnets.{}.{}".format(x, i, UNET_MAP_RESNET[b])] = "input_blocks.{}.0.{}".format(n, b)
             num_transformers = transformer_depth.pop(0)
             if num_transformers > 0:
                 for b in UNET_MAP_ATTENTIONS:
-                    diffusers_unet_map[
-                        "down_blocks.{}.attentions.{}.{}".format(x, i, b)
-                    ] = "input_blocks.{}.1.{}".format(n, b)
+                    diffusers_unet_map["down_blocks.{}.attentions.{}.{}".format(x, i, b)] = "input_blocks.{}.1.{}".format(n, b)
                 for t in range(num_transformers):
                     for b in TRANSFORMER_BLOCKS:
-                        diffusers_unet_map[
-                            "down_blocks.{}.attentions.{}.transformer_blocks.{}.{}".format(
-                                x, i, t, b
-                            )
-                        ] = "input_blocks.{}.1.transformer_blocks.{}.{}".format(n, t, b)
+                        diffusers_unet_map["down_blocks.{}.attentions.{}.transformer_blocks.{}.{}".format(x, i, t, b)] = "input_blocks.{}.1.transformer_blocks.{}.{}".format(n, t, b)
             n += 1
         for k in ["weight", "bias"]:
-            diffusers_unet_map["down_blocks.{}.downsamplers.0.conv.{}".format(x, k)] = (
-                "input_blocks.{}.0.op.{}".format(n, k)
-            )
+            diffusers_unet_map["down_blocks.{}.downsamplers.0.conv.{}".format(x, k)] = "input_blocks.{}.0.op.{}".format(n, k)
 
     i = 0
     for b in UNET_MAP_ATTENTIONS:
-        diffusers_unet_map["mid_block.attentions.{}.{}".format(i, b)] = (
-            "middle_block.1.{}".format(b)
-        )
+        diffusers_unet_map["mid_block.attentions.{}.{}".format(i, b)] = "middle_block.1.{}".format(b)
     for t in range(transformers_mid):
         for b in TRANSFORMER_BLOCKS:
-            diffusers_unet_map[
-                "mid_block.attentions.{}.transformer_blocks.{}.{}".format(i, t, b)
-            ] = "middle_block.1.transformer_blocks.{}.{}".format(t, b)
+            diffusers_unet_map["mid_block.attentions.{}.transformer_blocks.{}.{}".format(i, t, b)] = "middle_block.1.transformer_blocks.{}.{}".format(t, b)
 
     for i, n in enumerate([0, 2]):
         for b in UNET_MAP_RESNET:
-            diffusers_unet_map[
-                "mid_block.resnets.{}.{}".format(i, UNET_MAP_RESNET[b])
-            ] = "middle_block.{}.{}".format(n, b)
+            diffusers_unet_map["mid_block.resnets.{}.{}".format(i, UNET_MAP_RESNET[b])] = "middle_block.{}.{}".format(n, b)
 
     num_res_blocks = list(reversed(num_res_blocks))
     for x in range(num_blocks):
@@ -262,31 +231,19 @@ def unet_to_diffusers(unet_config):
         for i in range(l):
             c = 0
             for b in UNET_MAP_RESNET:
-                diffusers_unet_map[
-                    "up_blocks.{}.resnets.{}.{}".format(x, i, UNET_MAP_RESNET[b])
-                ] = "output_blocks.{}.0.{}".format(n, b)
+                diffusers_unet_map["up_blocks.{}.resnets.{}.{}".format(x, i, UNET_MAP_RESNET[b])] = "output_blocks.{}.0.{}".format(n, b)
             c += 1
             num_transformers = transformer_depth_output.pop()
             if num_transformers > 0:
                 c += 1
                 for b in UNET_MAP_ATTENTIONS:
-                    diffusers_unet_map[
-                        "up_blocks.{}.attentions.{}.{}".format(x, i, b)
-                    ] = "output_blocks.{}.1.{}".format(n, b)
+                    diffusers_unet_map["up_blocks.{}.attentions.{}.{}".format(x, i, b)] = "output_blocks.{}.1.{}".format(n, b)
                 for t in range(num_transformers):
                     for b in TRANSFORMER_BLOCKS:
-                        diffusers_unet_map[
-                            "up_blocks.{}.attentions.{}.transformer_blocks.{}.{}".format(
-                                x, i, t, b
-                            )
-                        ] = "output_blocks.{}.1.transformer_blocks.{}.{}".format(
-                            n, t, b
-                        )
+                        diffusers_unet_map["up_blocks.{}.attentions.{}.transformer_blocks.{}.{}".format(x, i, t, b)] = "output_blocks.{}.1.transformer_blocks.{}.{}".format(n, t, b)
             if i == l - 1:
                 for k in ["weight", "bias"]:
-                    diffusers_unet_map[
-                        "up_blocks.{}.upsamplers.0.conv.{}".format(x, k)
-                    ] = "output_blocks.{}.{}.conv.{}".format(n, c, k)
+                    diffusers_unet_map["up_blocks.{}.upsamplers.0.conv.{}".format(x, k)] = "output_blocks.{}.{}.conv.{}".format(n, c, k)
             n += 1
 
     for k in UNET_MAP_BASIC:
@@ -299,9 +256,7 @@ def repeat_to_batch_size(tensor, batch_size):
     if tensor.shape[0] > batch_size:
         return tensor[:batch_size]
     elif tensor.shape[0] < batch_size:
-        return tensor.repeat(
-            [math.ceil(batch_size / tensor.shape[0])] + [1] * (len(tensor.shape) - 1)
-        )[:batch_size]
+        return tensor.repeat([math.ceil(batch_size / tensor.shape[0])] + [1] * (len(tensor.shape) - 1))[:batch_size]
     return tensor
 
 
@@ -313,9 +268,7 @@ def resize_to_batch_size(tensor, batch_size):
     if batch_size <= 1:
         return tensor[:batch_size]
 
-    output = torch.empty(
-        [batch_size] + list(tensor.shape)[1:], dtype=tensor.dtype, device=tensor.device
-    )
+    output = torch.empty([batch_size] + list(tensor.shape)[1:], dtype=tensor.dtype, device=tensor.device)
     if batch_size < in_batch_size:
         scale = (in_batch_size - 1) / (batch_size - 1)
         for i in range(batch_size):
@@ -400,11 +353,7 @@ def bislerp(samples, width, height):
         so = torch.sin(omega)
 
         # technically not mathematically correct, but more pleasing?
-        res = (torch.sin((1.0 - r.squeeze(1)) * omega) / so).unsqueeze(
-            1
-        ) * b1_normalized + (torch.sin(r.squeeze(1) * omega) / so).unsqueeze(
-            1
-        ) * b2_normalized
+        res = (torch.sin((1.0 - r.squeeze(1)) * omega) / so).unsqueeze(1) * b1_normalized + (torch.sin(r.squeeze(1) * omega) / so).unsqueeze(1) * b2_normalized
         res *= (b1_norms * (1.0 - r) + b2_norms * r).expand(-1, c)
 
         # edge cases for same or polar opposites
@@ -413,25 +362,14 @@ def bislerp(samples, width, height):
         return res
 
     def generate_bilinear_data(length_old, length_new, device):
-        coords_1 = torch.arange(length_old, dtype=torch.float32, device=device).reshape(
-            (1, 1, 1, -1)
-        )
-        coords_1 = torch.nn.functional.interpolate(
-            coords_1, size=(1, length_new), mode="bilinear"
-        )
+        coords_1 = torch.arange(length_old, dtype=torch.float32, device=device).reshape((1, 1, 1, -1))
+        coords_1 = torch.nn.functional.interpolate(coords_1, size=(1, length_new), mode="bilinear")
         ratios = coords_1 - coords_1.floor()
         coords_1 = coords_1.to(torch.int64)
 
-        coords_2 = (
-            torch.arange(length_old, dtype=torch.float32, device=device).reshape(
-                (1, 1, 1, -1)
-            )
-            + 1
-        )
+        coords_2 = torch.arange(length_old, dtype=torch.float32, device=device).reshape((1, 1, 1, -1)) + 1
         coords_2[:, :, :, -1] -= 1
-        coords_2 = torch.nn.functional.interpolate(
-            coords_2, size=(1, length_new), mode="bilinear"
-        )
+        coords_2 = torch.nn.functional.interpolate(coords_2, size=(1, length_new), mode="bilinear")
         coords_2 = coords_2.to(torch.int64)
         return ratios, coords_1, coords_2
 
@@ -469,20 +407,9 @@ def bislerp(samples, width, height):
 
 
 def lanczos(samples, width, height):
-    images = [
-        Image.fromarray(
-            np.clip(255.0 * image.movedim(0, -1).cpu().numpy(), 0, 255).astype(np.uint8)
-        )
-        for image in samples
-    ]
-    images = [
-        image.resize((width, height), resample=Image.Resampling.LANCZOS)
-        for image in images
-    ]
-    images = [
-        torch.from_numpy(np.array(image).astype(np.float32) / 255.0).movedim(-1, 0)
-        for image in images
-    ]
+    images = [Image.fromarray(np.clip(255.0 * image.movedim(0, -1).cpu().numpy(), 0, 255).astype(np.uint8)) for image in samples]
+    images = [image.resize((width, height), resample=Image.Resampling.LANCZOS) for image in images]
+    images = [torch.from_numpy(np.array(image).astype(np.float32) / 255.0).movedim(-1, 0) for image in images]
     result = torch.stack(images)
     return result.to(samples.device, samples.dtype)
 
@@ -508,15 +435,11 @@ def common_upscale(samples, width, height, upscale_method, crop):
     elif upscale_method == "lanczos":
         return lanczos(s, width, height)
     else:
-        return torch.nn.functional.interpolate(
-            s, size=(height, width), mode=upscale_method
-        )
+        return torch.nn.functional.interpolate(s, size=(height, width), mode=upscale_method)
 
 
 def get_tiled_scale_steps(width, height, tile_x, tile_y, overlap):
-    return math.ceil((height / (tile_y - overlap))) * math.ceil(
-        (width / (tile_x - overlap))
-    )
+    return math.ceil((height / (tile_y - overlap))) * math.ceil((width / (tile_x - overlap)))
 
 
 @torch.inference_mode()
@@ -571,19 +494,17 @@ def tiled_scale(
                 feather = round(overlap * upscale_amount)
                 for t in range(feather):
                     mask[:, :, t : 1 + t, :] *= (1.0 / feather) * (t + 1)
-                    mask[:, :, mask.shape[2] - 1 - t : mask.shape[2] - t, :] *= (
-                        1.0 / feather
-                    ) * (t + 1)
+                    mask[:, :, mask.shape[2] - 1 - t : mask.shape[2] - t, :] *= (1.0 / feather) * (t + 1)
                     mask[:, :, :, t : 1 + t] *= (1.0 / feather) * (t + 1)
-                    mask[:, :, :, mask.shape[3] - 1 - t : mask.shape[3] - t] *= (
-                        1.0 / feather
-                    ) * (t + 1)
+                    mask[:, :, :, mask.shape[3] - 1 - t : mask.shape[3] - t] *= (1.0 / feather) * (t + 1)
                 out[
                     :,
                     :,
                     round(y * upscale_amount) : round((y + tile_y) * upscale_amount),
                     round(x * upscale_amount) : round((x + tile_x) * upscale_amount),
-                ] += ps * mask
+                ] += (
+                    ps * mask
+                )
                 out_div[
                     :,
                     :,
@@ -597,20 +518,7 @@ def tiled_scale(
     return output
 
 
-PROGRESS_BAR_ENABLED = True
-
-
-def set_progress_bar_enabled(enabled):
-    global PROGRESS_BAR_ENABLED
-    PROGRESS_BAR_ENABLED = enabled
-
-
 PROGRESS_BAR_HOOK = None
-
-
-def set_progress_bar_global_hook(function):
-    global PROGRESS_BAR_HOOK
-    PROGRESS_BAR_HOOK = function
 
 
 class ProgressBar:

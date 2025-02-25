@@ -43,9 +43,7 @@ def recursive_search(directory, excluded_dir_names=None):
     except FileNotFoundError:
         print(f"Warning: Unable to access {directory}. Skipping this path.")
 
-    for dirpath, subdirs, filenames in os.walk(
-        directory, followlinks=True, topdown=True
-    ):
+    for dirpath, subdirs, filenames in os.walk(directory, followlinks=True, topdown=True):
         subdirs[:] = [d for d in subdirs if d not in excluded_dir_names]
         for file_name in filenames:
             relative_path = os.path.relpath(os.path.join(dirpath, file_name), directory)
@@ -62,15 +60,7 @@ def recursive_search(directory, excluded_dir_names=None):
 
 
 def filter_files_extensions(files, extensions):
-    return sorted(
-        list(
-            filter(
-                lambda a: os.path.splitext(a)[-1].lower() in extensions
-                or len(extensions) == 0,
-                files,
-            )
-        )
-    )
+    return sorted(list(filter(lambda a: os.path.splitext(a)[-1].lower() in extensions or len(extensions) == 0, files)))
 
 
 def get_full_path(folder_name, filename):
@@ -129,59 +119,3 @@ def get_filename_list(folder_name):
         global filename_list_cache
         filename_list_cache[folder_name] = out
     return list(out[0])
-
-
-def get_save_image_path(filename_prefix, output_dir, image_width=0, image_height=0):
-    def map_filename(filename):
-        prefix_len = len(os.path.basename(filename_prefix))
-        prefix = filename[: prefix_len + 1]
-        try:
-            digits = int(filename[prefix_len + 1 :].split("_")[0])
-        except:
-            digits = 0
-        return (digits, prefix)
-
-    def compute_vars(input, image_width, image_height):
-        input = input.replace("%width%", str(image_width))
-        input = input.replace("%height%", str(image_height))
-        return input
-
-    filename_prefix = compute_vars(filename_prefix, image_width, image_height)
-
-    subfolder = os.path.dirname(os.path.normpath(filename_prefix))
-    filename = os.path.basename(os.path.normpath(filename_prefix))
-
-    full_output_folder = os.path.join(output_dir, subfolder)
-
-    if (
-        os.path.commonpath((output_dir, os.path.abspath(full_output_folder)))
-        != output_dir
-    ):
-        err = (
-            "**** ERROR: Saving image outside the output folder is not allowed."
-            + "\n full_output_folder: "
-            + os.path.abspath(full_output_folder)
-            + "\n         output_dir: "
-            + output_dir
-            + "\n         commonpath: "
-            + os.path.commonpath((output_dir, os.path.abspath(full_output_folder)))
-        )
-        print(err)
-        raise Exception(err)
-
-    try:
-        counter = (
-            max(
-                filter(
-                    lambda a: a[1][:-1] == filename and a[1][-1] == "_",
-                    map(map_filename, os.listdir(full_output_folder)),
-                )
-            )[0]
-            + 1
-        )
-    except ValueError:
-        counter = 1
-    except FileNotFoundError:
-        os.makedirs(full_output_folder, exist_ok=True)
-        counter = 1
-    return full_output_folder, filename, counter, subfolder, filename_prefix

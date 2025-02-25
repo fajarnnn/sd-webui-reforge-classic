@@ -41,9 +41,7 @@ def load_model_weights(model, sd):
 def load_clip_weights(model, sd):
     k = list(sd.keys())
     for x in k:
-        if x.startswith("cond_stage_model.transformer.") and not x.startswith(
-            "cond_stage_model.transformer.text_model."
-        ):
+        if x.startswith("cond_stage_model.transformer.") and not x.startswith("cond_stage_model.transformer.text_model."):
             y = x.replace(
                 "cond_stage_model.transformer.",
                 "cond_stage_model.transformer.text_model.",
@@ -53,48 +51,28 @@ def load_clip_weights(model, sd):
     if "cond_stage_model.transformer.text_model.embeddings.position_ids" in sd:
         ids = sd["cond_stage_model.transformer.text_model.embeddings.position_ids"]
         if ids.dtype == torch.float32:
-            sd["cond_stage_model.transformer.text_model.embeddings.position_ids"] = (
-                ids.round()
-            )
+            sd["cond_stage_model.transformer.text_model.embeddings.position_ids"] = ids.round()
 
-    sd = ldm_patched.modules.utils.transformers_convert(
-        sd, "cond_stage_model.model.", "cond_stage_model.transformer.text_model.", 24
-    )
+    sd = ldm_patched.modules.utils.transformers_convert(sd, "cond_stage_model.model.", "cond_stage_model.transformer.text_model.", 24)
     return load_model_weights(model, sd)
 
 
-def load_lora_for_models(
-    model, clip, lora, strength_model, strength_clip, filename="default"
-):
+def load_lora_for_models(model, clip, lora, strength_model, strength_clip, filename="default"):
     model_flag = type(model.model).__name__ if model is not None else "default"
 
-    unet_keys = (
-        ldm_patched.modules.lora.model_lora_keys_unet(model.model)
-        if model is not None
-        else {}
-    )
-    clip_keys = (
-        ldm_patched.modules.lora.model_lora_keys_clip(clip.cond_stage_model)
-        if clip is not None
-        else {}
-    )
+    unet_keys = ldm_patched.modules.lora.model_lora_keys_unet(model.model) if model is not None else {}
+    clip_keys = ldm_patched.modules.lora.model_lora_keys_clip(clip.cond_stage_model) if clip is not None else {}
 
     lora_unmatch = lora
-    lora_unet, lora_unmatch = ldm_patched.modules.lora.load_lora(
-        lora_unmatch, unet_keys
-    )
-    lora_clip, lora_unmatch = ldm_patched.modules.lora.load_lora(
-        lora_unmatch, clip_keys
-    )
+    lora_unet, lora_unmatch = ldm_patched.modules.lora.load_lora(lora_unmatch, unet_keys)
+    lora_clip, lora_unmatch = ldm_patched.modules.lora.load_lora(lora_unmatch, clip_keys)
 
     if len(lora_unmatch) > 12:
         print(f"[LORA] LoRA version mismatch for {model_flag}: {filename}")
         return model, clip
 
     if len(lora_unmatch) > 0:
-        print(
-            f"[LORA] Loading {filename} for {model_flag} with unmatched keys {list(lora_unmatch.keys())}"
-        )
+        print(f"[LORA] Loading {filename} for {model_flag} with unmatched keys {list(lora_unmatch.keys())}")
 
     new_model = model.clone() if model is not None else None
     new_clip = clip.clone() if clip is not None else None
@@ -103,26 +81,18 @@ def load_lora_for_models(
         loaded_keys = new_model.add_patches(lora_unet, strength_model)
         skipped_keys = [item for item in lora_unet if item not in loaded_keys]
         if len(skipped_keys) > 12:
-            print(
-                f"[LORA] Mismatch {filename} for {model_flag}-UNet with {len(skipped_keys)} keys mismatched in {len(loaded_keys)} keys"
-            )
+            print(f"[LORA] Mismatch {filename} for {model_flag}-UNet with {len(skipped_keys)} keys mismatched in {len(loaded_keys)} keys")
         else:
-            print(
-                f"[LORA] Loaded {filename} for {model_flag}-UNet with {len(loaded_keys)} keys at weight {strength_model} (skipped {len(skipped_keys)} keys)"
-            )
+            print(f"[LORA] Loaded {filename} for {model_flag}-UNet with {len(loaded_keys)} keys at weight {strength_model} (skipped {len(skipped_keys)} keys)")
             model = new_model
 
     if new_clip is not None and len(lora_clip) > 0:
         loaded_keys = new_clip.add_patches(lora_clip, strength_clip)
         skipped_keys = [item for item in lora_clip if item not in loaded_keys]
         if len(skipped_keys) > 12:
-            print(
-                f"[LORA] Mismatch {filename} for {model_flag}-CLIP with {len(skipped_keys)} keys mismatched in {len(loaded_keys)} keys"
-            )
+            print(f"[LORA] Mismatch {filename} for {model_flag}-CLIP with {len(skipped_keys)} keys mismatched in {len(loaded_keys)} keys")
         else:
-            print(
-                f"[LORA] Loaded {filename} for {model_flag}-CLIP with {len(loaded_keys)} keys at weight {strength_clip} (skipped {len(skipped_keys)} keys)"
-            )
+            print(f"[LORA] Loaded {filename} for {model_flag}-CLIP with {len(loaded_keys)} keys at weight {strength_clip} (skipped {len(skipped_keys)} keys)")
             clip = new_clip
 
     return model, clip
@@ -203,19 +173,11 @@ class VAE:
         if no_init:
             return
 
-        if (
-            "decoder.up_blocks.0.resnets.0.norm1.weight" in sd.keys()
-        ):  # diffusers format
+        if "decoder.up_blocks.0.resnets.0.norm1.weight" in sd.keys():  # diffusers format
             sd = diffusers_convert.convert_vae_state_dict(sd)
 
-        self.memory_used_encode = lambda shape, dtype: (
-            1767 * shape[2] * shape[3]
-        ) * model_management.dtype_size(
-            dtype
-        )  # These are for AutoencoderKL and need tweaking (should be lower)
-        self.memory_used_decode = lambda shape, dtype: (
-            2178 * shape[2] * shape[3] * 64
-        ) * model_management.dtype_size(dtype)
+        self.memory_used_encode = lambda shape, dtype: (1767 * shape[2] * shape[3]) * model_management.dtype_size(dtype)  # These are for AutoencoderKL and need tweaking (should be lower)
+        self.memory_used_decode = lambda shape, dtype: (2178 * shape[2] * shape[3] * 64) * model_management.dtype_size(dtype)
         self.downscale_ratio = 8
         self.latent_channels = 4
 
@@ -237,9 +199,7 @@ class VAE:
                 decoder_config["video_kernel_size"] = [3, 1, 1]
                 decoder_config["alpha"] = 0.0
                 self.first_stage_model = AutoencodingEngine(
-                    regularizer_config={
-                        "target": "ldm_patched.ldm.models.autoencoder.DiagonalGaussianRegularizer"
-                    },
+                    regularizer_config={"target": "ldm_patched.ldm.models.autoencoder.DiagonalGaussianRegularizer"},
                     encoder_config={
                         "target": "ldm_patched.ldm.modules.diffusionmodules.model.Encoder",
                         "params": encoder_config,
@@ -266,9 +226,7 @@ class VAE:
                     "dropout": 0.0,
                 }
 
-                if (
-                    "encoder.down.2.downsample.conv.weight" not in sd
-                ):  # Stable diffusion x4 upscaler VAE
+                if "encoder.down.2.downsample.conv.weight" not in sd:  # Stable diffusion x4 upscaler VAE
                     ddconfig["ch_mult"] = [1, 2, 4]
                     self.downscale_ratio = 4
 
@@ -315,20 +273,12 @@ class VAE:
         return n
 
     def decode_tiled_(self, samples, tile_x=64, tile_y=64, overlap=16):
-        steps = samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(
-            samples.shape[3], samples.shape[2], tile_x, tile_y, overlap
-        )
-        steps += samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(
-            samples.shape[3], samples.shape[2], tile_x // 2, tile_y * 2, overlap
-        )
-        steps += samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(
-            samples.shape[3], samples.shape[2], tile_x * 2, tile_y // 2, overlap
-        )
+        steps = samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(samples.shape[3], samples.shape[2], tile_x, tile_y, overlap)
+        steps += samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(samples.shape[3], samples.shape[2], tile_x // 2, tile_y * 2, overlap)
+        steps += samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(samples.shape[3], samples.shape[2], tile_x * 2, tile_y // 2, overlap)
         pbar = ldm_patched.modules.utils.ProgressBar(steps, title="VAE tiled decode")
 
-        decode_fn = lambda a: (
-            self.first_stage_model.decode(a.to(self.vae_dtype).to(self.device)) + 1.0
-        ).float()
+        decode_fn = lambda a: (self.first_stage_model.decode(a.to(self.vae_dtype).to(self.device)) + 1.0).float()
         output = torch.clamp(
             (
                 (
@@ -372,23 +322,15 @@ class VAE:
         return output
 
     def encode_tiled_(self, pixel_samples, tile_x=512, tile_y=512, overlap=64):
-        steps = pixel_samples.shape[
-            0
-        ] * ldm_patched.modules.utils.get_tiled_scale_steps(
-            pixel_samples.shape[3], pixel_samples.shape[2], tile_x, tile_y, overlap
-        )
-        steps += pixel_samples.shape[
-            0
-        ] * ldm_patched.modules.utils.get_tiled_scale_steps(
+        steps = pixel_samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(pixel_samples.shape[3], pixel_samples.shape[2], tile_x, tile_y, overlap)
+        steps += pixel_samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(
             pixel_samples.shape[3],
             pixel_samples.shape[2],
             tile_x // 2,
             tile_y * 2,
             overlap,
         )
-        steps += pixel_samples.shape[
-            0
-        ] * ldm_patched.modules.utils.get_tiled_scale_steps(
+        steps += pixel_samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(
             pixel_samples.shape[3],
             pixel_samples.shape[2],
             tile_x * 2,
@@ -397,9 +339,7 @@ class VAE:
         )
         pbar = ldm_patched.modules.utils.ProgressBar(steps, title="VAE tiled encode")
 
-        encode_fn = lambda a: self.first_stage_model.encode(
-            (2.0 * a - 1.0).to(self.vae_dtype).to(self.device)
-        ).float()
+        encode_fn = lambda a: self.first_stage_model.encode((2.0 * a - 1.0).to(self.vae_dtype).to(self.device)).float()
         samples = ldm_patched.modules.utils.tiled_scale(
             pixel_samples,
             encode_fn,
@@ -442,9 +382,7 @@ class VAE:
 
         try:
             memory_used = self.memory_used_decode(samples_in.shape, self.vae_dtype)
-            model_management.load_models_gpu(
-                [self.patcher], memory_required=memory_used
-            )
+            model_management.load_models_gpu([self.patcher], memory_required=memory_used)
             free_memory = model_management.get_free_memory(self.device)
             batch_number = int(free_memory / memory_used)
             batch_number = max(1, batch_number)
@@ -459,24 +397,14 @@ class VAE:
                 device=self.output_device,
             )
             for x in range(0, samples_in.shape[0], batch_number):
-                samples = (
-                    samples_in[x : x + batch_number].to(self.vae_dtype).to(self.device)
-                )
+                samples = samples_in[x : x + batch_number].to(self.vae_dtype).to(self.device)
                 pixel_samples[x : x + batch_number] = torch.clamp(
-                    (
-                        self.first_stage_model.decode(samples)
-                        .to(self.output_device)
-                        .float()
-                        + 1.0
-                    )
-                    / 2.0,
+                    (self.first_stage_model.decode(samples).to(self.output_device).float() + 1.0) / 2.0,
                     min=0.0,
                     max=1.0,
                 )
         except model_management.OOM_EXCEPTION as e:
-            print(
-                "Warning: Ran out of memory when regular VAE decoding, retrying with tiled VAE decoding."
-            )
+            print("Warning: Ran out of memory when regular VAE decoding, retrying with tiled VAE decoding.")
             pixel_samples = self.decode_tiled_(samples_in)
 
         pixel_samples = pixel_samples.to(self.output_device).movedim(1, -1)
@@ -501,9 +429,7 @@ class VAE:
         pixel_samples = pixel_samples.movedim(-1, 1)
         try:
             memory_used = self.memory_used_encode(pixel_samples.shape, self.vae_dtype)
-            model_management.load_models_gpu(
-                [self.patcher], memory_required=memory_used
-            )
+            model_management.load_models_gpu([self.patcher], memory_required=memory_used)
             free_memory = model_management.get_free_memory(self.device)
             batch_number = int(free_memory / memory_used)
             batch_number = max(1, batch_number)
@@ -517,21 +443,11 @@ class VAE:
                 device=self.output_device,
             )
             for x in range(0, pixel_samples.shape[0], batch_number):
-                pixels_in = (
-                    (2.0 * pixel_samples[x : x + batch_number] - 1.0)
-                    .to(self.vae_dtype)
-                    .to(self.device)
-                )
-                samples[x : x + batch_number] = (
-                    self.first_stage_model.encode(pixels_in)
-                    .to(self.output_device)
-                    .float()
-                )
+                pixels_in = (2.0 * pixel_samples[x : x + batch_number] - 1.0).to(self.vae_dtype).to(self.device)
+                samples[x : x + batch_number] = self.first_stage_model.encode(pixels_in).to(self.output_device).float()
 
         except model_management.OOM_EXCEPTION as e:
-            print(
-                "Warning: Ran out of memory when regular VAE encoding, retrying with tiled VAE encoding."
-            )
+            print("Warning: Ran out of memory when regular VAE encoding, retrying with tiled VAE encoding.")
             samples = self.encode_tiled_(pixel_samples)
 
         return samples
@@ -546,34 +462,11 @@ class VAE:
     def encode_tiled(self, pixel_samples, tile_x=512, tile_y=512, overlap=64):
         model_management.load_model_gpu(self.patcher)
         pixel_samples = pixel_samples.movedim(-1, 1)
-        samples = self.encode_tiled_(
-            pixel_samples, tile_x=tile_x, tile_y=tile_y, overlap=overlap
-        )
+        samples = self.encode_tiled_(pixel_samples, tile_x=tile_x, tile_y=tile_y, overlap=overlap)
         return samples
 
     def get_sd(self):
         return self.first_stage_model.state_dict()
-
-
-class StyleModel:
-    def __init__(self, model, device="cpu"):
-        self.model = model
-
-    def get_cond(self, input):
-        return self.model(input.last_hidden_state)
-
-
-def load_style_model(ckpt_path):
-    model_data = ldm_patched.modules.utils.load_torch_file(ckpt_path, safe_load=True)
-    keys = model_data.keys()
-    if "style_embedding" in keys:
-        model = ldm_patched.t2ia.adapter.StyleAdapter(
-            width=1024, context_dim=768, num_head=8, n_layes=3, num_token=8
-        )
-    else:
-        raise Exception("invalid style model {}".format(ckpt_path))
-    model.load_state_dict(model_data)
-    return StyleModel(model)
 
 
 def load_clip(ckpt_paths, embedding_directory=None):
@@ -586,9 +479,7 @@ def load_clip(ckpt_paths, embedding_directory=None):
 
     for i in range(len(clip_data)):
         if "transformer.resblocks.0.ln_1.weight" in clip_data[i]:
-            clip_data[i] = ldm_patched.modules.utils.transformers_convert(
-                clip_data[i], "", "text_model.", 32
-            )
+            clip_data[i] = ldm_patched.modules.utils.transformers_convert(clip_data[i], "", "text_model.", 32)
 
     clip_target = EmptyClass()
     clip_target.params = {}
@@ -674,9 +565,7 @@ def load_checkpoint(
     model_config.unet_config = model_detection.convert_config(unet_config)
 
     if config["model"]["target"].endswith("ImageEmbeddingConditionedLatentDiffusion"):
-        model = model_base.SD21UNCLIP(
-            model_config, noise_aug_config["params"], model_type=model_type
-        )
+        model = model_base.SD21UNCLIP(model_config, noise_aug_config["params"], model_type=model_type)
     else:
         model = model_base.BaseModel(model_config, model_type=model_type)
 
@@ -691,9 +580,7 @@ def load_checkpoint(
     model.load_model_weights(state_dict, "model.diffusion_model.")
 
     if output_vae:
-        vae_sd = ldm_patched.modules.utils.state_dict_prefix_replace(
-            state_dict, {"first_stage_model.": ""}, filter_keys=True
-        )
+        vae_sd = ldm_patched.modules.utils.state_dict_prefix_replace(state_dict, {"first_stage_model.": ""}, filter_keys=True)
         vae = VAE(sd=vae_sd, config=vae_config)
 
     if output_clip:
@@ -740,9 +627,7 @@ def load_checkpoint_guess_config(
     model_patcher = None
     clip_target = None
 
-    parameters = ldm_patched.modules.utils.calculate_parameters(
-        sd, "model.diffusion_model."
-    )
+    parameters = ldm_patched.modules.utils.calculate_parameters(sd, "model.diffusion_model.")
     unet_dtype = model_management.unet_dtype(model_params=parameters)
     load_device = model_management.get_torch_device()
     manual_cast_dtype = model_management.unet_manual_cast(unet_dtype, load_device)
@@ -750,36 +635,24 @@ def load_checkpoint_guess_config(
     class WeightsLoader(torch.nn.Module):
         pass
 
-    model_config = model_detection.model_config_from_unet(
-        sd, "model.diffusion_model.", unet_dtype
-    )
+    model_config = model_detection.model_config_from_unet(sd, "model.diffusion_model.", unet_dtype)
     model_config.set_manual_cast(manual_cast_dtype)
 
     if model_config is None:
-        raise RuntimeError(
-            "ERROR: Could not detect model type of: {}".format(ckpt_path)
-        )
+        raise RuntimeError("ERROR: Could not detect model type of: {}".format(ckpt_path))
 
     if model_config.clip_vision_prefix is not None:
         if output_clipvision:
-            clipvision = clip_vision.load_clipvision_from_sd(
-                sd, model_config.clip_vision_prefix, True
-            )
+            clipvision = clip_vision.load_clipvision_from_sd(sd, model_config.clip_vision_prefix, True)
 
     if output_model:
-        initial_load_device = model_management.unet_initial_load_device(
-            parameters, unet_dtype
-        )
+        initial_load_device = model_management.unet_initial_load_device(parameters, unet_dtype)
         offload_device = model_management.unet_offload_device()
-        model = model_config.get_model(
-            sd, "model.diffusion_model.", device=initial_load_device
-        )
+        model = model_config.get_model(sd, "model.diffusion_model.", device=initial_load_device)
         model.load_model_weights(sd, "model.diffusion_model.")
 
     if output_vae:
-        vae_sd = ldm_patched.modules.utils.state_dict_prefix_replace(
-            sd, {k: "" for k in model_config.vae_key_prefix}, filter_keys=True
-        )
+        vae_sd = ldm_patched.modules.utils.state_dict_prefix_replace(sd, {k: "" for k in model_config.vae_key_prefix}, filter_keys=True)
         vae_sd = model_config.process_vae_state_dict(vae_sd)
         vae = VAE(sd=vae_sd)
 
@@ -827,9 +700,7 @@ def load_unet_state_dict(sd):  # load unet in diffusers format
         if model_config is None:
             return None
 
-        diffusers_keys = ldm_patched.modules.utils.unet_to_diffusers(
-            model_config.unet_config
-        )
+        diffusers_keys = ldm_patched.modules.utils.unet_to_diffusers(model_config.unet_config)
 
         new_sd = {}
         for k in diffusers_keys:
@@ -845,9 +716,7 @@ def load_unet_state_dict(sd):  # load unet in diffusers format
     left_over = sd.keys()
     if len(left_over) > 0:
         print("left over keys in unet:", left_over)
-    return ldm_patched.modules.model_patcher.ModelPatcher(
-        model, load_device=load_device, offload_device=offload_device
-    )
+    return ldm_patched.modules.model_patcher.ModelPatcher(model, load_device=load_device, offload_device=offload_device)
 
 
 def load_unet(unet_path):
@@ -855,22 +724,5 @@ def load_unet(unet_path):
     model = load_unet_state_dict(sd)
     if model is None:
         print("ERROR UNSUPPORTED UNET", unet_path)
-        raise RuntimeError(
-            "ERROR: Could not detect model type of: {}".format(unet_path)
-        )
+        raise RuntimeError("ERROR: Could not detect model type of: {}".format(unet_path))
     return model
-
-
-def save_checkpoint(
-    output_path, model, clip=None, vae=None, clip_vision=None, metadata=None
-):
-    clip_sd = None
-    load_models = [model]
-    if clip is not None:
-        load_models.append(clip.load_model())
-        clip_sd = clip.get_sd()
-
-    model_management.load_models_gpu(load_models)
-    clip_vision_sd = clip_vision.get_sd() if clip_vision is not None else None
-    sd = model.model.state_dict_for_saving(clip_sd, vae.get_sd(), clip_vision_sd)
-    ldm_patched.modules.utils.save_torch_file(sd, output_path, metadata=metadata)
