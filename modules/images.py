@@ -545,13 +545,13 @@ def save_image_with_geninfo(image, geninfo, filename, extension=None, existing_p
         else:
             pnginfo_data = None
 
-        image.save(filename, format=image_format, quality=opts.jpeg_quality, pnginfo=pnginfo_data)
+        image.save(filename, format=image_format, quality=opts.jpeg_quality, pnginfo=pnginfo_data, optimize=opts.opt_image)
 
     elif extension.lower() in (".jpg", ".jpeg", ".webp"):
         if image.mode != "RGB":
             image = image.convert("RGB")
 
-        image.save(filename, format=image_format, quality=opts.jpeg_quality, lossless=opts.webp_lossless)
+        image.save(filename, format=image_format, quality=opts.jpeg_quality, lossless=opts.webp_lossless, optimize=opts.opt_image)
 
         if opts.enable_pnginfo and geninfo is not None:
             exif_bytes = piexif.dump(
@@ -569,11 +569,11 @@ def save_image_with_geninfo(image, geninfo, filename, extension=None, existing_p
                 }
             )
 
-        image.save(filename, format=image_format, exif=exif_bytes)
+        image.save(filename, format=image_format, exif=exif_bytes, optimize=opts.opt_image)
     elif extension.lower() == ".gif":
-        image.save(filename, format=image_format, comment=geninfo)
+        image.save(filename, format=image_format, comment=geninfo, optimize=opts.opt_image)
     else:
-        image.save(filename, format=image_format, quality=opts.jpeg_quality)
+        image.save(filename, format=image_format, quality=opts.jpeg_quality, optimize=opts.opt_image)
 
 
 def save_image(image, path, basename, seed=None, prompt=None, extension="png", info=None, short_filename=False, no_prompt=False, grid=False, pnginfo_section_name="parameters", p=None, existing_info=None, forced_filename=None, suffix="", save_to_dirs=None):
@@ -613,9 +613,9 @@ def save_image(image, path, basename, seed=None, prompt=None, extension="png", i
     namegen = FilenameGenerator(p, seed, prompt, image)
 
     # WebP and JPG formats have maximum dimension limits of 16383 and 65535 respectively. switch to PNG which has a much higher limit
-    if (image.height > 65535 or image.width > 65535) and extension.lower() in ("jpg", "jpeg") or (image.height > 16383 or image.width > 16383) and extension.lower() == "webp":
+    if ((image.height > 65535 or image.width > 65535) and extension.lower() in ("jpg", "jpeg")) or ((image.height > 16383 or image.width > 16383) and extension.lower() == "webp"):
         print("Image dimensions too large; saving as PNG")
-        extension = ".png"
+        extension = "png"
 
     if save_to_dirs is None:
         save_to_dirs = (grid and opts.grid_save_to_dirs) or (not grid and opts.save_to_dirs and not no_prompt)
@@ -691,25 +691,30 @@ def save_image(image, path, basename, seed=None, prompt=None, extension="png", i
 
     image.already_saved_as = fullfn
 
-    oversize = image.width > opts.target_side_length or image.height > opts.target_side_length
-    if opts.export_for_4chan and (oversize or os.stat(fullfn).st_size > opts.img_downscale_threshold * 1024 * 1024):
-        ratio = image.width / image.height
-        resize_to = None
-        if oversize and ratio > 1:
-            resize_to = round(opts.target_side_length), round(image.height * opts.target_side_length / image.width)
-        elif oversize:
-            resize_to = round(image.width * opts.target_side_length / image.height), round(opts.target_side_length)
+    if opts.export_for_4chan:
+        oversize = image.width > opts.target_side_length or image.height > opts.target_side_length
+        overweight = os.stat(fullfn).st_size > opts.img_downscale_threshold * 1024 * 1024
 
-        if resize_to is not None:
+        if oversize or overweight:
+            ratio = image.width / image.height
+            if oversize:
+                if ratio > 1:
+                    resize_to = round(opts.target_side_length), round(image.height * opts.target_side_length / image.width)
+                else:
+                    resize_to = round(image.width * opts.target_side_length / image.height), round(opts.target_side_length)
+            else:
+                resize_to = None
+
+            if resize_to is not None:
+                try:
+                    # Resizing image with LANCZOS could throw an exception if e.g. image mode is I;16
+                    image = image.resize(resize_to, LANCZOS)
+                except Exception:
+                    image = image.resize(resize_to)
             try:
-                # Resizing image with LANCZOS could throw an exception if e.g. image mode is I;16
-                image = image.resize(resize_to, LANCZOS)
-            except Exception:
-                image = image.resize(resize_to)
-        try:
-            _atomically_save_image(image, fullfn_without_extension, ".jpg")
-        except Exception as e:
-            errors.display(e, "saving image as downscaled JPG")
+                _atomically_save_image(image, fullfn_without_extension, ".jpg")
+            except Exception as e:
+                errors.display(e, "saving image as downscaled JPG")
 
     if opts.save_txt and info is not None:
         txt_fullfn = f"{fullfn_without_extension}.txt"
