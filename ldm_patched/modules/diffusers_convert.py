@@ -1,18 +1,18 @@
-# Reference: https://github.com/comfyanonymous/ComfyUI
+# References:
+# https://github.com/comfyanonymous/ComfyUI
+# https://github.com/huggingface/diffusers/blob/main/scripts/convert_diffusers_to_original_stable_diffusion.py
 
 
 import re
 
 import torch
 
-# conversion code from https://github.com/huggingface/diffusers/blob/main/scripts/convert_diffusers_to_original_stable_diffusion.py
 
-# =================#
+# =============== #
 # UNet Conversion #
-# =================#
+# =============== #
 
 unet_conversion_map = [
-    # (stable-diffusion, HF Diffusers)
     ("time_embed.0.weight", "time_embedding.linear_1.weight"),
     ("time_embed.0.bias", "time_embedding.linear_1.bias"),
     ("time_embed.2.weight", "time_embedding.linear_2.weight"),
@@ -26,7 +26,7 @@ unet_conversion_map = [
 ]
 
 unet_conversion_map_resnet = [
-    # (stable-diffusion, HF Diffusers)
+    # (Stable Diffusion, HF Diffusers)
     ("in_layers.0", "norm1"),
     ("in_layers.2", "conv1"),
     ("out_layers.0", "norm2"),
@@ -106,12 +106,12 @@ def convert_unet_state_dict(unet_state_dict):
     return new_state_dict
 
 
-# ================#
+# ============== #
 # VAE Conversion #
-# ================#
+# ============== #
 
 vae_conversion_map = [
-    # (stable-diffusion, HF Diffusers)
+    # (Stable Diffusion, HF Diffusers)
     ("nin_shortcut", "conv_shortcut"),
     ("norm_out", "conv_norm_out"),
     ("mid.attn_1.", "mid_block.attentions.0."),
@@ -147,7 +147,7 @@ for i in range(2):
     vae_conversion_map.append((sd_mid_res_prefix, hf_mid_res_prefix))
 
 vae_conversion_map_attn = [
-    # (stable-diffusion, HF Diffusers)
+    # (Stable Diffusion, HF Diffusers)
     ("norm.", "group_norm."),
     ("q.", "query."),
     ("k.", "key."),
@@ -186,13 +186,13 @@ def convert_vae_state_dict(vae_state_dict):
     return new_state_dict
 
 
-# =========================#
+# ======================= #
 # Text Encoder Conversion #
-# =========================#
+# ======================= #
 
 
 textenc_conversion_lst = [
-    # (stable-diffusion, HF Diffusers)
+    # (Stable Diffusion, HF Diffusers)
     ("resblocks.", "text_model.encoder.layers."),
     ("ln_1", "layer_norm1"),
     ("ln_2", "layer_norm2"),
@@ -200,14 +200,8 @@ textenc_conversion_lst = [
     (".c_proj.", ".fc2."),
     (".attn", ".self_attn"),
     ("ln_final.", "transformer.text_model.final_layer_norm."),
-    (
-        "token_embedding.weight",
-        "transformer.text_model.embeddings.token_embedding.weight",
-    ),
-    (
-        "positional_embedding",
-        "transformer.text_model.embeddings.position_embedding.weight",
-    ),
+    ("token_embedding.weight", "transformer.text_model.embeddings.token_embedding.weight"),
+    ("positional_embedding", "transformer.text_model.embeddings.position_embedding.weight"),
 ]
 protected = {re.escape(x[1]): x[0] for x in textenc_conversion_lst}
 textenc_pattern = re.compile("|".join(protected.keys()))
@@ -223,11 +217,7 @@ def convert_text_enc_state_dict_v20(text_enc_dict, prefix=""):
     for k, v in text_enc_dict.items():
         if not k.startswith(prefix):
             continue
-        if (
-            k.endswith(".self_attn.q_proj.weight")
-            or k.endswith(".self_attn.k_proj.weight")
-            or k.endswith(".self_attn.v_proj.weight")
-        ):
+        if k.endswith(".self_attn.q_proj.weight") or k.endswith(".self_attn.k_proj.weight") or k.endswith(".self_attn.v_proj.weight"):
             k_pre = k[: -len(".q_proj.weight")]
             k_code = k[-len("q_proj.weight")]
             if k_pre not in capture_qkv_weight:
@@ -235,11 +225,7 @@ def convert_text_enc_state_dict_v20(text_enc_dict, prefix=""):
             capture_qkv_weight[k_pre][code2idx[k_code]] = v
             continue
 
-        if (
-            k.endswith(".self_attn.q_proj.bias")
-            or k.endswith(".self_attn.k_proj.bias")
-            or k.endswith(".self_attn.v_proj.bias")
-        ):
+        if k.endswith(".self_attn.q_proj.bias") or k.endswith(".self_attn.k_proj.bias") or k.endswith(".self_attn.v_proj.bias"):
             k_pre = k[: -len(".q_proj.bias")]
             k_code = k[-len("q_proj.bias")]
             if k_pre not in capture_qkv_bias:
@@ -247,29 +233,19 @@ def convert_text_enc_state_dict_v20(text_enc_dict, prefix=""):
             capture_qkv_bias[k_pre][code2idx[k_code]] = v
             continue
 
-        relabelled_key = textenc_pattern.sub(
-            lambda m: protected[re.escape(m.group(0))], k
-        )
+        relabelled_key = textenc_pattern.sub(lambda m: protected[re.escape(m.group(0))], k)
         new_state_dict[relabelled_key] = v
 
     for k_pre, tensors in capture_qkv_weight.items():
         if None in tensors:
-            raise Exception(
-                "CORRUPTED MODEL: one of the q-k-v values for the text encoder was missing"
-            )
-        relabelled_key = textenc_pattern.sub(
-            lambda m: protected[re.escape(m.group(0))], k_pre
-        )
+            raise Exception("CORRUPTED MODEL: one of the q-k-v values for the text encoder was missing")
+        relabelled_key = textenc_pattern.sub(lambda m: protected[re.escape(m.group(0))], k_pre)
         new_state_dict[relabelled_key + ".in_proj_weight"] = torch.cat(tensors)
 
     for k_pre, tensors in capture_qkv_bias.items():
         if None in tensors:
-            raise Exception(
-                "CORRUPTED MODEL: one of the q-k-v values for the text encoder was missing"
-            )
-        relabelled_key = textenc_pattern.sub(
-            lambda m: protected[re.escape(m.group(0))], k_pre
-        )
+            raise Exception("CORRUPTED MODEL: one of the q-k-v values for the text encoder was missing")
+        relabelled_key = textenc_pattern.sub(lambda m: protected[re.escape(m.group(0))], k_pre)
         new_state_dict[relabelled_key + ".in_proj_bias"] = torch.cat(tensors)
 
     return new_state_dict

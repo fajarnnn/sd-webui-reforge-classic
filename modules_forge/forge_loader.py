@@ -146,6 +146,7 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
     with no_clip():
         sd_model: WebuiSdModel = instantiate_from_config(a1111_config.model)
 
+    del a1111_config
     timer.record("forge instantiate config")
 
     forge_objects = load_checkpoint_guess_config(
@@ -159,6 +160,8 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
     sd_model.forge_objects = forge_objects
     sd_model.forge_objects_original = forge_objects.shallow_copy()
     sd_model.forge_objects_after_applying_lora = forge_objects.shallow_copy()
+
+    del state_dict
     timer.record("forge load real models")
 
     sd_model.first_stage_model = forge_objects.vae.first_stage_model
