@@ -61,7 +61,9 @@ class CLIP_SD_XL_L(FrozenCLIPEmbedderWithCustomWords):
         self.wrapped.transformer.text_model.embeddings.to(tokens.device)
         outputs = self.wrapped.transformer(tokens, output_hidden_states=self.wrapped.layer == "hidden")
 
-        if self.wrapped.layer == "last":
+        if opts.clip_skip_sdxl:
+            z = outputs.hidden_states[-opts.CLIP_stop_at_last_layers]
+        elif self.wrapped.layer == "last":
             z = outputs.last_hidden_state
         else:
             z = outputs.hidden_states[self.wrapped.layer_idx]
@@ -85,7 +87,9 @@ class CLIP_SD_XL_G(FrozenCLIPEmbedderWithCustomWords):
         self.wrapped.transformer.text_model.embeddings.to(tokens.device)
         outputs = self.wrapped.transformer(tokens, output_hidden_states=self.wrapped.layer == "hidden")
 
-        if self.wrapped.layer == "last":
+        if opts.clip_skip_sdxl:
+            z = outputs.hidden_states[-opts.CLIP_stop_at_last_layers]
+        elif self.wrapped.layer == "last":
             z = outputs.last_hidden_state
         else:
             z = outputs.hidden_states[self.wrapped.layer_idx]
