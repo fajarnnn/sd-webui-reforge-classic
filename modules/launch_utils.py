@@ -29,8 +29,6 @@ index_url = os.environ.get("INDEX_URL")
 dir_repos = "repositories"
 
 default_command_live = (os.environ.get("WEBUI_LAUNCH_LIVE_OUTPUT") == "1")
-if uv := (os.environ.get("UV") == "1"):
-    assert os.environ.get("VIRTUAL_ENV") is not None
 
 os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
 
@@ -63,14 +61,6 @@ def run(command, desc=None, errdesc=None, custom_env=None, live=default_command_
     if desc is not None:
         print(desc)
 
-    if uv:
-        original_command = None
-        if re.search(r"-m\s*pip", command):
-            original_command = command
-            _, dep = command.split("pip")
-            command = f"uv pip {dep}".replace("--prefer-binary", "")
-            live = True
-
     run_kwargs = {
         "args": command,
         "shell": True,
@@ -85,14 +75,6 @@ def run(command, desc=None, errdesc=None, custom_env=None, live=default_command_
     result = subprocess.run(**run_kwargs)
 
     if result.returncode != 0:
-        if uv and original_command is not None:
-            print("[uv] failed; falling back to pip")
-            run_kwargs["args"] = original_command
-            result = subprocess.run(**run_kwargs)
-
-            if result.returncode == 0:
-                return result.stdout or ""
-
         error_bits = [
             f"{errdesc or 'Error running command'}.",
             f"Command: {command}",

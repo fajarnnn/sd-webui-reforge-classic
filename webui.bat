@@ -43,13 +43,8 @@ goto :show_stdout_stderr
 
 :upgrade_pip
 "%VENV_DIR%\Scripts\Python.exe" -m pip install --upgrade pip
-if %ERRORLEVEL% == 0 goto :check_uv
-echo Warning: Failed to upgrade PIP version
-
-:check_uv
-if defined UV ("%VENV_DIR%\Scripts\Python.exe" -m pip install uv)
 if %ERRORLEVEL% == 0 goto :activate_venv
-echo Warning: Failed to install UV package
+echo Warning: Failed to upgrade PIP version
 
 :activate_venv
 set PYTHON="%VENV_DIR%\Scripts\Python.exe"

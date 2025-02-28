@@ -96,3 +96,4 @@ parser.add_argument("--disable-extra-extensions", action="store_true", help="pre
 parser.add_argument("--forge-ref-a1111-home", type=Path, help="Look for models in an existing A1111 checkout's path", default=None)
 parser.add_argument("--controlnet-dir", type=Path, help="Path to directory with ControlNet models", default=None)
 parser.add_argument("--controlnet-preprocessor-models-dir", type=Path, help="Path to directory with annotator model directories", default=None)
+parser.add_argument("--uv", action="store_true", help="Use the uv package manager")
