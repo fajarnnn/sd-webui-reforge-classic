@@ -439,7 +439,9 @@ def unload_model_clones(model):
         print(f"Reuse {len(to_unload)} loaded models")
 
     for i in to_unload:
-        current_loaded_models.pop(i).model_unload(avoid_model_moving=True)
+        m = current_loaded_models.pop(i)
+        m.model_unload(avoid_model_moving=True)
+        del m
 
 
 def free_memory(memory_required, device, keep_loaded=[]):
@@ -987,4 +989,6 @@ def soft_empty_cache(force=False):
 
 
 def unload_all_models():
-    free_memory(1e30, get_torch_device())
+    free_memory(float('inf'), get_torch_device())
+    if vram_state != VRAMState.HIGH_VRAM:
+        free_memory(float('inf'), torch.device("cpu"))

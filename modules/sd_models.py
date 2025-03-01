@@ -1,23 +1,21 @@
 import collections
+import gc
 import os.path
+import re
 import sys
 import threading
-
-import torch
-import re
-import safetensors.torch
-from omegaconf import ListConfig
 from os import mkdir
 from urllib import request
+
 import ldm.modules.midas as midas
-import gc
-
-from modules import paths, shared, modelloader, devices, script_callbacks, sd_vae, errors, hashes, cache, extra_networks, processing, patches
-from modules.timer import Timer
 import numpy as np
-from modules_forge import forge_loader
+import safetensors.torch
+import torch
 from ldm_patched.modules import model_management
-
+from modules import cache, devices, errors, extra_networks, hashes, modelloader, patches, paths, processing, script_callbacks, sd_vae, shared
+from modules.timer import Timer
+from modules_forge import forge_loader
+from omegaconf import ListConfig
 
 model_dir = "Stable-diffusion"
 model_path = os.path.abspath(os.path.join(paths.models_path, model_dir))
@@ -122,7 +120,7 @@ class CheckpointInfo:
 
 try:
     # this silences the annoying "Some weights of the model checkpoint were not used when initializing..." message at start.
-    from transformers import logging, CLIPModel  # noqa: F401
+    from transformers import CLIPModel, logging  # noqa: F401
 
     logging.set_verbosity_error()
 except Exception:
@@ -337,44 +335,6 @@ class SkipWritingToConfig:
         SkipWritingToConfig.skip = self.previous
 
 
-def load_model_weights(model, checkpoint_info: CheckpointInfo, state_dict, timer):
-    sd_model_hash = checkpoint_info.calculate_shorthash()
-    timer.record("calculate hash")
-
-    if not SkipWritingToConfig.skip:
-        shared.opts.data["sd_model_checkpoint"] = checkpoint_info.title
-
-    if state_dict is None:
-        state_dict = get_checkpoint_state_dict(checkpoint_info, timer)
-
-    if shared.opts.sd_checkpoint_cache > 0:
-        # cache newly loaded model
-        checkpoints_loaded[checkpoint_info] = state_dict.copy()
-
-    model.load_state_dict(state_dict, strict=False)
-    timer.record("apply weights to model")
-
-    del state_dict
-
-    # clean up cache if limit is reached
-    while len(checkpoints_loaded) > shared.opts.sd_checkpoint_cache:
-        checkpoints_loaded.popitem(last=False)
-
-    model.sd_model_hash = sd_model_hash
-    model.sd_model_checkpoint = checkpoint_info.filename
-    model.sd_checkpoint_info = checkpoint_info
-    shared.opts.data["sd_checkpoint_hash"] = checkpoint_info.sha256
-
-    if hasattr(model, 'logvar'):
-        model.logvar = model.logvar.to(devices.device)  # fix for training
-
-    sd_vae.delete_base_vae()
-    sd_vae.clear_loaded_vae()
-    vae_file, vae_source = sd_vae.resolve_vae(checkpoint_info.filename).tuple()
-    sd_vae.load_vae(model, vae_file, vae_source)
-    timer.record("load VAE")
-
-
 def enable_midas_autodownload():
     """
     Gives the ldm.modules.midas.api.load_model function automatic downloading.
@@ -493,12 +453,12 @@ class SdModelData:
 
         return self.sd_model
 
-    def set_sd_model(self, v, already_loaded=False):
-        self.sd_model = v
+    def set_sd_model(self, mdl, already_loaded=False):
+        self.sd_model = mdl
         if already_loaded:
-            sd_vae.base_vae = getattr(v, "base_vae", None)
-            sd_vae.loaded_vae_file = getattr(v, "loaded_vae_file", None)
-            sd_vae.checkpoint_info = v.sd_checkpoint_info
+            sd_vae.base_vae = getattr(mdl, "base_vae", None)
+            sd_vae.loaded_vae_file = getattr(mdl, "loaded_vae_file", None)
+            sd_vae.checkpoint_info = mdl.sd_checkpoint_info
 
 
 model_data = SdModelData()
@@ -538,14 +498,13 @@ def load_model(checkpoint_info=None, already_loaded_state_dict=None):
 
     timer = Timer()
 
-    if model_data.sd_model:
+    if model_data.sd_model is not None:
         if model_data.sd_model.filename == checkpoint_info.filename:
             return model_data.sd_model
 
         model_data.sd_model = None
         model_data.loaded_sd_models = []
         model_management.unload_all_models()
-        model_management.soft_empty_cache()
         gc.collect()
 
     timer.record("unload existing model")
@@ -558,15 +517,14 @@ def load_model(checkpoint_info=None, already_loaded_state_dict=None):
     if shared.opts.sd_checkpoint_cache > 0:
         # cache newly loaded model
         checkpoints_loaded[checkpoint_info] = state_dict.copy()
+        # clean up cache if limit is reached
+        while len(checkpoints_loaded) > shared.opts.sd_checkpoint_cache:
+            checkpoints_loaded.popitem(last=False)
 
     sd_model = forge_loader.load_model_for_a1111(timer=timer, checkpoint_info=checkpoint_info, state_dict=state_dict)
     sd_model.filename = checkpoint_info.filename
 
     del state_dict
-
-    # clean up cache if limit is reached
-    while len(checkpoints_loaded) > shared.opts.sd_checkpoint_cache:
-        checkpoints_loaded.popitem(last=False)
 
     shared.opts.data["sd_checkpoint_hash"] = checkpoint_info.sha256
 
@@ -579,21 +537,21 @@ def load_model(checkpoint_info=None, already_loaded_state_dict=None):
     model_data.set_sd_model(sd_model)
     model_data.was_loaded_at_least_once = True
 
-    sd_hijack.model_hijack.embedding_db.load_textual_inversion_embeddings(force_reload=True)  # Reload embeddings after model load as they may or may not fit the model
-
+    # Reload embeddings after model load as they may or may not fit the model
+    sd_hijack.model_hijack.embedding_db.load_textual_inversion_embeddings(force_reload=True)
     timer.record("load textual inversion embeddings")
 
     script_callbacks.model_loaded_callback(sd_model)
-
     timer.record("scripts callbacks")
 
-    with torch.no_grad():
+    with torch.inference_mode():
         sd_model.cond_stage_model_empty_prompt = get_empty_cond(sd_model)
 
     timer.record("calculate empty prompt")
 
     print(f"Model loaded in {timer.summary()}.")
 
+    gc.collect()
     return sd_model
 
 
