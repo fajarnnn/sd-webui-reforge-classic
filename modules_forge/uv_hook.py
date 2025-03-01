@@ -29,7 +29,7 @@ def patch():
 
         cmd = command[command.index("pip") + 1 :]
 
-        BAD_FLAGS = ("--prefer-binary",)
+        BAD_FLAGS = ("--prefer-binary", "--ignore-installed", "-I")
         cmd = [arg for arg in cmd if arg not in BAD_FLAGS]
 
         modified_command = ["uv", "pip", *cmd]
