@@ -2,8 +2,9 @@
 # 2nd edit by Forge Official
 
 
-import sys
+import gc
 import time
+import weakref
 from enum import Enum
 from functools import lru_cache
 
@@ -332,10 +333,17 @@ def module_size(module, exclude_device=None):
 
 class LoadedModel:
     def __init__(self, model, memory_required):
-        self.model = model
+        self._model = weakref.ref(model)
         self.memory_required = memory_required
         self.model_accelerated = False
         self.device = model.load_device
+
+    @property
+    def model(self):
+        return self._model()
+
+    def is_dead(self) -> bool:
+        return self.model is None
 
     def model_memory(self):
         return self.model.model_size()
@@ -406,7 +414,7 @@ class LoadedModel:
 
         return self.real_model
 
-    def model_unload(self, avoid_model_moving=False):
+    def model_unload(self):
         if self.model_accelerated:
             for m in self.real_model.modules():
                 if hasattr(m, "prev_ldm_patched_cast_weights"):
@@ -414,34 +422,31 @@ class LoadedModel:
                     del m.prev_ldm_patched_cast_weights
 
             self.model_accelerated = False
+            del self.real_model
 
-        if avoid_model_moving:
-            self.model.unpatch_model()
-        else:
-            self.model.unpatch_model(self.model.offload_device)
-            self.model.model_patches_to(self.model.offload_device)
+        self.model.unpatch_model(self.model.offload_device)
+        self.model.model_patches_to(self.model.offload_device)
 
     def __eq__(self, other):
-        return self.model is other.model  # and self.memory_required == other.memory_required
+        return self.model is other.model
 
 
 def minimum_inference_memory():
-    return 1024 * 1024 * 1024
+    return 2**30
 
 
 def unload_model_clones(model):
-    to_unload = []
-    for i in range(len(current_loaded_models)):
-        if model.is_clone(current_loaded_models[i].model):
-            to_unload = [i] + to_unload
+    to_unload = [i for i in range(len(current_loaded_models)) if model.is_clone(current_loaded_models[i].model)]
+
+    for i in reversed(to_unload):
+        m = current_loaded_models.pop(i)
+        m.model_unload()
+        del m
 
     if len(to_unload) > 0:
-        print(f"Reuse {len(to_unload)} loaded models")
-
-    for i in to_unload:
-        m = current_loaded_models.pop(i)
-        m.model_unload(avoid_model_moving=True)
-        del m
+        print(f"Reusing {len(to_unload)} loaded models")
+        soft_empty_cache()
+        gc.collect()
 
 
 def free_memory(memory_required, device, keep_loaded=[]):
@@ -469,33 +474,30 @@ def free_memory(memory_required, device, keep_loaded=[]):
 
 
 def load_models_gpu(models, memory_required=0):
-    global vram_state
+    cleanup_models()
 
     execution_start_time = time.perf_counter()
     extra_mem = max(minimum_inference_memory(), memory_required)
+    models_to_load, models_already_loaded = [], []
 
-    models_to_load = []
-    models_already_loaded = []
     for x in models:
         loaded_model = LoadedModel(x, memory_required=memory_required)
-
-        if loaded_model in current_loaded_models:
+        try:
             index = current_loaded_models.index(loaded_model)
             current_loaded_models.insert(0, current_loaded_models.pop(index))
             models_already_loaded.append(loaded_model)
-        else:
+        except ValueError:
             if hasattr(x, "model"):
-                print(f"To load target model {x.model.__class__.__name__}")
+                print(f"Loading Model: {x.model.__class__.__name__}")
             models_to_load.append(loaded_model)
 
     if len(models_to_load) == 0:
         devs = set(map(lambda a: a.device, models_already_loaded))
         for d in devs:
-            if d != torch.device("cpu"):
+            if d is not torch.device("cpu"):
                 free_memory(extra_mem, d, models_already_loaded)
 
-        moving_time = time.perf_counter() - execution_start_time
-        if moving_time > 0.1:
+        if (moving_time := time.perf_counter() - execution_start_time) > 0.1:
             print(f"Memory cleanup has taken {moving_time:.2f} seconds")
 
         return
@@ -510,7 +512,7 @@ def load_models_gpu(models, memory_required=0):
     for device in total_memory_required:
         if device != torch.device("cpu"):
             free_memory(
-                total_memory_required[device] * 1.3 + extra_mem,
+                total_memory_required[device] * 1.2 + extra_mem,
                 device,
                 models_already_loaded,
             )
@@ -558,15 +560,14 @@ def load_model_gpu(model):
 
 
 def cleanup_models():
-    to_delete = []
-    for i in range(len(current_loaded_models)):
-        if sys.getrefcount(current_loaded_models[i].model) <= 2:
-            to_delete = [i] + to_delete
+    to_delete = [i for i in range(len(current_loaded_models)) if current_loaded_models[i].is_dead()]
 
-    for i in to_delete:
-        x = current_loaded_models.pop(i)
-        x.model_unload()
-        del x
+    for i in reversed(to_delete):
+        del current_loaded_models[i]
+
+    if len(to_delete) > 0:
+        soft_empty_cache()
+        gc.collect()
 
 
 def dtype_size(dtype):
@@ -989,6 +990,6 @@ def soft_empty_cache(force=False):
 
 
 def unload_all_models():
-    free_memory(float('inf'), get_torch_device())
+    free_memory(float("inf"), get_torch_device())
     if vram_state != VRAMState.HIGH_VRAM:
-        free_memory(float('inf'), torch.device("cpu"))
+        free_memory(float("inf"), torch.device("cpu"))

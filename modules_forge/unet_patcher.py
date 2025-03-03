@@ -2,8 +2,6 @@ import copy
 
 import torch
 from ldm_patched.modules.model_patcher import ModelPatcher
-from ldm_patched.modules.sample import convert_cond
-from ldm_patched.modules.samplers import encode_model_conds
 
 
 class UnetPatcher(ModelPatcher):
@@ -13,8 +11,12 @@ class UnetPatcher(ModelPatcher):
         self.extra_preserved_memory_during_sampling = 0
         self.extra_model_patchers_during_sampling = []
         self.extra_concat_condition = None
+        self._clone = False
 
     def clone(self):
+        if self._clone:
+            return self
+
         n = UnetPatcher(
             self.model,
             self.load_device,
@@ -24,6 +26,7 @@ class UnetPatcher(ModelPatcher):
             weight_inplace_update=self.weight_inplace_update,
         )
 
+        n._clone = True
         n.patches = {}
         for k in self.patches:
             n.patches[k] = self.patches[k][:]
@@ -108,7 +111,6 @@ class UnetPatcher(ModelPatcher):
     def set_transformer_option(self, k, v):
         if "transformer_options" not in self.model_options:
             self.model_options["transformer_options"] = {}
-
         self.model_options["transformer_options"][k] = v
 
     def add_conditioning_modifier(self, modifier, ensure_uniqueness=False):
@@ -160,29 +162,3 @@ class UnetPatcher(ModelPatcher):
             for number in range(16):
                 for transformer_index in range(16):
                     self.set_model_patch_replace(patch, target, block_name, number, transformer_index)
-
-    def encode_conds_after_clip(self, conds, noise, prompt_type="positive"):
-        return encode_model_conds(
-            model_function=self.model.extra_conds,
-            conds=convert_cond(conds),
-            noise=noise,
-            device=noise.device,
-            prompt_type=prompt_type,
-        )
-
-    def load_frozen_patcher(self, state_dict, strength):
-        patch_dict = {}
-        for k, w in state_dict.items():
-            model_key, patch_type, weight_index = k.split("::")
-            if model_key not in patch_dict:
-                patch_dict[model_key] = {}
-            if patch_type not in patch_dict[model_key]:
-                patch_dict[model_key][patch_type] = [None] * 16
-            patch_dict[model_key][patch_type][int(weight_index)] = w
-
-        patch_flat = {}
-        for model_key, v in patch_dict.items():
-            for patch_type, weight_list in v.items():
-                patch_flat[model_key] = (patch_type, weight_list)
-
-        self.add_patches(patches=patch_flat, strength_patch=float(strength), strength_model=1.0)

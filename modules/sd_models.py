@@ -549,7 +549,7 @@ def list_loaded_weights():
     for mdl in model_management.current_loaded_models:
         table.add_row(
             str(mdl.model.model.__class__.__name__),
-            f"{mdl.memory_required // (1024 * 1024)} (MB)" if mdl.memory_required > 0 else "n.a.",
+            f"{int(mdl.model_memory() / 2 ** 20)} (MB)" if mdl.model_memory() > 0 else "n.a.",
             str(mdl.device),
         )
 
