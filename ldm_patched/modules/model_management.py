@@ -414,7 +414,7 @@ class LoadedModel:
 
         return self.real_model
 
-    def model_unload(self):
+    def __model_unload(self):
         if self.model_accelerated:
             for m in self.real_model.modules():
                 if hasattr(m, "prev_ldm_patched_cast_weights"):
@@ -426,6 +426,12 @@ class LoadedModel:
 
         self.model.unpatch_model(self.model.offload_device)
         self.model.model_patches_to(self.model.offload_device)
+
+    def model_unload(self):
+        try:
+            self.__model_unload()
+        except AttributeError:
+            pass
 
     def __eq__(self, other):
         return self.model is other.model
@@ -563,7 +569,9 @@ def cleanup_models():
     to_delete = [i for i in range(len(current_loaded_models)) if current_loaded_models[i].is_dead()]
 
     for i in reversed(to_delete):
-        del current_loaded_models[i]
+        m = current_loaded_models.pop(i)
+        m.model_unload()
+        del m
 
     if len(to_delete) > 0:
         soft_empty_cache()

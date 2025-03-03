@@ -390,7 +390,6 @@ def patch_given_betas():
 class SdModelData:
     def __init__(self):
         self.sd_model = None
-        self.loaded_sd_models = []
         self.was_loaded_at_least_once = False
         self.lock = threading.Lock()
 
@@ -464,9 +463,31 @@ def load_model(checkpoint_info=None, already_loaded_state_dict=None):
         if model_data.sd_model.filename == checkpoint_info.filename:
             return model_data.sd_model
 
-        model_data.sd_model = None
-        model_data.loaded_sd_models = []
         model_management.unload_all_models()
+
+        try:
+            del model_data.sd_model.model.diffusion_model
+        except AttributeError:
+            pass
+
+        for junk in (
+            "clip",
+            "first_stage_model",
+            "cond_stage_model",
+            "alphas_cumprod",
+            "conditioner",
+            "model",
+            "forge_objects",
+            "forge_objects_original",
+            "forge_objects_after_applying_lora",
+        ):
+            try:
+                delattr(model_data.sd_model, junk)
+            except AttributeError:
+                pass
+
+        del model_data.sd_model
+        model_data.sd_model = None
         gc.collect()
 
     timer.record("unload existing model")
@@ -529,7 +550,7 @@ def unload_model_weights(sd_model=None, info=None):
     before = model_management.get_free_memory()
     model_management.unload_all_models()
     after = model_management.get_free_memory()
-    print(f"\nUnload Weights - Free up {(after - before) // (1024 * 1024)} (MB) VRAM\n")
+    print(f"\nUnload Weights - Free up {(after - before) // (2 ** 20)} (MB) VRAM\n")
 
     return sd_model
 

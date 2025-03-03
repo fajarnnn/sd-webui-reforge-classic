@@ -6,7 +6,6 @@ from modules.shared import opts
 
 def move_clip_to_gpu():
     if sd_models.model_data.sd_model is None:
-        print("Error: CLIP called before SD is loaded!")
         return
 
     model_management.load_model_gpu(sd_models.model_data.sd_model.forge_objects.clip.patcher)
@@ -58,6 +57,7 @@ class CLIP_SD_XL_L(FrozenCLIPEmbedderWithCustomWords):
         super().__init__(wrapped, hijack)
 
     def encode_with_transformers(self, tokens):
+        move_clip_to_gpu()
         self.wrapped.transformer.text_model.embeddings.to(tokens.device)
         outputs = self.wrapped.transformer(tokens, output_hidden_states=self.wrapped.layer == "hidden")
 
@@ -84,6 +84,7 @@ class CLIP_SD_XL_G(FrozenCLIPEmbedderWithCustomWords):
         self.id_pad = 0
 
     def encode_with_transformers(self, tokens):
+        move_clip_to_gpu()
         self.wrapped.transformer.text_model.embeddings.to(tokens.device)
         outputs = self.wrapped.transformer(tokens, output_hidden_states=self.wrapped.layer == "hidden")
 

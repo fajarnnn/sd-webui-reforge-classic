@@ -60,6 +60,7 @@ def no_clip():
         CLIPTokenizer.from_pretrained = backup_CLIPTokenizer
 
 
+@torch.no_grad()
 def load_checkpoint_guess_config(sd, output_vae=True, output_clip=True, output_clipvision=False, embedding_directory=None, output_model=True) -> ForgeObjects:
     clip = None
     clipvision = None
@@ -125,7 +126,7 @@ def load_checkpoint_guess_config(sd, output_vae=True, output_clip=True, output_c
 
 
 @torch.no_grad()
-def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None):
+def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None) -> WebuiSdModel:
     ztsnr = False
     if state_dict is not None:
         ztsnr = state_dict.pop("ztsnr", None) is not None
