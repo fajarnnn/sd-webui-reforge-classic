@@ -52,9 +52,9 @@ class CheckpointInfo:
         self.is_safetensors = os.path.splitext(filename)[1].lower() == ".safetensors"
 
         if abs_ckpt_dir and abspath.startswith(abs_ckpt_dir):
-            name = abspath.replace(abs_ckpt_dir, '')
+            name = abspath.replace(abs_ckpt_dir, "")
         elif abspath.startswith(model_path):
-            name = abspath.replace(model_path, '')
+            name = abspath.replace(model_path, "")
         else:
             name = os.path.basename(filename)
 
@@ -63,14 +63,14 @@ class CheckpointInfo:
 
         def read_metadata():
             metadata = read_metadata_from_safetensors(filename)
-            self.modelspec_thumbnail = metadata.pop('modelspec.thumbnail', None)
+            self.modelspec_thumbnail = metadata.pop("modelspec.thumbnail", None)
 
             return metadata
 
         self.metadata = {}
         if self.is_safetensors:
             try:
-                self.metadata = cache.cached_data_for_file('safetensors-metadata', "checkpoint/" + name, filename, read_metadata)
+                self.metadata = cache.cached_data_for_file("safetensors-metadata", "checkpoint/" + name, filename, read_metadata)
             except Exception as e:
                 errors.display(e, f"reading metadata for {filename}")
 
@@ -82,12 +82,12 @@ class CheckpointInfo:
         self.sha256 = hashes.sha256_from_cache(self.filename, f"checkpoint/{name}")
         self.shorthash = self.sha256[0:10] if self.sha256 else None
 
-        self.title = name if self.shorthash is None else f'{name} [{self.shorthash}]'
-        self.short_title = self.name_for_extra if self.shorthash is None else f'{self.name_for_extra} [{self.shorthash}]'
+        self.title = name if self.shorthash is None else f"{name} [{self.shorthash}]"
+        self.short_title = self.name_for_extra if self.shorthash is None else f"{self.name_for_extra} [{self.shorthash}]"
 
-        self.ids = [self.hash, self.model_name, self.title, name, self.name_for_extra, f'{name} [{self.hash}]']
+        self.ids = [self.hash, self.model_name, self.title, name, self.name_for_extra, f"{name} [{self.hash}]"]
         if self.shorthash:
-            self.ids += [self.shorthash, self.sha256, f'{self.name} [{self.shorthash}]', f'{self.name_for_extra} [{self.shorthash}]']
+            self.ids += [self.shorthash, self.sha256, f"{self.name} [{self.shorthash}]", f"{self.name_for_extra} [{self.shorthash}]"]
 
     def register(self):
         checkpoints_list[self.title] = self
@@ -106,11 +106,11 @@ class CheckpointInfo:
         self.shorthash = shorthash
 
         if self.shorthash not in self.ids:
-            self.ids += [self.shorthash, self.sha256, f'{self.name} [{self.shorthash}]', f'{self.name_for_extra} [{self.shorthash}]']
+            self.ids += [self.shorthash, self.sha256, f"{self.name} [{self.shorthash}]", f"{self.name_for_extra} [{self.shorthash}]"]
 
         old_title = self.title
-        self.title = f'{self.name} [{self.shorthash}]'
-        self.short_title = f'{self.name_for_extra} [{self.shorthash}]'
+        self.title = f"{self.name} [{self.shorthash}]"
+        self.short_title = f"{self.name_for_extra} [{self.shorthash}]"
 
         replace_key(checkpoints_list, old_title, self.title, self)
         self.register()
@@ -155,8 +155,7 @@ def list_models():
     if os.path.exists(cmd_ckpt):
         checkpoint_info = CheckpointInfo(cmd_ckpt)
         checkpoint_info.register()
-
-        shared.opts.data['sd_model_checkpoint'] = checkpoint_info.title
+        shared.opts.data["sd_model_checkpoint"] = checkpoint_info.title
     elif cmd_ckpt is not None and cmd_ckpt != shared.default_sd_model_file:
         print(f"Checkpoint in --ckpt argument not found (Possible it was moved to {model_path}: {cmd_ckpt}", file=sys.stderr)
 
@@ -180,7 +179,7 @@ def get_closet_checkpoint_match(search_string):
     if found:
         return found[0]
 
-    search_string_without_checksum = re.sub(re_strip_checksum, '', search_string)
+    search_string_without_checksum = re.sub(re_strip_checksum, "", search_string)
     found = sorted([info for info in checkpoints_list.values() if search_string_without_checksum in info.title], key=lambda x: len(x.title))
     if found:
         return found[0]
@@ -218,20 +217,16 @@ def select_checkpoint():
 
 
 checkpoint_dict_replacements_sd1 = {
-    'cond_stage_model.transformer.embeddings.': 'cond_stage_model.transformer.text_model.embeddings.',
-    'cond_stage_model.transformer.encoder.': 'cond_stage_model.transformer.text_model.encoder.',
-    'cond_stage_model.transformer.final_layer_norm.': 'cond_stage_model.transformer.text_model.final_layer_norm.',
-}
-
-checkpoint_dict_replacements_sd2_turbo = { # Converts SD 2.1 Turbo from SGM to LDM format.
-    'conditioner.embedders.0.': 'cond_stage_model.',
+    "cond_stage_model.transformer.embeddings.": "cond_stage_model.transformer.text_model.embeddings.",
+    "cond_stage_model.transformer.encoder.": "cond_stage_model.transformer.text_model.encoder.",
+    "cond_stage_model.transformer.final_layer_norm.": "cond_stage_model.transformer.text_model.final_layer_norm.",
 }
 
 
 def transform_checkpoint_dict_key(k, replacements):
     for text, replacement in replacements.items():
         if k.startswith(text):
-            k = replacement + k[len(text):]
+            k = replacement + k[len(text) :]
 
     return k
 
@@ -240,7 +235,7 @@ def get_state_dict_from_checkpoint(pl_sd):
     pl_sd = pl_sd.pop("state_dict", pl_sd)
     pl_sd.pop("state_dict", None)
 
-    is_sd2_turbo = 'conditioner.embedders.0.model.ln_final.weight' in pl_sd and pl_sd['conditioner.embedders.0.model.ln_final.weight'].size()[0] == 1024
+    is_sd2_turbo = "conditioner.embedders.0.model.ln_final.weight" in pl_sd and pl_sd["conditioner.embedders.0.model.ln_final.weight"].size()[0] == 1024
 
     sd = {}
     for k, v in pl_sd.items():
@@ -267,13 +262,13 @@ def read_metadata_from_safetensors(filename):
         json_start = file.read(2)
 
         assert metadata_len > 2 and json_start in (b'{"', b"{'"), f"{filename} is not a safetensors file"
-        json_data = json_start + file.read(metadata_len-2)
+        json_data = json_start + file.read(metadata_len - 2)
         json_obj = json.loads(json_data)
 
         res = {}
         for k, v in json_obj.get("__metadata__", {}).items():
             res[k] = v
-            if isinstance(v, str) and v[0:1] == '{':
+            if isinstance(v, str) and v[0:1] == "{":
                 try:
                     res[k] = json.loads(v)
                 except Exception:
@@ -290,7 +285,7 @@ def read_state_dict(checkpoint_file, print_global_state=False, map_location=None
         if not shared.opts.disable_mmap_load_safetensors:
             pl_sd = safetensors.torch.load_file(checkpoint_file, device=device)
         else:
-            pl_sd = safetensors.torch.load(open(checkpoint_file, 'rb').read())
+            pl_sd = safetensors.torch.load(open(checkpoint_file, "rb").read())
             pl_sd = {k: v.to(device) for k, v in pl_sd.items()}
     else:
         pl_sd = torch.load(checkpoint_file, map_location=map_location or shared.weight_load_location)
@@ -345,7 +340,7 @@ def enable_midas_autodownload():
     location automatically.
     """
 
-    midas_path = os.path.join(paths.models_path, 'midas')
+    midas_path = os.path.join(paths.models_path, "midas")
 
     # stable-diffusion-stability-ai hard-codes the midas model path to
     # a location that differs from where other scripts using this model look.
@@ -389,41 +384,7 @@ def patch_given_betas():
 
         original_register_schedule(*args, **kwargs)
 
-    original_register_schedule = patches.patch(__name__, ldm.models.diffusion.ddpm.DDPM, 'register_schedule', patched_register_schedule)
-
-
-def repair_config(sd_config):
-
-    if not hasattr(sd_config.model.params, "use_ema"):
-        sd_config.model.params.use_ema = False
-
-    if hasattr(sd_config.model.params, 'unet_config'):
-        if shared.cmd_opts.no_half:
-            sd_config.model.params.unet_config.params.use_fp16 = False
-        elif shared.cmd_opts.upcast_sampling:
-            sd_config.model.params.unet_config.params.use_fp16 = True
-
-    if getattr(sd_config.model.params.first_stage_config.params.ddconfig, "attn_type", None) == "vanilla-xformers" and not shared.xformers_available:
-        sd_config.model.params.first_stage_config.params.ddconfig.attn_type = "vanilla"
-
-    # For UnCLIP-L, override the hardcoded karlo directory
-    if hasattr(sd_config.model.params, "noise_aug_config") and hasattr(sd_config.model.params.noise_aug_config.params, "clip_stats_path"):
-        karlo_path = os.path.join(paths.models_path, 'karlo')
-        sd_config.model.params.noise_aug_config.params.clip_stats_path = sd_config.model.params.noise_aug_config.params.clip_stats_path.replace("checkpoints/karlo_models", karlo_path)
-
-    # Do not use checkpoint for inference.
-    # This helps prevent extra performance overhead on checking parameters.
-    # The perf overhead is about 100ms/it on 4090 for SDXL.
-    if hasattr(sd_config.model.params, "network_config"):
-        sd_config.model.params.network_config.params.use_checkpoint = False
-    if hasattr(sd_config.model.params, "unet_config"):
-        sd_config.model.params.unet_config.params.use_checkpoint = False
-
-
-sd1_clip_weight = 'cond_stage_model.transformer.text_model.embeddings.token_embedding.weight'
-sd2_clip_weight = 'cond_stage_model.model.transformer.resblocks.0.attn.in_proj_weight'
-sdxl_clip_weight = 'conditioner.embedders.1.model.ln_final.weight'
-sdxl_refiner_clip_weight = 'conditioner.embedders.0.model.ln_final.weight'
+    original_register_schedule = patches.patch(__name__, ldm.models.diffusion.ddpm.DDPM, "register_schedule", patched_register_schedule)
 
 
 class SdModelData:
@@ -469,9 +430,9 @@ def get_empty_cond(sd_model):
     p = processing.StableDiffusionProcessingTxt2Img()
     extra_networks.activate(p, {})
 
-    if hasattr(sd_model, 'conditioner'):
+    if hasattr(sd_model, "conditioner"):
         d = sd_model.get_learned_conditioning([""])
-        return d['crossattn']
+        return d["crossattn"]
     else:
         return sd_model.cond_stage_model([""])
 
@@ -494,6 +455,7 @@ def send_model_to_trash(m):
 
 def load_model(checkpoint_info=None, already_loaded_state_dict=None):
     from modules import sd_hijack
+
     checkpoint_info = checkpoint_info or select_checkpoint()
 
     timer = Timer()
@@ -588,21 +550,19 @@ def list_loaded_weights():
         table.add_row(
             str(mdl.model.model.__class__.__name__),
             f"{mdl.memory_required // (1024 * 1024)} (MB)" if mdl.memory_required > 0 else "n.a.",
-            str(mdl.device)
+            str(mdl.device),
         )
 
-    print('')
+    print("")
     console = Console()
     console.print(table)
+
 
 def apply_token_merging(sd_model, token_merging_ratio):
     if token_merging_ratio <= 0:
         return
 
-    print(f'token_merging_ratio = {token_merging_ratio}')
-
     from ldm_patched.modules.tomesd import TomePatcher
-    sd_model.forge_objects.unet = TomePatcher.patch(
-        model=sd_model.forge_objects.unet,
-        ratio=token_merging_ratio
-    )
+
+    sd_model.forge_objects.unet = TomePatcher.patch(model=sd_model.forge_objects.unet, ratio=token_merging_ratio)
+    print(f"token_merging_ratio = {token_merging_ratio}")
