@@ -12,6 +12,7 @@ import ldm_patched.modules.utils
 import psutil
 import torch
 from ldm_patched.modules.args_parser import args
+from ldm_patched.modules.model_patcher import ModelPatcher
 from modules_forge import stream
 
 
@@ -21,7 +22,7 @@ class VRAMState(Enum):
     LOW_VRAM = 2
     NORMAL_VRAM = 3
     HIGH_VRAM = 4
-    SHARED = 5  # No dedicated vram: memory shared between CPU and GPU but models still need to be moved between both.
+    SHARED = 5  # No dedicated vram: memory shared between CPU and GPU but models still need to be moved between both
 
 
 class CPUState(Enum):
@@ -37,7 +38,6 @@ cpu_state = CPUState.GPU
 
 total_vram = 0
 
-lowvram_available = True
 xpu_available = False
 
 if args.pytorch_deterministic:
@@ -136,7 +136,7 @@ total_vram = get_total_memory(get_torch_device()) / (1024 * 1024)
 total_ram = psutil.virtual_memory().total / (1024 * 1024)
 print("Total VRAM {:0.0f} MB, total RAM {:0.0f} MB".format(total_vram, total_ram))
 if not args.always_normal_vram and not args.always_cpu:
-    if lowvram_available and total_vram <= 4096:
+    if total_vram <= 4096:
         print("Trying to enable lowvram mode because your GPU seems to have 4GB or less. If you don't want this use: --always-normal-vram")
         set_vram_to = VRAMState.LOW_VRAM
 
@@ -244,7 +244,6 @@ if ENABLE_PYTORCH_ATTENTION:
 
 if args.always_low_vram:
     set_vram_to = VRAMState.LOW_VRAM
-    lowvram_available = True
 elif args.always_no_vram:
     set_vram_to = VRAMState.NO_VRAM
 elif args.always_high_vram or args.always_gpu:
@@ -260,10 +259,9 @@ if args.all_in_fp16:
     print("Forcing FP16.")
     FORCE_FP16 = True
 
-if lowvram_available:
-    if set_vram_to in (VRAMState.LOW_VRAM, VRAMState.NO_VRAM):
-        vram_state = set_vram_to
 
+if set_vram_to in (VRAMState.LOW_VRAM, VRAMState.NO_VRAM):
+    vram_state = set_vram_to
 
 if cpu_state is not CPUState.GPU:
     vram_state = VRAMState.DISABLED
@@ -332,7 +330,7 @@ def module_size(module, exclude_device=None):
 
 
 class LoadedModel:
-    def __init__(self, model, memory_required):
+    def __init__(self, model: ModelPatcher, memory_required: int):
         self._model = weakref.ref(model)
         self.memory_required = memory_required
         self.model_accelerated = False
@@ -345,13 +343,13 @@ class LoadedModel:
     def is_dead(self) -> bool:
         return self.model is None
 
-    def model_memory(self):
+    def model_memory(self) -> int:
         return self.model.model_size()
 
-    def model_memory_required(self, device):
+    def model_memory_required(self, device: torch.device) -> int:
         return module_size(self.model.model, exclude_device=device)
 
-    def model_load(self, async_kept_memory=-1):
+    def model_load(self, async_kept_memory: int = -1):
         patch_model_to = None
         disable_async_load = async_kept_memory < 0
 
@@ -366,6 +364,7 @@ class LoadedModel:
         except Exception as e:
             self.model.unpatch_model(self.model.offload_device)
             self.model_unload()
+            soft_empty_cache()
             raise e
 
         if not disable_async_load:
@@ -487,20 +486,22 @@ def load_models_gpu(models, memory_required=0):
     models_to_load, models_already_loaded = [], []
 
     for x in models:
-        loaded_model = LoadedModel(x, memory_required=memory_required)
+        load_model = LoadedModel(x, memory_required=memory_required)
         try:
-            index = current_loaded_models.index(loaded_model)
-            current_loaded_models.insert(0, current_loaded_models.pop(index))
+            index = current_loaded_models.index(load_model)
+            loaded_model = current_loaded_models.pop(index)
+            current_loaded_models.insert(0, loaded_model)
             models_already_loaded.append(loaded_model)
+            del load_model
         except ValueError:
             if hasattr(x, "model"):
                 print(f"Loading Model: {x.model.__class__.__name__}")
-            models_to_load.append(loaded_model)
+            models_to_load.append(load_model)
 
     if len(models_to_load) == 0:
         devs = set(map(lambda a: a.device, models_already_loaded))
         for d in devs:
-            if d is not torch.device("cpu"):
+            if d != torch.device("cpu"):
                 free_memory(extra_mem, d, models_already_loaded)
 
         if (moving_time := time.perf_counter() - execution_start_time) > 0.1:
@@ -533,20 +534,20 @@ def load_models_gpu(models, memory_required=0):
 
         async_kept_memory = -1
 
-        if lowvram_available and (vram_set_state is VRAMState.LOW_VRAM or vram_set_state is VRAMState.NORMAL_VRAM):
+        if vram_set_state in (VRAMState.LOW_VRAM, VRAMState.NORMAL_VRAM):
             model_memory = loaded_model.model_memory_required(torch_dev)
             current_free_mem = get_free_memory(torch_dev)
             minimal_inference_memory = minimum_inference_memory()
             estimated_remaining_memory = current_free_mem - model_memory - minimal_inference_memory
 
-            print("[Memory Management] Current Free GPU Memory (MB) = ", current_free_mem / (1024 * 1024))
-            print("[Memory Management] Model Memory (MB) = ", model_memory / (1024 * 1024))
-            print("[Memory Management] Minimal Inference Memory (MB) = ", minimal_inference_memory / (1024 * 1024))
-            print("[Memory Management] Estimated Remaining GPU Memory (MB) = ", estimated_remaining_memory / (1024 * 1024))
+            print("[Memory Management] Current Free GPU Memory (MB) = ", current_free_mem / (2**20))
+            print("[Memory Management] Model Memory (MB) = ", model_memory / (2**20))
+            print("[Memory Management] Minimal Inference Memory (MB) = ", minimal_inference_memory / (2**20))
+            print("[Memory Management] Estimated Remaining GPU Memory (MB) = ", estimated_remaining_memory / (2**20))
 
             if estimated_remaining_memory < 0:
                 vram_set_state = VRAMState.LOW_VRAM
-                async_kept_memory = (current_free_mem - minimal_inference_memory) / 1.3
+                async_kept_memory = (current_free_mem - minimal_inference_memory) / 1.2
                 async_kept_memory = int(max(0, async_kept_memory))
 
         if vram_set_state is VRAMState.NO_VRAM:
@@ -770,31 +771,31 @@ def supports_dtype(device, dtype):  # TODO
 
 def device_supports_non_blocking(device):
     if is_device_mps(device):
-        return False  # pytorch bug? mps doesn't support non blocking
+        return False
+    if is_intel_xpu():
+        return False
+    if args.pytorch_deterministic:
+        return False
+    if directml_enabled:
+        return False
     return True
 
 
+def __cast_to(weight, dtype=None, device=None, non_blocking=False, copy=False):
+    if device is None or weight.device == device:
+        if not copy:
+            if dtype is None or weight.dtype == dtype:
+                return weight
+        return weight.to(dtype=dtype, copy=copy)
+
+    r = torch.empty_like(weight, dtype=dtype, device=device)
+    r.copy_(weight, non_blocking=non_blocking)
+    return r
+
+
 def cast_to_device(tensor, device, dtype, copy=False):
-    device_supports_cast = False
-    if tensor.dtype is torch.float32 or tensor.dtype is torch.float16:
-        device_supports_cast = True
-    elif tensor.dtype is torch.bfloat16:
-        if hasattr(device, "type") and device.type.startswith("cuda"):
-            device_supports_cast = True
-        elif is_intel_xpu():
-            device_supports_cast = True
-
     non_blocking = device_supports_non_blocking(device)
-
-    if device_supports_cast:
-        if copy:
-            if tensor.device == device:
-                return tensor.to(dtype, copy=copy, non_blocking=non_blocking)
-            return tensor.to(device, copy=copy, non_blocking=non_blocking).to(dtype, non_blocking=non_blocking)
-        else:
-            return tensor.to(device, non_blocking=non_blocking).to(dtype, non_blocking=non_blocking)
-    else:
-        return tensor.to(device, dtype, copy=copy, non_blocking=non_blocking)
+    return __cast_to(tensor, dtype=dtype, device=device, non_blocking=non_blocking, copy=copy)
 
 
 def xformers_enabled():
