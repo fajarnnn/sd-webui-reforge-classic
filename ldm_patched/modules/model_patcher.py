@@ -425,5 +425,7 @@ class ModelPatcher:
         self.object_patches_backup = {}
 
     def __del__(self):
-        del self.model
         del self.patches
+        del self.object_patches
+        del self.model_options
+        self.model = None

@@ -11,12 +11,8 @@ class UnetPatcher(ModelPatcher):
         self.extra_preserved_memory_during_sampling = 0
         self.extra_model_patchers_during_sampling = []
         self.extra_concat_condition = None
-        self._clone = False
 
     def clone(self):
-        if self._clone:
-            return self
-
         n = UnetPatcher(
             self.model,
             self.load_device,
@@ -26,7 +22,6 @@ class UnetPatcher(ModelPatcher):
             weight_inplace_update=self.weight_inplace_update,
         )
 
-        n._clone = True
         n.patches = {}
         for k in self.patches:
             n.patches[k] = self.patches[k][:]

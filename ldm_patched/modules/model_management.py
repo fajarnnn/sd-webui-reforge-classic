@@ -356,6 +356,11 @@ class LoadedModel:
         if disable_async_load:
             patch_model_to = self.device
 
+        if self.model_memory_required(self.device) == 0:
+            # already loaded
+            print("loading in-place")
+            self.model.unpatch_model()
+
         self.model.model_patches_to(self.device)
         self.model.model_patches_to(self.model.model_dtype())
 
