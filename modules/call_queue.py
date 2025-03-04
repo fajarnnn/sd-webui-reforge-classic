@@ -8,21 +8,20 @@ queue_lock = fifo_lock.FIFOLock()
 
 
 def wrap_queued_call(func):
-    def f(*args, **kwargs):
+    @wraps(func)
+    def _func(*args, **kwargs):
         with queue_lock:
             res = func(*args, **kwargs)
-
         return res
 
-    return f
+    return _func
 
 
 def wrap_gradio_gpu_call(func, extra_outputs=None):
     @wraps(func)
-    def f(*args, **kwargs):
-
+    def _func(*args, **kwargs):
         # if the first argument is a string that says "task(...)", it is treated as a job id
-        if args and type(args[0]) == str and args[0].startswith("task(") and args[0].endswith(")"):
+        if args and isinstance(args[0], str) and args[0].startswith("task(") and args[0].endswith(")"):
             id_task = args[0]
             progress.add_task_to_queue(id_task)
         else:
@@ -31,39 +30,38 @@ def wrap_gradio_gpu_call(func, extra_outputs=None):
         with queue_lock:
             shared.state.begin(job=id_task)
             progress.start_task(id_task)
-
             try:
                 res = func(*args, **kwargs)
                 progress.record_results(id_task, res)
             finally:
                 progress.finish_task(id_task)
-
             shared.state.end()
 
         return res
 
-    return wrap_gradio_call(f, extra_outputs=extra_outputs, add_stats=True)
+    return wrap_gradio_call(_func, extra_outputs=extra_outputs, add_stats=True)
 
 
 def wrap_gradio_call(func, extra_outputs=None, add_stats=False):
     @wraps(func)
-    def f(*args, extra_outputs_array=extra_outputs, **kwargs):
-        run_memmon = shared.opts.memmon_poll_rate > 0 and not shared.mem_mon.disabled and add_stats
-        if run_memmon:
+    def _func(*args, extra_outputs_array=extra_outputs, **kwargs):
+        if run_memmon := (not shared.mem_mon.disabled and add_stats and shared.opts.memmon_poll_rate > 0):
             shared.mem_mon.monitor()
+
         t = time.perf_counter()
 
         try:
             res = list(func(*args, **kwargs))
         except Exception as e:
-            # When printing out our debug argument list,
-            # do not print out more than a 100 KB of text
-            max_debug_str_len = 131072
-            message = "Error completing request"
-            arg_str = f"Arguments: {args} {kwargs}"[:max_debug_str_len]
-            if len(arg_str) > max_debug_str_len:
-                arg_str += f" (Argument list truncated at {max_debug_str_len}/{len(arg_str)} characters)"
-            errors.report(f"{message}\n{arg_str}", exc_info=True)
+            if isinstance(e, TypeError) and "'NoneType' object is not iterable" in str(e):
+                errors.report("Error(s) occurred during generation", exc_info=False)
+                e = RuntimeError("Error(s) occurred during generation")
+            else:
+                message = "Error completing request"
+                arg_str = f"Arguments: {args} {kwargs}"
+                if len(arg_str) > 1024:
+                    arg_str = "".join([arg_str[:1024], " (truncated...)"])
+                errors.report(f"{message}\n{arg_str}", exc_info=True)
 
             shared.state.job = ""
             shared.state.job_count = 0
@@ -92,16 +90,18 @@ def wrap_gradio_call(func, extra_outputs=None, add_stats=False):
             elapsed_text = f"{elapsed_m} min. " + elapsed_text
 
         if run_memmon:
-            mem_stats = {k: -(v // -(1024 * 1024)) for k, v in shared.mem_mon.stop().items()}
+            mem_stats = {k: -(v // -(2**20)) for k, v in shared.mem_mon.stop().items()}
+
             active_peak = mem_stats["active_peak"]
             reserved_peak = mem_stats["reserved_peak"]
             sys_peak = mem_stats["system_peak"]
             sys_total = mem_stats["total"]
-            sys_pct = sys_peak / max(sys_total, 1) * 100
 
-            toltip_a = "Active: peak amount of video memory used during generation (excluding cached data)"
-            toltip_r = "Reserved: total amount of video memory allocated by the Torch library "
-            toltip_sys = "System: peak amount of video memory allocated by all running programs, out of total capacity"
+            sys_pct = sys_peak / max(sys_total, 1) * 100.0
+
+            toltip_a = "Active: peak amount of video memory used during generation"
+            toltip_r = "Reserved: total amount of video memory allocated by the PyTorch library "
+            toltip_sys = "System: peak amount of video memory allocated by all running programs"
 
             text_a = f"<abbr title='{toltip_a}'>A</abbr>: <span class='measurement'>{active_peak/1024:.2f} GB</span>"
             text_r = f"<abbr title='{toltip_r}'>R</abbr>: <span class='measurement'>{reserved_peak/1024:.2f} GB</span>"
@@ -116,4 +116,4 @@ def wrap_gradio_call(func, extra_outputs=None, add_stats=False):
 
         return tuple(res)
 
-    return f
+    return _func
