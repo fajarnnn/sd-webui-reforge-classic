@@ -27,7 +27,7 @@ fpvae_group.add_argument("--vae-in-fp16", action="store_true")
 fpvae_group.add_argument("--vae-in-fp32", action="store_true")
 fpvae_group.add_argument("--vae-in-bf16", action="store_true")
 
-parser.add_argument("--clip-in-cpu", action="store_true")
+parser.add_argument("--clip-in-gpu", action="store_true")
 parser.add_argument("--vae-in-cpu", action="store_true")
 
 fpte_group = parser.add_mutually_exclusive_group()

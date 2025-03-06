@@ -622,10 +622,11 @@ def text_encoder_offload_device():
 
 
 def text_encoder_device():
+    if not args.clip_in_gpu:
+        return torch.device("cpu")
+
     if args.always_gpu:
         return get_torch_device()
-    elif args.clip_in_cpu:
-        return torch.device("cpu")
     elif vram_state is VRAMState.HIGH_VRAM or vram_state is VRAMState.NORMAL_VRAM:
         if is_intel_xpu():
             return torch.device("cpu")
