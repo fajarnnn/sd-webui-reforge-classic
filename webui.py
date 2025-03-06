@@ -1,4 +1,6 @@
-from __future__ import annotations
+if __name__ == "__main__":
+    raise NotImplementedError("Do not run webui.py directly!")
+
 
 import os
 import time
@@ -8,11 +10,11 @@ from modules import initialize_util
 from modules import initialize
 from threading import Thread
 from modules_forge.initialization import initialize_forge
-from modules_forge import main_thread
 
 
 startup_timer = timer.startup_timer
 startup_timer.record("launcher")
+
 
 initialize_forge()
 
@@ -34,31 +36,26 @@ def create_api(app):
 def api_only_worker():
     from fastapi import FastAPI
     from modules.shared_cmd_options import cmd_opts
+    from modules import script_callbacks
 
     app = FastAPI()
     initialize_util.setup_middleware(app)
     api = create_api(app)
 
-    from modules import script_callbacks
     script_callbacks.before_ui_callback()
     script_callbacks.app_started_callback(None, app)
 
     print(f"Startup time: {startup_timer.summary()}.")
-    api.launch(
-        server_name=initialize_util.gradio_server_name(),
-        port=cmd_opts.port if cmd_opts.port else 7861,
-        root_path=f"/{cmd_opts.subpath}" if cmd_opts.subpath else ""
-    )
+    api.launch(server_name=initialize_util.gradio_server_name(), port=cmd_opts.port if cmd_opts.port else 7861, root_path=f"/{cmd_opts.subpath}" if cmd_opts.subpath else "")
 
 
 def webui_worker():
     from modules.shared_cmd_options import cmd_opts
-
-    launch_api = cmd_opts.api
-
     from modules import shared, ui_tempdir, script_callbacks, ui, progress, ui_extra_networks
 
-    while 1:
+    launch_api: bool = cmd_opts.api
+
+    while True:
         if shared.opts.clean_temp_dir_at_start:
             ui_tempdir.cleanup_tmpdr()
             startup_timer.record("cleanup temp dir")
@@ -75,7 +72,7 @@ def webui_worker():
         gradio_auth_creds = list(initialize_util.get_gradio_auth_creds()) or None
 
         auto_launch_browser = False
-        if os.getenv('SD_WEBUI_RESTARTING') != '1':
+        if os.getenv("SD_WEBUI_RESTARTING") != "1":
             if shared.opts.auto_launch_browser == "Remote" or cmd_opts.autolaunch:
                 auto_launch_browser = True
             elif shared.opts.auto_launch_browser == "Local":
@@ -93,20 +90,17 @@ def webui_worker():
             inbrowser=auto_launch_browser,
             prevent_thread_lock=True,
             allowed_paths=cmd_opts.gradio_allowed_path,
-            app_kwargs={
-                "docs_url": "/docs",
-                "redoc_url": "/redoc",
-            },
+            app_kwargs={"docs_url": "/docs", "redoc_url": "/redoc"},
             root_path=f"/{cmd_opts.subpath}" if cmd_opts.subpath else "",
         )
 
         startup_timer.record("gradio launch")
 
         # gradio uses a very open CORS policy via app.user_middleware, which makes it possible for
-        # an attacker to trick the user into opening a malicious HTML page, which makes a request to the
-        # running web ui and do whatever the attacker wants, including installing an extension and
-        # running its code. We disable this here. Suggested by RyotaK.
-        app.user_middleware = [x for x in app.user_middleware if x.cls.__name__ != 'CORSMiddleware']
+        # an attacker to trick the user into opening a malicious HTML page, which makes a request
+        # to the running web ui and do whatever the attacker wants, including installing an extension
+        # and running its code. We disable this here. Suggested by RyotaK.
+        app.user_middleware = [x for x in app.user_middleware if x.cls.__name__ != "CORSMiddleware"]
 
         initialize_util.setup_middleware(app)
 
@@ -135,21 +129,22 @@ def webui_worker():
                     else:
                         print(f"Unknown server command: {server_command}")
         except KeyboardInterrupt:
-            print('Caught KeyboardInterrupt, stopping...')
+            print("Caught KeyboardInterrupt, stopping...")
             server_command = "stop"
 
         if server_command == "stop":
+            # If we catch a keyboard interrupt, we want to stop the server and exit
             print("Stopping server...")
-            # If we catch a keyboard interrupt, we want to stop the server and exit.
             shared.demo.close()
             break
 
         # disable auto launch webui in browser for subsequent UI Reload
-        os.environ.setdefault('SD_WEBUI_RESTARTING', '1')
+        os.environ.setdefault("SD_WEBUI_RESTARTING", "1")
 
-        print('Restarting UI...')
+        print("Restarting UI...")
         shared.demo.close()
-        time.sleep(0.5)
+        time.sleep(1.0)
+
         startup_timer.reset()
         script_callbacks.app_reload_callback()
         startup_timer.record("app reload callback")
@@ -164,14 +159,3 @@ def api_only():
 
 def webui():
     Thread(target=webui_worker, daemon=True).start()
-
-
-if __name__ == "__main__":
-    from modules.shared_cmd_options import cmd_opts
-
-    if cmd_opts.nowebui:
-        api_only()
-    else:
-        webui()
-
-    main_thread.loop()

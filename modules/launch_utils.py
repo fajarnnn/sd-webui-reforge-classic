@@ -28,7 +28,7 @@ git = os.environ.get("GIT", "git")
 index_url = os.environ.get("INDEX_URL")
 dir_repos = "repositories"
 
-default_command_live = (os.environ.get("WEBUI_LAUNCH_LIVE_OUTPUT") == "1")
+default_command_live = os.environ.get("WEBUI_LAUNCH_LIVE_OUTPUT") == "1"
 
 os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
 
@@ -111,7 +111,7 @@ def run_pip(command, desc=None, live=default_command_live):
     if args.skip_install:
         return
 
-    index_url_line = f' --index-url {index_url}' if index_url is not None else ''
+    index_url_line = f" --index-url {index_url}" if index_url is not None else ""
     return run(f'"{python}" -m pip {command} --prefer-binary{index_url_line}', desc=f"Installing {desc}", errdesc=f"Couldn't install {desc}", live=live)
 
 
@@ -147,16 +147,16 @@ def git_clone(url, dir, name, commithash=None):
         if commithash is None:
             return
 
-        current_hash = run_git(dir, name, 'rev-parse HEAD', None, f"Couldn't determine {name}'s hash: {commithash}", live=False).strip()
+        current_hash = run_git(dir, name, "rev-parse HEAD", None, f"Couldn't determine {name}'s hash: {commithash}", live=False).strip()
         if current_hash == commithash:
             return
 
-        if run_git(dir, name, 'config --get remote.origin.url', None, f"Couldn't determine {name}'s origin URL", live=False).strip() != url:
+        if run_git(dir, name, "config --get remote.origin.url", None, f"Couldn't determine {name}'s origin URL", live=False).strip() != url:
             run_git(dir, name, f'remote set-url origin "{url}"', None, f"Failed to set {name}'s origin URL", live=False)
 
-        run_git(dir, name, 'fetch', f"Fetching updates for {name}...", f"Couldn't fetch {name}", autofix=False)
+        run_git(dir, name, "fetch", f"Fetching updates for {name}...", f"Couldn't fetch {name}", autofix=False)
 
-        run_git(dir, name, f'checkout {commithash}', f"Checking out commit for {name} with hash: {commithash}...", f"Couldn't checkout commit {commithash} for {name}", live=True)
+        run_git(dir, name, f"checkout {commithash}", f"Checking out commit for {name} with hash: {commithash}...", f"Couldn't checkout commit {commithash} for {name}", live=True)
 
         return
 
@@ -173,9 +173,9 @@ def git_clone(url, dir, name, commithash=None):
 
 def git_pull_recursive(dir):
     for subdir, _, _ in os.walk(dir):
-        if os.path.exists(os.path.join(subdir, '.git')):
+        if os.path.exists(os.path.join(subdir, ".git")):
             try:
-                output = subprocess.check_output([git, '-C', subdir, 'pull', '--autostash'])
+                output = subprocess.check_output([git, "-C", subdir, "pull", "--autostash"])
                 print(f"Pulled changes for repository in '{subdir}':\n{output.decode('utf-8').strip()}\n")
             except subprocess.CalledProcessError as e:
                 print(f"Couldn't perform 'git pull' on repository in '{subdir}':\n{e.output.decode('utf-8').strip()}\n")
@@ -188,7 +188,7 @@ def run_extension_installer(extension_dir):
 
     try:
         env = os.environ.copy()
-        env['PYTHONPATH'] = f"{os.path.abspath('.')}{os.pathsep}{env.get('PYTHONPATH', '')}"
+        env["PYTHONPATH"] = f"{os.path.abspath('.')}{os.pathsep}{env.get('PYTHONPATH', '')}"
 
         stdout = run(f'"{python}" "{path_installer}"', errdesc=f"Error running install.py for extension {extension_dir}", custom_env=env).strip()
         if stdout:
@@ -206,13 +206,13 @@ def list_extensions(settings_file):
     except FileNotFoundError:
         pass
     except Exception:
-        errors.report(f'\nCould not load settings\nThe config file "{settings_file}" is likely corrupted\nIt has been moved to the "tmp/config.json"\nReverting config to default\n\n''', exc_info=True)
+        errors.report(f'\nCould not load settings\nThe config file "{settings_file}" is likely corrupted\nIt has been moved to the "tmp/config.json"\nReverting config to default\n\n', exc_info=True)
         os.replace(settings_file, os.path.join(script_path, "tmp", "config.json"))
 
-    disabled_extensions = set(settings.get('disabled_extensions', []) + always_disabled_extensions)
-    disable_all_extensions = settings.get('disable_all_extensions', 'none')
+    disabled_extensions = set(settings.get("disabled_extensions", []) + always_disabled_extensions)
+    disable_all_extensions = settings.get("disable_all_extensions", "none")
 
-    if disable_all_extensions != 'none' or args.disable_extra_extensions or args.disable_all_extensions or not os.path.isdir(extensions_dir):
+    if disable_all_extensions != "none" or args.disable_extra_extensions or args.disable_all_extensions or not os.path.isdir(extensions_dir):
         return []
 
     return [x for x in os.listdir(extensions_dir) if x not in disabled_extensions]
@@ -227,13 +227,13 @@ def list_extensions_builtin(settings_file):
     except FileNotFoundError:
         pass
     except Exception:
-        errors.report(f'\nCould not load settings\nThe config file "{settings_file}" is likely corrupted\nIt has been moved to the "tmp/config.json"\nReverting config to default\n\n''', exc_info=True)
+        errors.report(f'\nCould not load settings\nThe config file "{settings_file}" is likely corrupted\nIt has been moved to the "tmp/config.json"\nReverting config to default\n\n', exc_info=True)
         os.replace(settings_file, os.path.join(script_path, "tmp", "config.json"))
 
-    disabled_extensions = set(settings.get('disabled_extensions', []))
-    disable_all_extensions = settings.get('disable_all_extensions', 'none')
+    disabled_extensions = set(settings.get("disabled_extensions", []))
+    disable_all_extensions = settings.get("disable_all_extensions", "none")
 
-    if disable_all_extensions != 'none' or args.disable_extra_extensions or args.disable_all_extensions or not os.path.isdir(extensions_builtin_dir):
+    if disable_all_extensions != "none" or args.disable_extra_extensions or args.disable_all_extensions or not os.path.isdir(extensions_builtin_dir):
         return []
 
     return [x for x in os.listdir(extensions_builtin_dir) if x not in disabled_extensions]
@@ -308,29 +308,27 @@ def requirements_met(requirements_file):
 
 
 def prepare_environment():
-    torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://download.pytorch.org/whl/cu126")
-    torch_command = os.environ.get('TORCH_COMMAND', f"pip install torch==2.6.0+cu126 torchvision==0.21.0+cu126 --extra-index-url {torch_index_url}")
-    xformers_package = os.environ.get('XFORMERS_PACKAGE', 'xformers==0.0.29.post3')
-    sage_package = os.environ.get('SAGE_PACKAGE', 'sageattention==1.0.6')
+    torch_index_url = os.environ.get("TORCH_INDEX_URL", "https://download.pytorch.org/whl/cu126")
+    torch_command = os.environ.get("TORCH_COMMAND", f"pip install torch==2.6.0+cu126 torchvision==0.21.0+cu126 --extra-index-url {torch_index_url}")
+    xformers_package = os.environ.get("XFORMERS_PACKAGE", "xformers==0.0.29.post3")
+    sage_package = os.environ.get("SAGE_PACKAGE", "sageattention==1.0.6")
 
-    requirements_file = os.environ.get('REQS_FILE', "requirements.txt")
-    clip_package = os.environ.get('CLIP_PACKAGE', "https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip")
-    openclip_package = os.environ.get('OPENCLIP_PACKAGE', "https://github.com/mlfoundations/open_clip/archive/bb6e834e9c70d9c27d0dc3ecedeebeaeb1ffad6b.zip")
+    requirements_file = os.environ.get("REQS_FILE", "requirements.txt")
+    clip_package = os.environ.get("CLIP_PACKAGE", "https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip")
+    openclip_package = os.environ.get("OPENCLIP_PACKAGE", "https://github.com/mlfoundations/open_clip/archive/bb6e834e9c70d9c27d0dc3ecedeebeaeb1ffad6b.zip")
 
-    assets_repo = os.environ.get('ASSETS_REPO', "https://github.com/AUTOMATIC1111/stable-diffusion-webui-assets.git")
-    stable_diffusion_repo = os.environ.get('STABLE_DIFFUSION_REPO', "https://github.com/Stability-AI/stablediffusion.git")
-    stable_diffusion_xl_repo = os.environ.get('STABLE_DIFFUSION_XL_REPO', "https://github.com/Stability-AI/generative-models.git")
-    # k_diffusion_repo = os.environ.get('K_DIFFUSION_REPO', 'https://github.com/crowsonkb/k-diffusion.git')
+    assets_repo = os.environ.get("ASSETS_REPO", "https://github.com/AUTOMATIC1111/stable-diffusion-webui-assets.git")
+    stable_diffusion_repo = os.environ.get("STABLE_DIFFUSION_REPO", "https://github.com/Stability-AI/stablediffusion.git")
+    stable_diffusion_xl_repo = os.environ.get("STABLE_DIFFUSION_XL_REPO", "https://github.com/Stability-AI/generative-models.git")
 
-    assets_commit_hash = os.environ.get('ASSETS_COMMIT_HASH', "6f7db241d2f8ba7457bac5ca9753331f0c266917")
-    stable_diffusion_commit_hash = os.environ.get('STABLE_DIFFUSION_COMMIT_HASH', "cf1d67a6fd5ea1aa600c4df58e5b47da45f6bdbf")
-    stable_diffusion_xl_commit_hash = os.environ.get('STABLE_DIFFUSION_XL_COMMIT_HASH', "45c443b316737a4ab6e40413d7794a7f5657c19f")
-    # k_diffusion_commit_hash = os.environ.get('K_DIFFUSION_COMMIT_HASH', "ab527a9a6d347f364e3d185ba6d714e22d80cb3c")
+    assets_commit_hash = os.environ.get("ASSETS_COMMIT_HASH", "6f7db241d2f8ba7457bac5ca9753331f0c266917")
+    stable_diffusion_commit_hash = os.environ.get("STABLE_DIFFUSION_COMMIT_HASH", "cf1d67a6fd5ea1aa600c4df58e5b47da45f6bdbf")
+    stable_diffusion_xl_commit_hash = os.environ.get("STABLE_DIFFUSION_XL_COMMIT_HASH", "45c443b316737a4ab6e40413d7794a7f5657c19f")
 
     try:
         # the existence of this file is a signal to webui.sh/bat that webui needs to be restarted when it stops execution
         os.remove(os.path.join(script_path, "tmp", "restart"))
-        os.environ.setdefault('SD_WEBUI_RESTARTING', '1')
+        os.environ.setdefault("SD_WEBUI_RESTARTING", "1")
     except OSError:
         pass
 
@@ -375,17 +373,16 @@ def prepare_environment():
 
     os.makedirs(os.path.join(script_path, dir_repos), exist_ok=True)
 
-    git_clone(assets_repo, repo_dir('stable-diffusion-webui-assets'), "assets", assets_commit_hash)
-    git_clone(stable_diffusion_repo, repo_dir('stable-diffusion-stability-ai'), "Stable Diffusion", stable_diffusion_commit_hash)
-    git_clone(stable_diffusion_xl_repo, repo_dir('generative-models'), "Stable Diffusion XL", stable_diffusion_xl_commit_hash)
-    # git_clone(k_diffusion_repo, repo_dir('k-diffusion'), "K-diffusion", k_diffusion_commit_hash)
+    git_clone(assets_repo, repo_dir("stable-diffusion-webui-assets"), "assets", assets_commit_hash)
+    git_clone(stable_diffusion_repo, repo_dir("stable-diffusion-stability-ai"), "Stable Diffusion", stable_diffusion_commit_hash)
+    git_clone(stable_diffusion_xl_repo, repo_dir("generative-models"), "Stable Diffusion XL", stable_diffusion_xl_commit_hash)
     startup_timer.record("clone repositores")
 
     if not os.path.isfile(requirements_file):
         requirements_file = os.path.join(script_path, requirements_file)
 
     if not requirements_met(requirements_file):
-        run_pip(f"install -r \"{requirements_file}\"", "requirements")
+        run_pip(f'install -r "{requirements_file}"', "requirements")
         startup_timer.record("install requirements")
 
     if not args.skip_install:
@@ -396,7 +393,7 @@ def prepare_environment():
         startup_timer.record("update extensions")
 
     if not requirements_met(requirements_file):
-        run_pip(f"install -r \"{requirements_file}\"", "requirements")
+        run_pip(f'install -r "{requirements_file}"', "requirements")
         startup_timer.record("enforce requirements")
 
     if "--exit" in sys.argv:
@@ -413,10 +410,10 @@ def configure_forge_reference_checkout(model_ref: Path):
         relative_path: str
 
     refs = [
+        ModelRef("--embeddings-dir", "embeddings"),
         ModelRef("--ckpt-dir", "models/Stable-diffusion"),
-        ModelRef("--vae-dir", "models/VAE"),
-        ModelRef("--embeddings-dir", "models/embeddings"),
         ModelRef("--lora-dir", "models/Lora"),
+        ModelRef("--vae-dir", "models/VAE"),
         ModelRef("--controlnet-dir", "models/ControlNet"),
         ModelRef("--controlnet-preprocessor-models-dir", "models/ControlNetPreprocessor"),
     ]
@@ -434,7 +431,8 @@ def configure_forge_reference_checkout(model_ref: Path):
 def start():
     print(f"Launching {'API server' if '--nowebui' in sys.argv else 'Web UI'} with arguments: {' '.join(sys.argv[1:])}")
     import webui
-    if '--nowebui' in sys.argv:
+
+    if "--nowebui" in sys.argv:
         webui.api_only()
     else:
         webui.webui()
