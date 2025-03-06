@@ -32,7 +32,6 @@ parser.add_argument("--gfpgan-model", type=normalized_filepath, help="GFPGAN mod
 parser.add_argument("--no-half", action="store_true", help="do not switch the model to 16-bit floats")
 parser.add_argument("--no-half-vae", action="store_true", help="do not switch the VAE model to 16-bit floats")
 parser.add_argument("--no-progressbar-hiding", action="store_true", help="do not hide progressbar in gradio UI (we hide it because it slows down ML if you have hardware acceleration in browser)")
-parser.add_argument("--max-batch-count", type=int, default=16, help="maximum batch count value for the UI")
 parser.add_argument("--embeddings-dir", type=normalized_filepath, default=os.path.join(models_path, "embeddings"), help="textual inversion directory")
 parser.add_argument("--localizations-dir", type=normalized_filepath, default=os.path.join(script_path, "localizations"), help="localizations directory")
 parser.add_argument("--upcast-sampling", action="store_true", help="upcast sampling. No effect with --no-half. Usually produces similar results to --no-half with better performance while using less memory.")
@@ -97,3 +96,4 @@ parser.add_argument("--forge-ref-a1111-home", type=Path, help="Look for models i
 parser.add_argument("--controlnet-dir", type=Path, help="Path to directory with ControlNet models", default=None)
 parser.add_argument("--controlnet-preprocessor-models-dir", type=Path, help="Path to directory with annotator model directories", default=None)
 parser.add_argument("--uv", action="store_true", help="Use the uv package manager")
+parser.add_argument("--fps", type=int, default=30, help="refresh rate for threads")

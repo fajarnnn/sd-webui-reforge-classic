@@ -7,11 +7,13 @@ By using one single thread to process all major calls, model moving is significa
 import threading
 import time
 import traceback
+from modules.shared import cmd_opts
 
 lock = threading.Lock()
 last_id = 0
 waiting_list = []
 finished_list = []
+fps = 1.0 / max(1, cmd_opts.fps)
 
 
 class Task:
@@ -29,7 +31,7 @@ class Task:
 def loop():
     global lock, last_id, waiting_list, finished_list
     while True:
-        time.sleep(0.01)
+        time.sleep(fps)
         if len(waiting_list) > 0:
             with lock:
                 task = waiting_list.pop(0)
@@ -55,7 +57,7 @@ def run_and_wait_result(func, *args, **kwargs):
     global lock, last_id, waiting_list, finished_list
     current_id = async_run(func, *args, **kwargs)
     while True:
-        time.sleep(0.01)
+        time.sleep(fps)
         finished_task = None
         for t in finished_list.copy():  # thread safe shallow copy without needing a lock
             if t.task_id == current_id:
