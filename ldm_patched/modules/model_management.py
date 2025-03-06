@@ -4,7 +4,6 @@
 
 import gc
 import time
-import weakref
 from enum import Enum
 from functools import lru_cache
 
@@ -315,7 +314,7 @@ if "rtx" in torch_device_name.lower():
         print("Hint: your device supports --pin-shared-memory for potential speed improvements")
 
 
-current_loaded_models = []
+current_loaded_models: list["LoadedModel"] = []
 
 
 def module_size(module, exclude_device=None):
@@ -334,17 +333,10 @@ def module_size(module, exclude_device=None):
 
 class LoadedModel:
     def __init__(self, model: ModelPatcher, memory_required: int):
-        self._model = weakref.ref(model)
+        self.model = model
         self.memory_required = memory_required
         self.model_accelerated = False
         self.device = model.load_device
-
-    @property
-    def model(self):
-        return self._model()
-
-    def is_dead(self) -> bool:
-        return self.model is None
 
     def model_memory(self) -> int:
         return self.model.model_size()
@@ -358,11 +350,6 @@ class LoadedModel:
 
         if disable_async_load:
             patch_model_to = self.device
-
-        if self.model_memory_required(self.device) == 0:
-            # already loaded
-            print("loading in-place")
-            self.model.unpatch_model()
 
         self.model.model_patches_to(self.device)
         self.model.model_patches_to(self.model.model_dtype())
@@ -421,7 +408,7 @@ class LoadedModel:
 
         return self.real_model
 
-    def __model_unload(self):
+    def model_unload(self, in_place: bool = False):
         if self.model_accelerated:
             for m in self.real_model.modules():
                 if hasattr(m, "prev_ldm_patched_cast_weights"):
@@ -429,19 +416,18 @@ class LoadedModel:
                     del m.prev_ldm_patched_cast_weights
 
             self.model_accelerated = False
-            del self.real_model
 
-        self.model.unpatch_model(self.model.offload_device)
-        self.model.model_patches_to(self.model.offload_device)
-
-    def model_unload(self):
-        try:
-            self.__model_unload()
-        except AttributeError:
-            pass
+        if in_place:
+            self.model.unpatch_model()
+        else:
+            self.model.unpatch_model(self.model.offload_device)
+            self.model.model_patches_to(self.model.offload_device)
 
     def __eq__(self, other: "LoadedModel"):
         return self.model is other.model
+
+    def __del__(self):
+        del self.model
 
 
 def minimum_inference_memory():
@@ -453,11 +439,11 @@ def unload_model_clones(model):
 
     for i in reversed(to_unload):
         m = current_loaded_models.pop(i)
-        m.model_unload()
+        m.model_unload(in_place=True)
         del m
 
     if len(to_unload) > 0:
-        print(f"Reusing {len(to_unload)} loaded models")
+        print(f"Reusing {len(to_unload)} loaded model{'s' if len(to_unload) > 1 else ''}")
         soft_empty_cache()
         gc.collect()
 
@@ -487,8 +473,6 @@ def free_memory(memory_required, device, keep_loaded=[]):
 
 
 def load_models_gpu(models, memory_required=0):
-    cleanup_models()
-
     execution_start_time = time.perf_counter()
     extra_mem = max(minimum_inference_memory(), memory_required)
     models_to_load, models_already_loaded = [], []
@@ -567,24 +551,13 @@ def load_models_gpu(models, memory_required=0):
     moving_time = time.perf_counter() - execution_start_time
     print(f"Moving model(s) has taken {moving_time:.2f} seconds")
 
-    return
-
 
 def load_model_gpu(model):
     return load_models_gpu([model])
 
 
 def cleanup_models():
-    to_delete = [i for i in range(len(current_loaded_models)) if current_loaded_models[i].is_dead()]
-
-    for i in reversed(to_delete):
-        m = current_loaded_models.pop(i)
-        m.model_unload()
-        del m
-
-    if len(to_delete) > 0:
-        soft_empty_cache()
-        gc.collect()
+    unload_all_models()
 
 
 def dtype_size(dtype: torch.dtype):
