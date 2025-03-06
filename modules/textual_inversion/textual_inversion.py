@@ -223,6 +223,6 @@ def create_embedding_from_data(data, name, filename="unknown embedding file", fi
 
     if filepath:
         embedding.filename = filepath
-        embedding.set_hash(hashes.sha256(filepath, "textual_inversion/" + name) or "")
+        embedding.set_hash(hashes.sha256(filepath, "/".join(["textual_inversion", name])) or "")
 
     return embedding

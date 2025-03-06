@@ -31,7 +31,7 @@ def get_loaded_vae_hash():
     if loaded_vae_file is None:
         return None
 
-    sha256 = hashes.sha256(loaded_vae_file, 'vae')
+    sha256 = hashes.sha256(loaded_vae_file, "/".join(["vae", get_loaded_vae_name()]))
 
     return sha256[0:10] if sha256 else None
 

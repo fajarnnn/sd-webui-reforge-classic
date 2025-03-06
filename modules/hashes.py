@@ -8,7 +8,7 @@ dump_cache = modules.cache.dump_cache
 cache = modules.cache.cache
 
 
-def calculate_sha256(filename):
+def calculate_sha256(filename: str) -> str:
     hash_sha256 = hashlib.sha256()
     blksize = 1024 * 1024
 
@@ -21,7 +21,6 @@ def calculate_sha256(filename):
 
 def sha256_from_cache(filename, title, use_addnet_hash=False):
     hashes = cache("hashes-addnet") if use_addnet_hash else cache("hashes")
-
     if title not in hashes:
         return None
 
@@ -42,8 +41,6 @@ def sha256_from_cache(filename, title, use_addnet_hash=False):
 
 
 def sha256(filename, title, use_addnet_hash=False):
-    hashes = cache("hashes-addnet") if use_addnet_hash else cache("hashes")
-
     sha256_value = sha256_from_cache(filename, title, use_addnet_hash)
     if sha256_value is not None:
         return sha256_value
@@ -59,6 +56,7 @@ def sha256(filename, title, use_addnet_hash=False):
         sha256_value = calculate_sha256(filename)
     print(f"{sha256_value}")
 
+    hashes = cache("hashes-addnet") if use_addnet_hash else cache("hashes")
     hashes[title] = {
         "mtime": os.path.getmtime(filename),
         "sha256": sha256_value,
@@ -69,7 +67,7 @@ def sha256(filename, title, use_addnet_hash=False):
     return sha256_value
 
 
-def addnet_hash_safetensors(b):
+def addnet_hash_safetensors(b: bytes) -> str:
     """
     kohya-ss hash for safetensors from https://github.com/kohya-ss/sd-scripts/blob/main/library/train_util.py
     """
@@ -90,7 +88,6 @@ def addnet_hash_safetensors(b):
 
 def partial_hash_from_cache(filename):
     hashes = cache("partial-hashes")
-
     if filename in hashes:
         return hashes[filename]
 

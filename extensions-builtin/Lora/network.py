@@ -1,16 +1,13 @@
 from __future__ import annotations
 from collections import namedtuple
 import enum
-import os
 
 import torch.nn.functional as F
 import torch.nn as nn
 
 from modules import sd_models, cache, errors, hashes, shared
 
-NetworkWeights = namedtuple(
-    "NetworkWeights", ["network_key", "sd_key", "w", "sd_module"]
-)
+NetworkWeights = namedtuple("NetworkWeights", ["network_key", "sd_key", "w", "sd_module"])
 
 metadata_tags_order = {
     "ss_sd_model_name": 1,
@@ -33,27 +30,22 @@ class NetworkOnDisk:
         self.name = name
         self.filename = filename
         self.metadata = {}
-        self.is_safetensors = os.path.splitext(filename)[1].lower() == ".safetensors"
+        self.is_safetensors = filename.lower().endswith(".safetensors")
 
         def read_metadata():
             metadata = sd_models.read_metadata_from_safetensors(filename)
             metadata.pop("ssmd_cover_images", None)  # cover images are too big to display in UI
-
             return metadata
 
         if self.is_safetensors:
             try:
-                self.metadata = cache.cached_data_for_file(
-                    "safetensors-metadata", "lora/" + self.name, filename, read_metadata
-                )
+                self.metadata = cache.cached_data_for_file("safetensors-metadata", "/".join(["lora", self.name]), filename, read_metadata)
             except Exception as e:
                 errors.display(e, f"reading lora {filename}")
 
         if self.metadata:
             m = {}
-            for k, v in sorted(
-                self.metadata.items(), key=lambda x: metadata_tags_order.get(x[0], 999)
-            ):
+            for k, v in sorted(self.metadata.items(), key=lambda x: metadata_tags_order.get(x[0], 999)):
                 m[k] = v
 
             self.metadata = m
@@ -62,13 +54,7 @@ class NetworkOnDisk:
 
         self.hash = None
         self.shorthash = None
-        self.set_hash(
-            self.metadata.get("sshs_model_hash")
-            or hashes.sha256_from_cache(
-                self.filename, "lora/" + self.name, use_addnet_hash=self.is_safetensors
-            )
-            or ""
-        )
+        self.set_hash(self.metadata.get("sshs_model_hash") or hashes.sha256_from_cache(self.filename, "/".join(["lora", self.name]), use_addnet_hash=self.is_safetensors) or "")
 
         self.sd_version = self.detect_version()
 
@@ -96,7 +82,7 @@ class NetworkOnDisk:
             self.set_hash(
                 hashes.sha256(
                     self.filename,
-                    "lora/" + self.name,
+                    "/".join(["lora", self.name]),
                     use_addnet_hash=self.is_safetensors,
                 )
                 or ""
@@ -105,10 +91,7 @@ class NetworkOnDisk:
     def get_alias(self):
         import networks
 
-        if (
-            shared.opts.lora_preferred_name == "Filename"
-            or self.alias.lower() in networks.forbidden_network_aliases
-        ):
+        if shared.opts.lora_preferred_name == "Filename" or self.alias.lower() in networks.forbidden_network_aliases:
             return self.name
         else:
             return self.alias
@@ -204,12 +187,12 @@ class NetworkModule:
         return updown * self.calc_scale() * self.multiplier(), ex_bias
 
     def calc_updown(self, target):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def forward(self, x, y):
         """A general forward implementation for all modules"""
         if self.ops is None:
-            raise NotImplementedError()
-        else:
-            updown, ex_bias = self.calc_updown(self.sd_module.weight)
-            return y + self.ops(x, weight=updown, bias=ex_bias, **self.extra_kwargs)
+            raise NotImplementedError
+
+        updown, ex_bias = self.calc_updown(self.sd_module.weight)
+        return y + self.ops(x, weight=updown, bias=ex_bias, **self.extra_kwargs)

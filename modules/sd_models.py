@@ -70,7 +70,7 @@ class CheckpointInfo:
         self.metadata = {}
         if self.is_safetensors:
             try:
-                self.metadata = cache.cached_data_for_file("safetensors-metadata", "checkpoint/" + name, filename, read_metadata)
+                self.metadata = cache.cached_data_for_file("safetensors-metadata", "/".join(["checkpoint", name]), filename, read_metadata)
             except Exception as e:
                 errors.display(e, f"reading metadata for {filename}")
 
@@ -79,7 +79,7 @@ class CheckpointInfo:
         self.model_name = os.path.splitext(name.replace("/", "_").replace("\\", "_"))[0]
         self.hash = model_hash(filename)
 
-        self.sha256 = hashes.sha256_from_cache(self.filename, f"checkpoint/{name}")
+        self.sha256 = hashes.sha256_from_cache(self.filename, "/".join(["checkpoint", name]))
         self.shorthash = self.sha256[0:10] if self.sha256 else None
 
         self.title = name if self.shorthash is None else f"{name} [{self.shorthash}]"
@@ -95,7 +95,7 @@ class CheckpointInfo:
             checkpoint_aliases[id] = self
 
     def calculate_shorthash(self):
-        self.sha256 = hashes.sha256(self.filename, f"checkpoint/{self.name}")
+        self.sha256 = hashes.sha256(self.filename, "/".join(["checkpoint", self.name]))
         if self.sha256 is None:
             return
 
