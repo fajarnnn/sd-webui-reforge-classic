@@ -1,15 +1,18 @@
-from ui_edit_user_metadata import LoraUserMetadataEditor
-from modules.ui_extra_networks import quote_js
-from modules import shared, ui_extra_networks
+from os import makedirs
+from os.path import splitext
 
-import networks
+from modules import shared
+from modules.ui_extra_networks import ExtraNetworksPage, quote_js
+
 import network
-import os
+import networks
+from ui_edit_user_metadata import LoraUserMetadataEditor
 
 
-class ExtraNetworksPageLora(ui_extra_networks.ExtraNetworksPage):
+class ExtraNetworksPageLora(ExtraNetworksPage):
     def __init__(self):
         super().__init__("Lora")
+        makedirs(shared.cmd_opts.lora_dir, exist_ok=True)
 
     def refresh(self):
         networks.list_available_networks()
@@ -19,13 +22,11 @@ class ExtraNetworksPageLora(ui_extra_networks.ExtraNetworksPage):
         if lora_on_disk is None:
             return
 
-        path, ext = os.path.splitext(lora_on_disk.filename)
-
-        alias = lora_on_disk.get_alias()
-
+        path = splitext(lora_on_disk.filename)[0]
         search_terms = [self.search_terms_from_path(lora_on_disk.filename)]
         if lora_on_disk.hash:
             search_terms.append(lora_on_disk.hash)
+
         item = {
             "name": name,
             "filename": lora_on_disk.filename,
@@ -43,19 +44,30 @@ class ExtraNetworksPageLora(ui_extra_networks.ExtraNetworksPage):
         }
 
         self.read_user_metadata(item)
+
+        sd_version = item["user_metadata"].get("sd version")
+        if sd_version in network.SDVersion.__members__:
+            item["sd_version"] = sd_version
+            sd_version = network.SDVersion[sd_version]
+        else:
+            sd_version = lora_on_disk.sd_version
+
+        if enable_filter and not shared.opts.lora_show_all:
+            if sd_version is network.SDVersion.Unknown:
+                model_version = network.SDVersion.SDXL if shared.sd_model.is_sdxl else network.SDVersion.SD1
+                if model_version.name in shared.opts.lora_hide_unknown_for_versions:
+                    return None
+            elif shared.sd_model.is_sdxl and sd_version != network.SDVersion.SDXL:
+                return None
+            elif shared.sd_model.is_sd2 and sd_version != network.SDVersion.SD2:
+                return None
+            elif shared.sd_model.is_sd1 and sd_version != network.SDVersion.SD1:
+                return None
+
+        alias = lora_on_disk.get_alias()
         activation_text = item["user_metadata"].get("activation text")
         preferred_weight = item["user_metadata"].get("preferred weight", 0.0)
-        item["prompt"] = (
-            quote_js(f"<lora:{alias}:")
-            + " + "
-            + (
-                str(preferred_weight)
-                if preferred_weight
-                else "opts.extra_networks_default_multiplier"
-            )
-            + " + "
-            + quote_js(">")
-        )
+        item["prompt"] = quote_js(f"<lora:{alias}:") + " + " + (str(preferred_weight) if preferred_weight else "opts.extra_networks_default_multiplier") + " + " + quote_js(">")
 
         if activation_text:
             item["prompt"] += " + " + quote_js(" " + activation_text)
@@ -65,38 +77,10 @@ class ExtraNetworksPageLora(ui_extra_networks.ExtraNetworksPage):
         if negative_prompt:
             item["negative_prompt"] = quote_js("(" + negative_prompt + ":1)")
 
-        sd_version = item["user_metadata"].get("sd version")
-        if sd_version in network.SdVersion.__members__:
-            item["sd_version"] = sd_version
-            sd_version = network.SdVersion[sd_version]
-        else:
-            sd_version = lora_on_disk.sd_version
-
-        if shared.opts.lora_show_all or not enable_filter:
-            pass
-        elif sd_version == network.SdVersion.Unknown:
-            model_version = (
-                network.SdVersion.SDXL
-                if shared.sd_model.is_sdxl
-                else (
-                    network.SdVersion.SD2
-                    if shared.sd_model.is_sd2
-                    else network.SdVersion.SD1
-                )
-            )
-            if model_version.name in shared.opts.lora_hide_unknown_for_versions:
-                return None
-        elif shared.sd_model.is_sdxl and sd_version != network.SdVersion.SDXL:
-            return None
-        elif shared.sd_model.is_sd2 and sd_version != network.SdVersion.SD2:
-            return None
-        elif shared.sd_model.is_sd1 and sd_version != network.SdVersion.SD1:
-            return None
-
         return item
 
     def list_items(self):
-        # instantiate a list to protect against concurrent modification
+        """instantiate a list to protect against concurrent modification"""
         names = list(networks.available_networks)
         for index, name in enumerate(names):
             item = self.create_item(name, index)

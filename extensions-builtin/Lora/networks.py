@@ -1,16 +1,15 @@
+import functools
+import os.path
+import re
+
 from ldm_patched.modules.sd import load_lora_for_models
 from ldm_patched.modules.utils import load_torch_file
-from modules import shared, sd_models, errors, scripts
+from modules import errors, scripts, sd_models, shared
 
-import lora_patches
-
-import functools
 import network
-import re
-import os
 
 
-@functools.lru_cache(maxsize=5)
+@functools.lru_cache(maxsize=4, typed=False)
 def load_lora_state_dict(filename):
     return load_torch_file(filename, safe_load=True)
 
@@ -30,26 +29,10 @@ def load_networks(names, te_multipliers=None, unet_multipliers=None, dyn_dims=No
 
     loaded_networks.clear()
 
-    networks_on_disk = [
-        (
-            available_networks.get(name, None)
-            if name.lower() in forbidden_network_aliases
-            else available_network_aliases.get(name, None)
-        )
-        for name in names
-    ]
-    if any(x is None for x in networks_on_disk):
-        list_available_networks()
-        networks_on_disk = [
-            (
-                available_networks.get(name, None)
-                if name.lower() in forbidden_network_aliases
-                else available_network_aliases.get(name, None)
-            )
-            for name in names
-        ]
+    networks_on_disk = [(available_networks.get(name, None) if name.lower() in forbidden_network_aliases else available_network_aliases.get(name, None)) for name in names]
+    assert not any(x is None for x in networks_on_disk)
 
-    for i, (network_on_disk, name) in enumerate(zip(networks_on_disk, names)):
+    for network_on_disk, name in zip(networks_on_disk, names):
         try:
             net = load_network(name, network_on_disk)
         except Exception as e:
@@ -74,30 +57,24 @@ def load_networks(names, te_multipliers=None, unet_multipliers=None, dyn_dims=No
 
     for filename, strength_model, strength_clip in compiled_lora_targets:
         lora_sd = load_lora_state_dict(filename)
-        current_sd.forge_objects.unet, current_sd.forge_objects.clip = (
-            load_lora_for_models(
-                current_sd.forge_objects.unet,
-                current_sd.forge_objects.clip,
-                lora_sd,
-                strength_model,
-                strength_clip,
-                filename,
-            )
+        current_sd.forge_objects.unet, current_sd.forge_objects.clip = load_lora_for_models(
+            current_sd.forge_objects.unet,
+            current_sd.forge_objects.clip,
+            lora_sd,
+            strength_model,
+            strength_clip,
+            filename,
         )
 
-    current_sd.forge_objects_after_applying_lora = (
-        current_sd.forge_objects.shallow_copy()
-    )
+    current_sd.forge_objects_after_applying_lora = current_sd.forge_objects.shallow_copy()
 
 
 def list_available_networks():
     available_networks.clear()
     available_network_aliases.clear()
-    forbidden_network_aliases.clear()
     available_network_hash_lookup.clear()
+    forbidden_network_aliases.clear()
     forbidden_network_aliases.update({"none": 1, "Addams": 1})
-
-    os.makedirs(shared.cmd_opts.lora_dir, exist_ok=True)
 
     candidates = list(
         shared.walk_files(
@@ -105,6 +82,7 @@ def list_available_networks():
             allowed_extensions=[".pt", ".ckpt", ".safetensors"],
         )
     )
+
     for filename in candidates:
         if os.path.isdir(filename):
             continue
@@ -112,7 +90,7 @@ def list_available_networks():
         name = os.path.splitext(os.path.basename(filename))[0]
         try:
             entry = network.NetworkOnDisk(name, filename)
-        except OSError:  # should catch FileNotFoundError and PermissionError etc.
+        except OSError:  # should catch FileNotFoundError and PermissionError, etc.
             errors.report(f"Failed to load network {name} from {filename}", exc_info=True)
             continue
 
@@ -158,8 +136,6 @@ def infotext_pasted(infotext, params):
     if added:
         params["Prompt"] += "\n" + "".join(added)
 
-
-originals: lora_patches.LoraPatches = None
 
 extra_network_lora = None
 

@@ -1,12 +1,13 @@
-from modules.paths_internal import normalized_filepath
+from os.path import join
+
 from modules import paths
-import os
+from modules.paths_internal import normalized_filepath
 
 
 def preload(parser):
     parser.add_argument(
         "--lora-dir",
         type=normalized_filepath,
-        help="Path to directory with Lora networks.",
-        default=os.path.join(paths.models_path, "Lora"),
+        help="Path to directory with LoRA networks",
+        default=join(paths.models_path, "Lora"),
     )

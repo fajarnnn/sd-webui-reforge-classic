@@ -1,11 +1,11 @@
 from __future__ import annotations
-from collections import namedtuple
+
 import enum
+from collections import namedtuple
 
-import torch.nn.functional as F
 import torch.nn as nn
-
-from modules import sd_models, cache, errors, hashes, shared
+import torch.nn.functional as F
+from modules import cache, errors, hashes, sd_models, shared
 
 NetworkWeights = namedtuple("NetworkWeights", ["network_key", "sd_key", "w", "sd_module"])
 
@@ -18,11 +18,11 @@ metadata_tags_order = {
 }
 
 
-class SdVersion(enum.Enum):
-    Unknown = 1
-    SD1 = 2
-    SD2 = 3
-    SDXL = 4
+class SDVersion(enum.Enum):
+    Unknown = -1
+    SD1 = 1
+    SD2 = 2
+    SDXL = 3
 
 
 class NetworkOnDisk:
@@ -60,13 +60,13 @@ class NetworkOnDisk:
 
     def detect_version(self):
         if str(self.metadata.get("ss_base_model_version", "")).startswith("sdxl_"):
-            return SdVersion.SDXL
+            return SDVersion.SDXL
         elif str(self.metadata.get("ss_v2", "")) == "True":
-            return SdVersion.SD2
+            return SDVersion.SD2
         elif len(self.metadata):
-            return SdVersion.SD1
+            return SDVersion.SD1
 
-        return SdVersion.Unknown
+        return SDVersion.Unknown
 
     def set_hash(self, v):
         self.hash = v

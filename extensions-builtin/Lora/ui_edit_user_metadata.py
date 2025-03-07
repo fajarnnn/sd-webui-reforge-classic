@@ -1,20 +1,17 @@
-from modules import ui_extra_networks_user_metadata
-
-import gradio as gr
 import datetime
-import random
 import html
 import re
+
+import gradio as gr
+from modules.ui_extra_networks_user_metadata import UserMetadataEditor
+
+re_word = re.compile(r"[-_\w']+")
+re_comma = re.compile(r" *, *")
 
 
 def is_non_comma_tagset(tags):
     average_tag_length = sum(len(x) for x in tags.keys()) / len(tags)
-
     return average_tag_length >= 16
-
-
-re_word = re.compile(r"[-_\w']+")
-re_comma = re.compile(r" *, *")
 
 
 def build_tags(metadata):
@@ -38,11 +35,10 @@ def build_tags(metadata):
         tags = new_tags
 
     ordered_tags = sorted(tags.keys(), key=tags.get, reverse=True)
-
     return [(tag, tags[tag]) for tag in ordered_tags]
 
 
-class LoraUserMetadataEditor(ui_extra_networks_user_metadata.UserMetadataEditor):
+class LoraUserMetadataEditor(UserMetadataEditor):
     def __init__(self, ui, tabname, page):
         super().__init__(ui, tabname, page)
 
@@ -95,9 +91,7 @@ class LoraUserMetadataEditor(ui_extra_networks_user_metadata.UserMetadataEditor)
             table.append(
                 (
                     "Date trained:",
-                    datetime.datetime.utcfromtimestamp(
-                        float(ss_training_started_at)
-                    ).strftime("%Y-%m-%d %H:%M"),
+                    datetime.datetime.fromtimestamp(float(ss_training_started_at)).strftime("%Y-%m-%d %H:%M"),
                 )
             )
 
@@ -107,14 +101,9 @@ class LoraUserMetadataEditor(ui_extra_networks_user_metadata.UserMetadataEditor)
             for _, bucket in ss_bucket_info["buckets"].items():
                 resolution = bucket["resolution"]
                 resolution = f"{resolution[1]}x{resolution[0]}"
+                resolutions[resolution] = resolutions.get(resolution, 0) + int(bucket["count"])
 
-                resolutions[resolution] = resolutions.get(resolution, 0) + int(
-                    bucket["count"]
-                )
-
-            resolutions_list = sorted(
-                resolutions.keys(), key=resolutions.get, reverse=True
-            )
+            resolutions_list = sorted(resolutions.keys(), key=resolutions.get, reverse=True)
             resolutions_text = html.escape(", ".join(resolutions_list[0:4]))
             if len(resolutions) > 4:
                 resolutions_text += ", ..."
@@ -148,47 +137,18 @@ class LoraUserMetadataEditor(ui_extra_networks_user_metadata.UserMetadataEditor)
 
         return [
             *values[0:5],
-            item.get("sd_version", "Unknown"),
-            gr.HighlightedText.update(
-                value=gradio_tags, visible=True if tags else False
-            ),
+            gr.update(value=item.get("sd_version", "Unknown")),
+            gr.HighlightedText.update(value=gradio_tags, visible=True if tags else False),
             user_metadata.get("activation text", ""),
             float(user_metadata.get("preferred weight", 0.0)),
             user_metadata.get("negative text", ""),
-            gr.update(visible=True if tags else False),
-            gr.update(
-                value=self.generate_random_prompt_from_tags(tags),
-                visible=True if tags else False,
-            ),
         ]
 
-    def generate_random_prompt(self, name):
-        item = self.page.items.get(name, {})
-        metadata = item.get("metadata") or {}
-        tags = build_tags(metadata)
-
-        return self.generate_random_prompt_from_tags(tags)
-
-    def generate_random_prompt_from_tags(self, tags):
-        max_count = None
-        res = []
-        for tag, count in tags:
-            if not max_count:
-                max_count = count
-
-            v = random.random() * max_count
-            if count > v:
-                res.append(tag)
-
-        return ", ".join(sorted(res))
-
     def create_extra_default_items_in_left_column(self):
-
-        # this would be a lot better as gr.Radio but I can't make it work
         self.select_sd_version = gr.Dropdown(
-            ["SD1", "SD2", "SDXL", "Unknown"],
+            choices=("SD1", "SD2", "SDXL", "Unknown"),
             value="Unknown",
-            label="Stable Diffusion version",
+            label="Stable Diffusion Version",
             interactive=True,
         )
 
@@ -196,36 +156,16 @@ class LoraUserMetadataEditor(ui_extra_networks_user_metadata.UserMetadataEditor)
         self.create_default_editor_elems()
 
         self.taginfo = gr.HighlightedText(label="Training dataset tags")
-        self.edit_activation_text = gr.Text(
-            label="Activation text", info="Will be added to prompt along with Lora"
-        )
+        self.edit_activation_text = gr.Text(label="Activation text", info="Will be added to prompt along with Lora")
+        self.edit_negative_text = gr.Text(label="Negative prompt", info="Will be added to negative prompts")
         self.slider_preferred_weight = gr.Slider(
             label="Preferred weight",
-            info="Set to 0 to disable",
+            info="Set to 0 to use the default set in Settings",
             minimum=0.0,
             maximum=2.0,
-            step=0.01,
+            step=0.1,
         )
-        self.edit_negative_text = gr.Text(
-            label="Negative prompt", info="Will be added to negative prompts"
-        )
-        with gr.Row() as row_random_prompt:
-            with gr.Column(scale=8):
-                random_prompt = gr.Textbox(
-                    label="Random prompt", lines=4, max_lines=4, interactive=False
-                )
-
-            with gr.Column(scale=1, min_width=120):
-                generate_random_prompt = gr.Button("Generate", size="lg", scale=1)
-
         self.edit_notes = gr.TextArea(label="Notes", lines=4)
-
-        generate_random_prompt.click(
-            fn=self.generate_random_prompt,
-            inputs=[self.edit_name_input],
-            outputs=[random_prompt],
-            show_progress=False,
-        )
 
         def select_tag(activation_text, evt: gr.SelectData):
             tag = evt.value[0]
@@ -257,8 +197,6 @@ class LoraUserMetadataEditor(ui_extra_networks_user_metadata.UserMetadataEditor)
             self.edit_activation_text,
             self.slider_preferred_weight,
             self.edit_negative_text,
-            row_random_prompt,
-            random_prompt,
         ]
 
         self.button_edit.click(
@@ -276,6 +214,4 @@ class LoraUserMetadataEditor(ui_extra_networks_user_metadata.UserMetadataEditor)
             self.edit_notes,
         ]
 
-        self.setup_save_handler(
-            self.button_save, self.save_lora_user_metadata, edited_components
-        )
+        self.setup_save_handler(self.button_save, self.save_lora_user_metadata, edited_components)

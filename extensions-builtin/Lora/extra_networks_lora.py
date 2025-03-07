@@ -1,4 +1,5 @@
 from modules import extra_networks, shared
+
 import networks
 
 
@@ -14,21 +15,9 @@ class ExtraNetworkLora(extra_networks.ExtraNetwork):
 
         self.errors.clear()
 
-        if (
-            additional != "None"
-            and additional in networks.available_networks
-            and not any(x for x in params_list if x.items[0] == additional)
-        ):
-            p.all_prompts = [
-                x
-                + f"<lora:{additional}:{shared.opts.extra_networks_default_multiplier}>"
-                for x in p.all_prompts
-            ]
-            params_list.append(
-                extra_networks.ExtraNetworkParams(
-                    items=[additional, shared.opts.extra_networks_default_multiplier]
-                )
-            )
+        if additional != "None" and additional in networks.available_networks and not any(x for x in params_list if x.items[0] == additional):
+            p.all_prompts = [x + f"<lora:{additional}:{shared.opts.extra_networks_default_multiplier}>" for x in p.all_prompts]
+            params_list.append(extra_networks.ExtraNetworkParams(items=[additional, shared.opts.extra_networks_default_multiplier]))
 
         names = []
         te_multipliers = []
@@ -39,16 +28,10 @@ class ExtraNetworkLora(extra_networks.ExtraNetwork):
 
             names.append(params.positional[0])
 
-            te_multiplier = (
-                float(params.positional[1]) if len(params.positional) > 1 else 1.0
-            )
+            te_multiplier = float(params.positional[1]) if len(params.positional) > 1 else 1.0
             te_multiplier = float(params.named.get("te", te_multiplier))
 
-            unet_multiplier = (
-                float(params.positional[2])
-                if len(params.positional) > 2
-                else te_multiplier
-            )
+            unet_multiplier = float(params.positional[2]) if len(params.positional) > 2 else te_multiplier
             unet_multiplier = float(params.named.get("unet", unet_multiplier))
 
             dyn_dim = int(params.positional[3]) if len(params.positional) > 3 else None
@@ -80,9 +63,5 @@ class ExtraNetworkLora(extra_networks.ExtraNetwork):
 
     def deactivate(self, p):
         if self.errors:
-            p.comment(
-                "Networks with errors: "
-                + ", ".join(f"{k} ({v})" for k, v in self.errors.items())
-            )
-
+            p.comment("Networks with errors: " + ", ".join(f"{k} ({v})" for k, v in self.errors.items()))
             self.errors.clear()
