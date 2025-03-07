@@ -1,6 +1,6 @@
 import contextlib
 import torch
-import ldm_patched.modules.model_management as model_management
+from ldm_patched.modules import model_management
 
 
 def has_xpu() -> bool:
@@ -50,13 +50,11 @@ def enable_tf32():
 cpu: torch.device = torch.device("cpu")
 fp8: bool = model_management.unet_dtype() == torch.float8_e4m3fn
 device: torch.device = model_management.get_torch_device()
-device_gfpgan: torch.device = model_management.get_torch_device()  # will be managed by memory management system
-device_esrgan: torch.device = model_management.get_torch_device()  # will be managed by memory management system
-device_codeformer: torch.device = model_management.get_torch_device()  # will be managed by memory management system
+device_gfpgan = device_esrgan = device_codeformer = device
 dtype: torch.dtype = torch.float32 if model_management.unet_dtype() is torch.float32 else torch.float16
 dtype_vae: torch.dtype = model_management.vae_dtype()
 dtype_unet: torch.dtype = model_management.unet_dtype()
-dtype_inference: torch.dtype = model_management.unet_dtype()
+dtype_inference = dtype_unet
 unet_needs_upcast = False
 
 
