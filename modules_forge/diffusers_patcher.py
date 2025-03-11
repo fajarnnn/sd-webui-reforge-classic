@@ -1,6 +1,5 @@
-import ldm_patched.modules.ops as ops
 import torch
-from ldm_patched.modules import model_management
+from ldm_patched.modules import ops, model_management
 from ldm_patched.modules.model_patcher import ModelPatcher
 from transformers import modeling_utils
 
@@ -21,14 +20,17 @@ class DiffusersModelPatcher:
 
         if hasattr(self.pipeline, "unet"):
             if hasattr(self.pipeline.unet, "set_attn_processor"):
-                from diffusers.models.attention_processor import AttnProcessor2_0
+                try:
+                    from diffusers.models.attention_processor import AttnProcessor2_0
 
-                self.pipeline.unet.set_attn_processor(AttnProcessor2_0())
-                print("Attention optimization applied to DiffusersModelPatcher")
+                    self.pipeline.unet.set_attn_processor(AttnProcessor2_0())
+                    print("Attention optimization applied to DiffusersModelPatcher")
+                except ImportError:
+                    print("Failed to import diffusers; please install it manually")
 
         self.pipeline = self.pipeline.to(device=offload_device)
 
-        if self.dtype == torch.float16:
+        if self.dtype is torch.float16:
             self.pipeline = self.pipeline.half()
 
         self.pipeline.eval()
@@ -41,7 +43,7 @@ class DiffusersModelPatcher:
 
     def prepare_memory_before_sampling(self, batchsize, latent_width, latent_height):
         area = 2 * batchsize * latent_width * latent_height
-        inference_memory = (((area * 0.6) / 0.9) + 1024) * (1024 * 1024)
+        inference_memory = (((area * 0.6) / 0.9) + 1024) * (2**20)
         model_management.load_models_gpu(models=[self.patcher], memory_required=inference_memory)
 
     def move_tensor_to_current_device(self, x):
