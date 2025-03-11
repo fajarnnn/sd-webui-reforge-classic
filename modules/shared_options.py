@@ -251,6 +251,7 @@ options_templates.update(
             "persistent_cond_cache": OptionInfo(True, "Persistent cond cache").info("do not recalculate conds from prompts if prompts have not changed since previous calculation"),
             "fp8_storage": OptionInfo(False, "Store UNet Weights in fp8").info("store the weights in fp8; inference in fp16; reduce memory usage; reduce speed; reduce quality").needs_restart(),
             "fp8_fast": OptionInfo(False, "Inference UNet in fast fp8 operations").info("inference in fp8 using <b>torch._scaled_mm</b>; increase speed; reduce quality; require <b>RTX 40</b> or later").needs_restart(),
+            "cublas_fast": OptionInfo(False, "Inference UNet in fast cublas operations").info("inference using <b>CublasLinear</b>; increase speed; require <b>manual</b> installation first").needs_restart(),
         },
     )
 )

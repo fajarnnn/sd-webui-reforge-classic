@@ -59,7 +59,17 @@ class BaseModel(torch.nn.Module):
 
         if not unet_config.get("disable_unet_model_creation", False):
             operations = None
-            if getattr(opts, "fp8_fast", False):
+
+            if getattr(opts, "cublas_fast", False):
+                if ldm_patched.modules.model_management.prefer_fp8():
+                    print("\n\nERROR: cublas_ops requires fp16\n\n")
+                else:
+                    try:
+                        operations = ldm_patched.modules.ops.cublas_ops
+                        print("using fast cublas ops")
+                    except AttributeError:
+                        print("\n\nERROR: failed to import cublas_ops\n\n")
+            elif getattr(opts, "fp8_fast", False):
                 if ldm_patched.modules.model_management.support_fp8():
                     operations = ldm_patched.modules.ops.fp8_ops
                     print("using fast fp8 ops")
@@ -70,6 +80,7 @@ class BaseModel(torch.nn.Module):
                     operations = ldm_patched.modules.ops.manual_cast
                 else:
                     operations = ldm_patched.modules.ops.disable_weight_init
+
             self.diffusion_model = UNetModel(**unet_config, device=device, operations=operations)
 
         self.model_type = model_type

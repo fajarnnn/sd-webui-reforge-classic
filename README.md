@@ -55,7 +55,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <hr>
 
-## Features [Mar. 5]
+## Features [Mar. 11]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -67,9 +67,16 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - requires RTX **30** +
     - ~5% speed up; only supports **SDXL**
     - see [Commandline](#commandline)
+- [X] Support fast `cublas` operation *(`CublasLinear`)*
+    - requires **manually** installing [cublas_ops](https://github.com/aredden/torch-cublas-hgemm) package
+    - ~25% speed up
 - [X] Support fast `fp8` operation *(`torch._scaled_mm`)*
     - requires RTX **40** +
     - ~10% speed up; reduce quality
+
+> [!Note]
+> The `cublas_ops` requires `fp16` precision, thus is not compatible with `fp8` settings
+
 - [X] Support `v-pred` **SDXL** checkpoints *(**eg.** [NoobAI](https://civitai.com/models/833294?modelVersionId=1190596))*
 - [X] Implement RescaleCFG
     - reduce burnt colors; mainly for `v-pred`
@@ -116,6 +123,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Remove duplicated upscaler codes
     - put every upscaler inside the `ESRGAN` folder
 - [X] Improve code logics
+- [X] Improve hash caching
 - [X] Improve error logs
     - no longer prints `TypeError: 'NoneType' object is not iterable`
 - [X] Moved `embeddings` folder into `models` folder
@@ -127,6 +135,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Lint & Format most of the Python and JavaScript codes
 - [X] Update to latest PyTorch
     - currently `2.6.0+cu126`
+- [X] Run `Clip` on CPU by default
 - [X] Update recommended Python to `3.11.9`
 - [X] `use_checkpoint: False`
 - [X] many more... :tm:
@@ -220,6 +229,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 <hr>
 
 <p align="center">
-Special thanks to <b>AUTOMATIC1111</b>, <b>lllyasviel</b>, and <b>comfyanonymous</b>, along with the rest of the contributors, <br>
+Special thanks to <b>AUTOMATIC1111</b>, <b>lllyasviel</b>, and <b>comfyanonymous</b>, <b>kijai</b>, <br>
+along with the rest of the contributors, <br>
 for their invaluable efforts in the open-source image generation community
 </p>

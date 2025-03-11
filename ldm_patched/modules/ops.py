@@ -278,3 +278,18 @@ class fp8_ops(manual_cast):
             weight, bias, signal = cast_bias_weight(self, input)
             with main_stream_worker(weight, bias, signal):
                 return torch.nn.functional.linear(input, weight, bias)
+
+
+try:
+    from cublas_ops import CublasLinear
+except ImportError:
+    pass
+else:
+
+    class cublas_ops(manual_cast):
+        class Linear(CublasLinear, manual_cast.Linear):
+            def reset_parameters(self):
+                return None
+
+            def forward_ldm_patched_cast_weights(self, input):
+                return super().forward(input)
