@@ -202,7 +202,7 @@ image into latent space representation and back. Latent space representation is 
 For img2img, VAE is used to process user's input image before the sampling, and to create an image after sampling.
 """
             ),
-            "sd_vae_checkpoint_cache": OptionInfo(0, "VAE Checkpoints to cache in RAM", gr.Slider, {"minimum": 0, "maximum": 10, "step": 1}),
+            "sd_vae_checkpoint_cache": OptionInfo(0, "VAE Checkpoints to cache in RAM", gr.Slider, {"minimum": 0, "maximum": 10, "step": 1}).needs_restart(),
             "sd_vae": OptionInfo("Automatic", "SD VAE", gr.Dropdown, lambda: {"choices": shared_items.sd_vae_items()}, refresh=shared_items.refresh_vae_list, infotext="VAE").info("choose VAE model: Automatic = use one with same filename as checkpoint; None = use VAE from checkpoint"),
             "sd_vae_overrides_per_model_preferences": OptionInfo(True, "Selected VAE overrides per-model preferences").info("you can set per-model VAE either by editing user metadata for checkpoints, or by making the VAE have same name as checkpoint"),
             "prefer_vae_precision_float16": OptionInfo(False, "Prefer VAE in float16 precision").info("most VAE at half precision produces NaNs; <b>enable with caution</b>"),
@@ -418,7 +418,7 @@ options_templates.update(
             "live_previews_image_format": OptionInfo("jpeg", "Live preview file format", gr.Radio, {"choices": ["jpeg", "png", "webp"]}),
             "show_progress_grid": OptionInfo(True, "Show previews of all images generated in a batch as a grid"),
             "show_progress_every_n_steps": OptionInfo(10, "Live preview display period", gr.Slider, {"minimum": -1, "maximum": 32, "step": 1}).info("in sampling steps - show new live preview image every N sampling steps; -1 = only show after completion of batch"),
-            "show_progress_type": OptionInfo("TAESD", "Live preview method", gr.Radio, {"choices": ["Approx NN", "Approx cheap", "TAESD"]}).info("Approx NN: fast preview; TAESD = high-quality preview; Approx cheap = fastest but low-quality preview"),
+            "show_progress_type": OptionInfo("TAESD", "Live preview method", gr.Radio, {"choices": ["Approx NN", "Approx cheap", "TAESD", "RGB"]}).info("<b>Approx NN</b>: legacy preview method; <b>TAESD</b>: high quality preview method; <b>Approx cheap</b> / <b>RGB</b>: fast but low quality preview method").info("<b>Approx NN</b> and <b>TAESD</b> will download additional model"),
             "live_preview_content": OptionInfo("Prompt", "Live preview subject", gr.Radio, {"choices": ["Combined", "Prompt", "Negative prompt"]}),
             "live_preview_refresh_period": OptionInfo(1000, "Progressbar and preview update period").info("in milliseconds"),
             "live_preview_fast_interrupt": OptionInfo(False, "Return image with chosen live preview method on interrupt").info("makes interrupts faster"),

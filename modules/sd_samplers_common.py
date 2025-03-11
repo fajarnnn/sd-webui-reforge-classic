@@ -5,7 +5,7 @@ from functools import lru_cache
 import numpy as np
 import torch
 from PIL import Image
-from modules import devices, images, sd_vae_approx, sd_samplers, sd_vae_taesd, shared, sd_models
+from modules import devices, images, sd_vae_approx, sd_samplers, sd_vae_taesd, sd_vae_rgb, shared, sd_models
 from modules.shared import opts, state
 from modules_forge.forge_sampler import sampling_prepare, sampling_cleanup
 from modules import extra_networks
@@ -35,7 +35,7 @@ def setup_img2img_steps(p, steps=None):
     return steps, t_enc
 
 
-approximation_indexes = {"Full": 0, "Approx NN": 1, "Approx cheap": 2, "TAESD": 3}
+approximation_indexes = {"Full": 0, "Approx NN": 1, "Approx cheap": 2, "TAESD": 3, "RGB": 4}
 
 
 @lru_cache(maxsize=(shared.opts.sd_vae_checkpoint_cache), typed=False)
@@ -47,12 +47,15 @@ def get_decoder(approximation:int) -> Callable:
             vae = sd_vae_approx.cheap_approximation
         case 3:
             vae = sd_vae_taesd.decoder_model()
+        case 4:
+            vae = sd_vae_rgb.model()
         case _:
             return None
 
     return vae
 
 
+@torch.inference_mode()
 def samples_to_images_tensor(sample, approximation=None, model=None):
     """Transforms 4-channel latent space images into 3-channel RGB image tensors, with values in range [-1, 1]."""
 
@@ -74,6 +77,8 @@ def samples_to_images_tensor(sample, approximation=None, model=None):
         case 3:
             x_sample = vae(sample.to(devices.device, devices.dtype)).detach()
             return x_sample * 2 - 1
+        case 4:
+            return vae(sample.to(devices.cpu, devices.dtype)).detach()
 
 
 def single_sample_to_image(sample, approximation=None):
