@@ -286,10 +286,13 @@ except ImportError:
     pass
 else:
 
-    class cublas_ops(manual_cast):
-        class Linear(CublasLinear, manual_cast.Linear):
+    class cublas_ops(disable_weight_init):
+        class Linear(CublasLinear, disable_weight_init.Linear):
             def reset_parameters(self):
                 return None
 
             def forward_ldm_patched_cast_weights(self, input):
                 return super().forward(input)
+
+            def forward(self, *args, **kwargs):
+                return super().forward(*args, **kwargs)
