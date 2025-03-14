@@ -106,8 +106,8 @@ def check_versions():
     from modules import shared
     from packaging import version
 
-    expected_torch = "2.1.2"
-    expected_xformers = "0.0.23.post1"
+    expected_torch = "2.3.1"
+    expected_xformers = "0.0.27"
     expected_gradio = "3.41.2"
 
     if version.parse(torch.__version__) < version.parse(expected_torch):
@@ -133,7 +133,7 @@ def check_versions():
                 """.strip()
             )
 
-    if gradio.__version__ != expected_gradio:
+    if version.parse(gradio.__version__) < version.parse(expected_gradio):
         print_error_explanation(
             f"""
             You are running gradio {gradio.__version__}.
