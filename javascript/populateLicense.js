@@ -8,6 +8,8 @@ function fetchLicense(id, url) {
 
 function populateLicense() {
     const pairs = [
+        ["sd1", "https://raw.githubusercontent.com/Stability-AI/stablediffusion/main/LICENSE"],
+        ["sdxl", "https://raw.githubusercontent.com/Stability-AI/generative-models/main/LICENSE-CODE"],
         ["comfy", "https://raw.githubusercontent.com/comfyanonymous/ComfyUI/master/LICENSE"],
         ["chain", "https://raw.githubusercontent.com/chaiNNer-org/chaiNNer/main/LICENSE"],
         ["tfm", "https://raw.githubusercontent.com/huggingface/transformers/main/LICENSE"],
