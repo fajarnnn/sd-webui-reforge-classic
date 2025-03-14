@@ -1,8 +1,8 @@
 GitPython==3.1.32
-Pillow==11.1.0
+Pillow==10.4.0
 accelerate==1.4.0
 albumentations==1.4.3
-blendmodes==2025
+blendmodes==2023
 clean-fid==0.1.35
 diskcache==5.6.3
 einops==0.4.1
@@ -28,7 +28,7 @@ pydantic==1.10.20
 pytorch_lightning==1.9.4
 resize-right==0.0.2
 rich==13.9.2
-safetensors==0.4.2
+safetensors==0.5.3
 scikit-image==0.21.0
 spandrel==0.4.0
 spandrel-extra-arches==0.2.0
