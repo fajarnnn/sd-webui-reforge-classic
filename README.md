@@ -55,7 +55,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <hr>
 
-## Features [Mar. 11]
+## Features [Mar. 14]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -95,7 +95,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 #### Removed Features
 
-- [ ] SD2
+- [X] SD2
 - [X] Alt-Diffusion
 - [X] Instruct-Pix2Pix
 - [X] Hypernetworks
@@ -105,6 +105,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Deepbooru Interrogator
 - [X] Textual Inversion Training
 - [X] Checkpoint Merging
+- [X] LDSR
 - [X] Most **built-in** Extensions
 - [X] Some **built-in** Scripts
 - [X] The `test` scripts
@@ -112,32 +113,37 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 #### Optimizations
 
-- [X] Fix Memory Leak when switching Checkpoints
-- [X] Fix `pydantic` Errors
-- [X] Check for Extension Updates in Parallel
+- [X] **[Freedom]** Natively integrate the `SD1` and `SDXL` logics
+    - no longer `git` `clone` any repository on fresh install
+    - no more random hacks and monkey patches
+
+<br>
+
+- [X] Fix memory leak when switching checkpoints
 - [X] Clean up the `ldm_patched` *(**ie.** `comfy`)* folder
 - [X] Remove unused `cmd_args`
 - [X] Remove unused `shared_options`
 - [X] Remove unused `args_parser`
-- [X] Remove large amount of legacy code
+- [X] Remove legacy codes
 - [X] Remove duplicated upscaler codes
     - put every upscaler inside the `ESRGAN` folder
 - [X] Improve code logics
 - [X] Improve hash caching
 - [X] Improve error logs
     - no longer prints `TypeError: 'NoneType' object is not iterable`
+- [X] Check for Extension updates in parallel
 - [X] Moved `embeddings` folder into `models` folder
 - [X] ControlNet Rewrite
     - change Units to `gr.Tab`
     - remove multi-inputs, as they are "[misleading](https://github.com/lllyasviel/stable-diffusion-webui-forge/discussions/932)"
     - change `visible` toggle to `interactive` toggle; now the UI will no longer jump around
     - improved `Presets` application
+- [X] Run `text encoder` on CPU by default
+- [X] Fix `pydantic` Errors
 - [X] Lint & Format most of the Python and JavaScript codes
 - [X] Update to latest PyTorch
     - currently `2.6.0+cu126`
-- [X] Run `Clip` on CPU by default
 - [X] Update recommended Python to `3.11.9`
-- [X] `use_checkpoint: False`
 - [X] many more... :tm:
 
 <br>
