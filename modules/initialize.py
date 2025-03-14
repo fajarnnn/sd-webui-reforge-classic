@@ -44,13 +44,6 @@ def imports():
             import xformers.ops  # noqa: F401
         startup_timer.record("setup paths")
 
-        import ldm.modules.encoders.modules  # noqa: F401
-        import ldm.modules.diffusionmodules.model  # noqa: F401
-        startup_timer.record("import ldm")
-
-        import sgm.modules.encoders.modules  # noqa: F401
-        startup_timer.record("import sgm")
-
     from modules import shared_init
     shared_init.initialize()
     startup_timer.record("initialize shared")
