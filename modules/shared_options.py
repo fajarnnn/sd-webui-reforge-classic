@@ -78,11 +78,11 @@ options_templates.update(
     options_section(
         ("saving-paths", "Paths for saving", "saving"),
         {
-            "outdir_samples": OptionInfo("", "Output directory for images; if empty, defaults to three directories below", component_args=hide_dirs),
+            "outdir_samples": OptionInfo("", "Output directory for images", component_args=hide_dirs).info("if empty, defaults to the <b>3</b> settings below"),
             "outdir_txt2img_samples": OptionInfo(util.truncate_path(os.path.join(default_output_dir, "txt2img-images")), "Output directory for txt2img images", component_args=hide_dirs),
             "outdir_img2img_samples": OptionInfo(util.truncate_path(os.path.join(default_output_dir, "img2img-images")), "Output directory for img2img images", component_args=hide_dirs),
             "outdir_extras_samples": OptionInfo(util.truncate_path(os.path.join(default_output_dir, "extras-images")), "Output directory for images from extras tab", component_args=hide_dirs),
-            "outdir_grids": OptionInfo("", "Output directory for grids; if empty, defaults to two directories below", component_args=hide_dirs),
+            "outdir_grids": OptionInfo("", "Output directory for grids", component_args=hide_dirs).info("if empty, defaults to the <b>2</b> settings below"),
             "outdir_txt2img_grids": OptionInfo(util.truncate_path(os.path.join(default_output_dir, "txt2img-grids")), "Output directory for txt2img grids", component_args=hide_dirs),
             "outdir_img2img_grids": OptionInfo(util.truncate_path(os.path.join(default_output_dir, "img2img-grids")), "Output directory for img2img grids", component_args=hide_dirs),
             "outdir_save": OptionInfo(util.truncate_path(os.path.join(data_path, "log", "images")), "Directory for saving images using the Save button", component_args=hide_dirs),
