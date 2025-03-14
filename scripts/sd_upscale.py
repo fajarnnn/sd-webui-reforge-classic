@@ -23,14 +23,22 @@ class SDUpscale(scripts.Script):
             use the <b>Batch size</b> to process multiple tiles at once</p>"""
         )
 
-        scale_factor = gr.Slider(
-            label="Scale Factor",
-            value=2.0,
-            minimum=1.0,
-            maximum=8.0,
-            step=0.05,
-            elem_id=self.elem_id("scale_factor"),
-        )
+        with gr.Row():
+            upscaler_index = gr.Dropdown(
+                label="Upscaler",
+                choices=[x.name for x in shared.sd_upscalers],
+                value=shared.sd_upscalers[0].name,
+                type="index",
+                elem_id=self.elem_id("upscaler_index"),
+            )
+            scale_factor = gr.Slider(
+                label="Scale Factor",
+                value=2.0,
+                minimum=1.0,
+                maximum=8.0,
+                step=0.05,
+                elem_id=self.elem_id("scale_factor"),
+            )
 
         with gr.Row():
             overlap = gr.Slider(
@@ -41,17 +49,14 @@ class SDUpscale(scripts.Script):
                 step=16,
                 elem_id=self.elem_id("overlap"),
             )
-            upscaler_index = gr.Dropdown(
-                label="Upscaler",
-                choices=[x.name for x in shared.sd_upscalers],
-                value=shared.sd_upscalers[0].name,
-                type="index",
-                elem_id=self.elem_id("upscaler_index"),
+            override = gr.Checkbox(
+                label="Save to Extras folder instead",
+                value=False,
             )
 
-        return [overlap, upscaler_index, scale_factor]
+        return [overlap, upscaler_index, scale_factor, override]
 
-    def run(self, p, overlap, upscaler_index, scale_factor):
+    def run(self, p, overlap, upscaler_index, scale_factor, override):
         if isinstance(upscaler_index, str):
             upscaler = next(
                 (x for x in shared.sd_upscalers if x.name == upscaler_index),
@@ -139,16 +144,32 @@ class SDUpscale(scripts.Script):
             result_images.append(combined_image)
 
             if opts.samples_save:
-                images.save_image(
-                    combined_image,
-                    p.outpath_samples,
-                    "",
-                    start_seed,
-                    p.prompt,
-                    opts.samples_format,
-                    info=initial_info,
-                    p=p,
-                )
+                if override:
+                    images.save_image(
+                        combined_image,
+                        path=opts.outdir_samples or opts.outdir_extras_samples,
+                        basename="",
+                        extension=opts.samples_format,
+                        info=initial_info,
+                        short_filename=True,
+                        no_prompt=True,
+                        grid=False,
+                        pnginfo_section_name="extras",
+                        existing_info=None,
+                        forced_filename=None,
+                        suffix="",
+                    )
+                else:
+                    images.save_image(
+                        combined_image,
+                        p.outpath_samples,
+                        "",
+                        start_seed,
+                        p.prompt,
+                        opts.samples_format,
+                        info=initial_info,
+                        p=p,
+                    )
 
         new_w, new_h = img.size
         pattern = r"Size: (\d+)x(\d+)"
