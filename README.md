@@ -60,26 +60,29 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 #### New Features
 
+- [X] Support `v-pred` **SDXL** checkpoints *(**eg.** [NoobAI](https://civitai.com/models/833294?modelVersionId=1190596))*
 - [X] Support [uv](https://github.com/astral-sh/uv) package manager
     - requires **uv**
+    - drastically speed up installation
     - see [Commandline](#commandline)
 - [X] Support [SageAttention](https://github.com/thu-ml/SageAttention)
     - requires RTX **30** +
     - ~5% speed up; only supports **SDXL**
     - see [Commandline](#commandline)
 - [X] Support fast `cublas` operation *(`CublasLinear`)*
-    - requires **manually** installing [cublas_ops](https://github.com/aredden/torch-cublas-hgemm) package
+    - requires **manually** installing the [cublas_ops](https://github.com/aredden/torch-cublas-hgemm) package
     - ~25% speed up
+    - enable in Settings
 - [X] Support fast `fp8` operation *(`torch._scaled_mm`)*
     - requires RTX **40** +
     - ~10% speed up; reduce quality
+    - enable in Settings
 
 > [!Note]
-> The `cublas_ops` requires `fp16` precision, thus is not compatible with `fp8` settings
+> The `cublas` operation requires `fp16` precision, thus is not compatible with `fp8` operation
 
-- [X] Support `v-pred` **SDXL** checkpoints *(**eg.** [NoobAI](https://civitai.com/models/833294?modelVersionId=1190596))*
 - [X] Implement RescaleCFG
-    - reduce burnt colors; mainly for `v-pred`
+    - reduce burnt colors; mainly for `v-pred` checkpoints
 - [X] Implement `diskcache`
     - *(backported from Automatic1111 Webui upstream)*
 - [X] Implement `skip_early_cond`
@@ -116,9 +119,6 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] **[Freedom]** Natively integrate the `SD1` and `SDXL` logics
     - no longer `git` `clone` any repository on fresh install
     - no more random hacks and monkey patches
-
-<br>
-
 - [X] Fix memory leak when switching checkpoints
 - [X] Clean up the `ldm_patched` *(**ie.** `comfy`)* folder
 - [X] Remove unused `cmd_args`
