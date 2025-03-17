@@ -273,8 +273,10 @@ def prepare_environment():
     xformers_package = os.environ.get("XFORMERS_PACKAGE", "xformers==0.0.29.post3")
     sage_package = os.environ.get("SAGE_PACKAGE", "sageattention==1.0.6")
 
-    requirements_file = os.environ.get("REQS_FILE", "requirements.txt")
     clip_package = os.environ.get("CLIP_PACKAGE", "https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip")
+
+    packaging_package = os.environ.get("PACKAGING_PACKAGE", "packaging==24.2")
+    requirements_file = os.environ.get("REQS_FILE", "requirements.txt")
 
     try:
         # the existence of this file is a signal to webui.sh/bat that webui needs to be restarted when it stops execution
@@ -320,6 +322,9 @@ def prepare_environment():
 
     if not os.path.isfile(requirements_file):
         requirements_file = os.path.join(script_path, requirements_file)
+
+    if not is_installed("packaging"):
+        run_pip(f"install {packaging_package}", "packaging")
 
     if not requirements_met(requirements_file):
         run_pip(f'install -r "{requirements_file}"', "requirements")
