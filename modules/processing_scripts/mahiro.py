@@ -23,7 +23,12 @@ class ScriptMahiro(scripts.ScriptBuiltinUI):
         return scripts.AlwaysVisible if opts.show_mahiro else None
 
     def ui(self, is_img2img):
-        enable = gr.Checkbox(False, label="MaHiRo")
+        enable = gr.Checkbox(
+            value=False,
+            label="MaHiRo",
+            elem_id=f"{'img2img' if is_img2img else 'txt2img'}_enable_mahiro",
+            scale=1,
+        )
         self.infotext_fields = [PasteField(enable, "MaHiRo", api="mahiro")]
         return [enable]
 

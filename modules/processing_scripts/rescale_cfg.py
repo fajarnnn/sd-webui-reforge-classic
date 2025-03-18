@@ -28,6 +28,7 @@ class ScriptRescaleCFG(scripts.ScriptBuiltinUI):
             step=0.05,
             label="Rescale CFG",
             elem_id=f"{'img2img' if is_img2img else 'txt2img'}_rescale_cfg_scale",
+            scale=4,
         )
 
         self.infotext_fields = [PasteField(cfg, "Rescale CFG", api="rescale_cfg")]
