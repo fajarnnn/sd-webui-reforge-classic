@@ -23,6 +23,7 @@ class GeneralConditioner(nn.Module):
             assert isinstance(embedder, AbstractEmbModel)
             embedder.is_trainable = False
             embedder.ucg_rate = 0.0
+            embedder.eval()
 
             if "input_key" in embconfig:
                 embedder.input_key = embconfig["input_key"]
@@ -222,10 +223,11 @@ class FrozenOpenCLIPEmbedder2(AbstractEmbModel):
 class ConcatTimestepEmbedderND(AbstractEmbModel):
     """Embeds each dimension independently and concatenates them"""
 
-    def __init__(self, outdim):
+    def __init__(self, outdim, device="cuda"):
         super().__init__()
         self.timestep = Timestep(outdim)
         self.outdim = outdim
+        self.device = device
 
     def forward(self, x):
         if x.ndim == 1:
@@ -235,4 +237,4 @@ class ConcatTimestepEmbedderND(AbstractEmbModel):
         x = rearrange(x, "b d -> (b d)")
         emb = self.timestep(x)
         emb = rearrange(emb, "(b d) d2 -> b (d d2)", b=b, d=dims, d2=self.outdim)
-        return emb
+        return emb.to(self.device)

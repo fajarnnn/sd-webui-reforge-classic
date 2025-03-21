@@ -622,7 +622,7 @@ def text_encoder_offload_device():
 
 
 def text_encoder_device():
-    if not args.clip_in_gpu:
+    if not (args.clip_in_gpu or args.always_gpu):
         return torch.device("cpu")
 
     if args.always_gpu:
@@ -639,6 +639,9 @@ def text_encoder_device():
 
 
 def text_encoder_dtype(device=None):
+    if not (args.clip_in_gpu or args.always_gpu):
+        return torch.float16
+
     if args.clip_in_fp8_e4m3fn:
         return torch.float8_e4m3fn
     elif args.clip_in_fp8_e5m2:

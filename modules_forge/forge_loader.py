@@ -164,6 +164,9 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None) -> WebuiS
                 model_embeddings.token_embedding = sd_hijack.EmbeddingsWithFixes(model_embeddings.token_embedding, sd_hijack.model_hijack, textual_inversion_key="clip_g")
                 conditioner.embedders[i] = forge_clip.CLIP_SD_XL_G(embedder, sd_hijack.model_hijack)
 
+            elif typename == "ConcatTimestepEmbedderND":
+                embedder.device = model_management.text_encoder_device()
+
         sd_model.cond_stage_model = conditioner
 
     else:
