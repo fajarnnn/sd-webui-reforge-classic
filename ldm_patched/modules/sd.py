@@ -185,7 +185,7 @@ class VAE:
             elif "taesd_decoder.1.weight" in sd:
                 self.first_stage_model = ldm_patched.taesd.taesd.TAESD()
             else:
-                # default SD1.x/SD2.x VAE parameters
+                # default SD1 VAE parameters
                 ddconfig = {
                     "double_z": True,
                     "z_channels": 4,

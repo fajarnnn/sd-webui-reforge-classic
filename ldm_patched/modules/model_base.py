@@ -307,32 +307,6 @@ def unclip_adm(unclip_conditioning, device, noise_augmentor, noise_augment_merge
     return adm_out
 
 
-class SD21UNCLIP(BaseModel):
-    def __init__(
-        self,
-        model_config,
-        noise_aug_config,
-        model_type=ModelType.V_PREDICTION,
-        device=None,
-    ):
-        super().__init__(model_config, model_type, device=device)
-        self.noise_augmentor = CLIPEmbeddingNoiseAugmentation(**noise_aug_config)
-
-    def encode_adm(self, **kwargs):
-        unclip_conditioning = kwargs.get("unclip_conditioning", None)
-        device = kwargs["device"]
-        if unclip_conditioning is None:
-            return torch.zeros((1, self.adm_channels))
-        else:
-            return unclip_adm(
-                unclip_conditioning,
-                device,
-                self.noise_augmentor,
-                kwargs.get("unclip_noise_augment_merge", 0.05),
-                kwargs.get("seed", 0) - 10,
-            )
-
-
 def sdxl_pooled(args, noise_augmentor):
     if "unclip_conditioning" in args:
         return unclip_adm(

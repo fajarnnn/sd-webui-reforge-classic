@@ -322,11 +322,8 @@ def safe_load_embed_zip(embed_path):
             with myzip.open(n) as myfile:
                 data = myfile.read()
                 number = len(data) // 4
-                length_embed = 1024  # sd2.x
-                if number < 768:
-                    continue
-                if number % 768 == 0:
-                    length_embed = 768  # sd1.x
+                assert number % 768 == 0
+                length_embed = 768
                 num_embeds = number // length_embed
                 embed = torch.frombuffer(data, dtype=torch.float)
                 out = embed.reshape((num_embeds, length_embed)).clone()

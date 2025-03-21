@@ -47,19 +47,12 @@ class BASE:
             self.unet_config[x] = self.unet_extra_config[x]
 
     def get_model(self, state_dict, prefix="", device=None):
-        if self.noise_aug_config is not None:
-            out = model_base.SD21UNCLIP(
-                self,
-                self.noise_aug_config,
-                model_type=self.model_type(state_dict, prefix),
-                device=device,
-            )
-        else:
-            out = model_base.BaseModel(
-                self,
-                model_type=self.model_type(state_dict, prefix),
-                device=device,
-            )
+        assert self.noise_aug_config is None
+        out = model_base.BaseModel(
+            self,
+            model_type=self.model_type(state_dict, prefix),
+            device=device,
+        )
         if self.inpaint_model():
             out.set_inpaint()
         return out
