@@ -1,12 +1,15 @@
+let __gradioApp = null;
+
 function gradioApp() {
-    const elems = document.getElementsByTagName('gradio-app');
-    const elem = elems.length == 0 ? document : elems[0];
-    if (elem !== document) {
-        elem.getElementById = (id) => {
-            return document.getElementById(id);
-        };
+    if (__gradioApp == null) {
+        const elems = document.getElementsByTagName('gradio-app');
+        const elem = elems.length === 0 ? document : elems[0];
+        if (elem !== document)
+            elem.getElementById = (id) => { return document.getElementById(id); };
+        __gradioApp = elem.shadowRoot ? elem.shadowRoot : elem;
     }
-    return elem.shadowRoot ? elem.shadowRoot : elem;
+
+    return __gradioApp;
 }
 
 /** Get the currently selected top-level UI tab button (e.g. the button that says "Extras") */
@@ -15,13 +18,13 @@ function get_uiCurrentTab() { return gradioApp().querySelector('#tabs > .tab-nav
 /** Get the first currently visible top-level UI tab content (e.g. the div hosting the "txt2img" UI) */
 function get_uiCurrentTabContent() { return gradioApp().querySelector('#tabs > .tabitem[id^=tab_]:not([style*="display: none"])'); }
 
-var uiUpdateCallbacks = [];
-var uiAfterUpdateCallbacks = [];
-var uiLoadedCallbacks = [];
-var uiTabChangeCallbacks = [];
-var optionsChangedCallbacks = [];
-var uiAfterUpdateTimeout = null;
-var uiCurrentTab = null;
+const uiUpdateCallbacks = [];
+const uiAfterUpdateCallbacks = [];
+const uiLoadedCallbacks = [];
+const uiTabChangeCallbacks = [];
+const optionsChangedCallbacks = [];
+let uiAfterUpdateTimeout = null;
+let uiCurrentTab = null;
 
 /**
  * Register callback to be called at each UI update.
@@ -80,7 +83,7 @@ function scheduleAfterUiUpdateCallbacks() {
     }, 200);
 }
 
-var executedOnLoaded = false;
+let executedOnLoaded = false;
 
 document.addEventListener("DOMContentLoaded", () => {
     const mutationObserver = new MutationObserver((m) => {
