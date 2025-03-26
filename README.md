@@ -55,7 +55,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <hr>
 
-## Features [Mar. 14]
+## Features [Mar. 26]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -83,6 +83,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 - [X] Implement RescaleCFG
     - reduce burnt colors; mainly for `v-pred` checkpoints
+- [X] Implement MaHiRo
+    - alternative CFG calculation; [[graph](https://www.desmos.com/calculator/wcztf0ktiq)]
 - [X] Implement `diskcache`
     - *(backported from Automatic1111 Webui upstream)*
 - [X] Implement `skip_early_cond`
@@ -113,12 +115,15 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Some **built-in** Scripts
 - [X] The `test` scripts
 - [X] `Photopea` and `openpose_editor` *(ControlNet)*
+- [X] Unix `.sh` launch scripts
+    - You can still use this WebUI by copying a launch script from another working WebUI; I just don't want to maintain them...
 
 #### Optimizations
 
 - [X] **[Freedom]** Natively integrate the `SD1` and `SDXL` logics
     - no longer `git` `clone` any repository on fresh install
     - no more random hacks and monkey patches
+- [X] No longer install `open-clip` twice
 - [X] Fix memory leak when switching checkpoints
 - [X] Clean up the `ldm_patched` *(**ie.** `comfy`)* folder
 - [X] Remove unused `cmd_args`
@@ -131,6 +136,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Improve hash caching
 - [X] Improve error logs
     - no longer prints `TypeError: 'NoneType' object is not iterable`
+- [X] Improve setting descriptions
 - [X] Check for Extension updates in parallel
 - [X] Moved `embeddings` folder into `models` folder
 - [X] ControlNet Rewrite
@@ -143,6 +149,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Lint & Format most of the Python and JavaScript codes
 - [X] Update to latest PyTorch
     - currently `2.6.0+cu126`
+- [X] Update certain packages to newer versions
 - [X] Update recommended Python to `3.11.9`
 - [X] many more... :tm:
 
