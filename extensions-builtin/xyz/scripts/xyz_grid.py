@@ -166,6 +166,14 @@ class XYZ(scripts.Script):
                     elem_id=self.elem_id("csv_mode"),
                 )
             with gr.Column():
+                row_count = gr.Slider(
+                    label="Row Count",
+                    minimum=1,
+                    maximum=16,
+                    value=1,
+                    step=1,
+                    elem_id=self.elem_id("row_count"),
+                )
                 margin_size = gr.Slider(
                     label="Grid margins (px)",
                     minimum=0,
@@ -407,6 +415,7 @@ class XYZ(scripts.Script):
             vary_seeds_x,
             vary_seeds_y,
             vary_seeds_z,
+            row_count,
             margin_size,
             csv_mode,
         ]
@@ -430,6 +439,7 @@ class XYZ(scripts.Script):
         vary_seeds_x,
         vary_seeds_y,
         vary_seeds_z,
+        row_count,
         margin_size,
         csv_mode,
     ):
@@ -726,6 +736,39 @@ class XYZ(scripts.Script):
         if not include_lone_images:
             # Don't need sub-images anymore, drop from list:
             processed.images = processed.images[: z_count + 1]
+
+        def rearrange_image(original_image: Image.Image):
+            width, height = original_image.size
+            width_per_image = int(width // len(xs))
+
+            target_count = min(row_count, len(xs))
+            imgs_per_row = (len(xs) // target_count) + int(len(xs) % target_count != 0)
+
+            print(f"Converting to {imgs_per_row}x{target_count} grid...")
+
+            new_width = width_per_image * imgs_per_row
+            new_height = height * target_count
+
+            new_image = Image.new("RGB", (new_width, new_height), "white")
+
+            for y in range(target_count):
+                row = original_image.crop(
+                    (
+                        y * (width_per_image * imgs_per_row),
+                        0,
+                        min(width, ((y + 1) * (width_per_image * imgs_per_row))),
+                        height,
+                    )
+                )
+                new_image.paste(row, (0, height * y))
+
+            return new_image
+
+        if row_count > 1:
+            if y_type + z_type > 0:
+                print("\n[Error] Row Count currently only supports X Axis...\n")
+            else:
+                processed.images[0] = rearrange_image(processed.images[0])
 
         if opts.grid_save:
             # Auto-save main and sub-grids:
