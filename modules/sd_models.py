@@ -4,17 +4,13 @@ import os.path
 import re
 import sys
 import threading
-from os import mkdir
-from urllib import request
 
-import numpy as np
 import safetensors.torch
 import torch
 from ldm_patched.modules import model_management
-from modules import cache, devices, errors, extra_networks, hashes, modelloader, patches, paths, processing, script_callbacks, sd_vae, shared
+from modules import cache, devices, errors, extra_networks, hashes, modelloader, paths, processing, script_callbacks, sd_vae, shared
 from modules.timer import Timer
 from modules_forge import forge_loader
-from omegaconf import ListConfig
 
 model_dir = "Stable-diffusion"
 model_path = os.path.abspath(os.path.join(paths.models_path, model_dir))

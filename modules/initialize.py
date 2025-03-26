@@ -5,15 +5,13 @@ import sys
 import warnings
 import os
 
-from threading import Thread
-
 from modules.timer import startup_timer
 
 
 class HiddenPrints:
     def __enter__(self):
         self._original_stdout = sys.stdout
-        sys.stdout = open(os.devnull, 'w')
+        sys.stdout = open(os.devnull, "w")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.stdout.close()
@@ -22,26 +20,31 @@ class HiddenPrints:
 
 def imports():
     logging.getLogger("torch.distributed.nn").setLevel(logging.ERROR)  # sshh...
-    logging.getLogger("xformers").addFilter(lambda record: 'A matching Triton is not available' not in record.getMessage())
+    logging.getLogger("xformers").addFilter(lambda record: "triton" not in record.getMessage().lower())
 
     import torch  # noqa: F401
     startup_timer.record("import torch")
+
     import pytorch_lightning  # noqa: F401
     startup_timer.record("import torch")
+
     warnings.filterwarnings(action="ignore", category=DeprecationWarning, module="pytorch_lightning")
     warnings.filterwarnings(action="ignore", category=UserWarning, module="torchvision")
 
-    os.environ.setdefault('GRADIO_ANALYTICS_ENABLED', 'False')
+    os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
+
     import gradio  # noqa: F401
     startup_timer.record("import gradio")
 
     with HiddenPrints():
         from modules import paths, timer, errors  # noqa: F401
+
         if "--xformers" not in "".join(sys.argv):
             sys.modules["xformers"] = None
         else:
             import xformers  # noqa: F401
             import xformers.ops  # noqa: F401
+
         startup_timer.record("setup paths")
 
     from modules import shared_init
@@ -68,11 +71,11 @@ def initialize():
     initialize_util.configure_sigint_handler()
     initialize_util.configure_opts_onchange()
 
+    from modules.shared_cmd_options import cmd_opts
+
     from modules import sd_models
     sd_models.setup_model()
     startup_timer.record("setup SD model")
-
-    from modules.shared_cmd_options import cmd_opts
 
     from modules import codeformer_model
     warnings.filterwarnings(action="ignore", category=UserWarning, module="torchvision.transforms.functional_tensor")
