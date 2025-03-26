@@ -3,6 +3,7 @@ import re
 import gradio as gr
 import numpy as np
 from modules import scripts_postprocessing, shared
+from modules.processing import setup_color_correction, apply_color_correction
 from modules.ui import switch_values_symbol
 from modules.ui_components import FormRow, ToolButton
 from PIL import Image
@@ -70,30 +71,35 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
                                     elem_id="extras_upscaling_crop",
                                 )
 
-            with FormRow():
-                extras_upscaler_1 = gr.Dropdown(
-                    label="Upscaler 1",
-                    elem_id="extras_upscaler_1",
-                    choices=[x.name for x in shared.sd_upscalers],
-                    value=shared.sd_upscalers[0].name,
-                )
-
-            with FormRow():
-                extras_upscaler_2 = gr.Dropdown(
-                    label="Upscaler 2",
-                    elem_id="extras_upscaler_2",
-                    choices=[x.name for x in shared.sd_upscalers],
-                    value=shared.sd_upscalers[0].name,
-                    interactive=False,
-                )
-                extras_upscaler_2_visibility = gr.Slider(
-                    label="Upscaler 2 visibility",
-                    value=0.0,
-                    minimum=0.0,
-                    maximum=1.0,
-                    step=0.05,
-                    elem_id="extras_upscaler_2_visibility",
-                )
+            with gr.Column(scale=4):
+                with gr.Row():
+                    extras_upscaler_1 = gr.Dropdown(
+                        label="Upscaler 1",
+                        elem_id="extras_upscaler_1",
+                        choices=[x.name for x in shared.sd_upscalers],
+                        value=shared.sd_upscalers[0].name,
+                    )
+                    extras_upscaler_2 = gr.Dropdown(
+                        label="Upscaler 2",
+                        elem_id="extras_upscaler_2",
+                        choices=[x.name for x in shared.sd_upscalers],
+                        value=shared.sd_upscalers[0].name,
+                        interactive=False,
+                    )
+                with gr.Row():
+                    extras_color_correction = gr.Checkbox(
+                        value=True,
+                        label="Color Correction",
+                        elem_id="extras_color_correction",
+                    )
+                    extras_upscaler_2_visibility = gr.Slider(
+                        label="Upscaler 2 visibility",
+                        value=0.0,
+                        minimum=0.0,
+                        maximum=1.0,
+                        step=0.05,
+                        elem_id="extras_upscaler_2_visibility",
+                    )
 
         upscaling_res_switch_btn.click(
             lambda w, h: (h, w),
@@ -127,6 +133,7 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
 
         return {
             "upscale_mode": selected_tab,
+            "upscale_cc": extras_color_correction,
             "upscale_by": upscaling_resize,
             "upscale_to_width": upscaling_resize_w,
             "upscale_to_height": upscaling_resize_h,
@@ -136,7 +143,7 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
             "upscaler_2_visibility": extras_upscaler_2_visibility,
         }
 
-    def upscale(
+    def _upscale(
         self,
         image,
         info,
@@ -195,6 +202,7 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
         self,
         pp: scripts_postprocessing.PostprocessedImage,
         upscale_mode=1,
+        upscale_cc=False,
         upscale_by=2.0,
         upscale_to_width=None,
         upscale_to_height=None,
@@ -210,10 +218,14 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
             pp.shared.target_width = int(pp.image.width * upscale_by)
             pp.shared.target_height = int(pp.image.height * upscale_by)
 
+        if upscale_cc and "cc" not in upscale_cache:
+            upscale_cache["cc"] = setup_color_correction(pp.image)
+
     def process(
         self,
         pp: scripts_postprocessing.PostprocessedImage,
         upscale_mode=1,
+        upscale_cc=False,
         upscale_by=2.0,
         upscale_to_width=None,
         upscale_to_height=None,
@@ -233,7 +245,7 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
 
         assert upscaler1 is not None, f'Could not find upscaler "{upscaler_1_name}"'
 
-        upscaled_image = self.upscale(
+        upscaled_image = self._upscale(
             pp.image,
             pp.info,
             upscaler1,
@@ -257,7 +269,7 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
                     upscaler2 is not None
                 ), f'Could not find upscaler "{upscaler_2_name}"'
 
-                second_upscale = self.upscale(
+                second_upscale = self._upscale(
                     pp.image,
                     pp.info,
                     upscaler2,
@@ -277,7 +289,10 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
                 pp.info["Postprocess upscaler 2"] = upscaler2.name
                 pp.info["Postprocess upscaler 2 visibility"] = upscaler_2_visibility
 
-        pp.image = upscaled_image
+        if upscale_cc:
+            pp.image = apply_color_correction(upscale_cache["cc"], upscaled_image)
+        else:
+            pp.image = upscaled_image
 
     def image_changed(self):
         upscale_cache.clear()
