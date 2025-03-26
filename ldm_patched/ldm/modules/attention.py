@@ -23,8 +23,6 @@ if model_management.xformers_enabled():
 
 if model_management.sage_enabled():
     from sageattention import sageattn
-    from modules import shared
-    sage_warning = False
 
 import ldm_patched.modules.ops
 from ldm_patched.modules.args_parser import args
@@ -345,12 +343,7 @@ def attention_split(q, k, v, heads, mask=None):
 BROKEN_XFORMERS = False
 try:
     x_vers = xformers.__version__
-    # I think 0.0.23 is also broken (q with bs bigger than 65535 gives CUDA error)
-    BROKEN_XFORMERS = (
-        x_vers.startswith("0.0.21")
-        or x_vers.startswith("0.0.22")
-        or x_vers.startswith("0.0.23")
-    )
+    BROKEN_XFORMERS = x_vers.startswith(("0.0.21", "0.0.22", "0.0.23"))
 except:
     pass
 
@@ -358,14 +351,13 @@ except:
 def attention_xformers(q, k, v, heads, mask=None):
     b, _, dim_head = q.shape
     dim_head //= heads
-    if BROKEN_XFORMERS:
-        if b * heads > 65535:
-            return attention_pytorch(q, k, v, heads, mask)
+    if BROKEN_XFORMERS and b * heads > 65535:
+        return attention_pytorch(q, k, v, heads, mask)
 
     q, k, v = map(
         lambda t: t.unsqueeze(3)
         .reshape(b, -1, heads, dim_head)
-        .permute(0, 2, 1, 3)
+        .transpose(1, 2)
         .reshape(b * heads, -1, dim_head)
         .contiguous(),
         (q, k, v),
@@ -381,13 +373,12 @@ def attention_xformers(q, k, v, heads, mask=None):
 
     out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=mask)
 
-    out = (
+    return (
         out.unsqueeze(0)
         .reshape(b, heads, -1, dim_head)
-        .permute(0, 2, 1, 3)
+        .transpose(1, 2)
         .reshape(b, -1, heads * dim_head)
     )
-    return out
 
 
 def attention_pytorch(q, k, v, heads, mask=None):
@@ -401,8 +392,7 @@ def attention_pytorch(q, k, v, heads, mask=None):
     out = torch.nn.functional.scaled_dot_product_attention(
         q, k, v, attn_mask=mask, dropout_p=0.0, is_causal=False
     )
-    out = out.transpose(1, 2).reshape(b, -1, heads * dim_head)
-    return out
+    return out.transpose(1, 2).reshape(b, -1, heads * dim_head)
 
 
 def attention_sage(q, k, v, heads, mask=None):
@@ -411,15 +401,15 @@ def attention_sage(q, k, v, heads, mask=None):
     Edited by. Haoming02
     """
 
-    if not shared.sd_model.is_sdxl:
-        global sage_warning
-        if not sage_warning:
-            print("\nWARNING: Sage Attention only supports SDXL\n")
-            sage_warning = True
-        return attention_pytorch(q, k, v, heads, mask)
-
     b, _, dim_head = q.shape
     dim_head //= heads
+
+    if dim_head > 128:
+        if model_management.xformers_enabled():
+            return attention_xformers(q, k, v, heads, mask)
+        else:
+            return attention_pytorch(q, k, v, heads, mask)
+
     q, k, v = map(
         lambda t: t.view(b, -1, heads, dim_head),
         (q, k, v),
@@ -427,15 +417,12 @@ def attention_sage(q, k, v, heads, mask=None):
 
     if mask is not None:
         if mask.ndim == 2:
-            # add a batch dimension if there isn't already one
             mask = mask.unsqueeze(0)
         if mask.ndim == 3:
-            # add a heads dimension if there isn't already one
             mask = mask.unsqueeze(1)
 
     out = sageattn(q, k, v, attn_mask=mask, is_causal=False, tensor_layout="NHD")
-    out = out.reshape(b, -1, heads * dim_head)
-    return out
+    return out.reshape(b, -1, heads * dim_head)
 
 
 optimized_attention = attention_basic

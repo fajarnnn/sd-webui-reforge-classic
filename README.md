@@ -67,7 +67,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - see [Commandline](#commandline)
 - [X] Support [SageAttention](https://github.com/thu-ml/SageAttention)
     - requires RTX **30** +
-    - ~5% speed up; only supports **SDXL**
+    - ~10% speed up
     - see [Commandline](#commandline)
 - [X] Support fast `cublas` operation *(`CublasLinear`)*
     - requires **manually** installing the [cublas_ops](https://github.com/aredden/torch-cublas-hgemm) package
