@@ -22,7 +22,10 @@ if model_management.xformers_enabled():
     import xformers.ops
 
 if model_management.sage_enabled():
+    import importlib.metadata
     from sageattention import sageattn
+
+    isSage2 = importlib.metadata.version("sageattention").startswith("2")
 
 import ldm_patched.modules.ops
 from ldm_patched.modules.args_parser import args
@@ -404,7 +407,7 @@ def attention_sage(q, k, v, heads, mask=None):
     b, _, dim_head = q.shape
     dim_head //= heads
 
-    if dim_head > 128:
+    if (isSage2 and dim_head > 128) or ((not isSage2) and (dim_head not in (64, 96, 128))):
         if model_management.xformers_enabled():
             return attention_xformers(q, k, v, heads, mask)
         else:
