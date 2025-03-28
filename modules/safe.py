@@ -190,3 +190,5 @@ class Extra:
 
 unsafe_torch_load = torch.load
 global_extra_handler = None
+
+Unpickler = RestrictedUnpickler

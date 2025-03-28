@@ -33,7 +33,7 @@ def load_torch_file(ckpt, safe_load=False, device=None):
             pl_sd = torch.load(
                 ckpt,
                 map_location=device,
-                pickle_module=modules.safe.RestrictedUnpickler,
+                pickle_module=modules.safe,
             )
         if "global_step" in pl_sd:
             print(f"Global Step: {pl_sd['global_step']}")
