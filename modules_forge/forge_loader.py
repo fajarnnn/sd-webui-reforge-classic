@@ -258,7 +258,7 @@ def apply_alpha_schedule_override(sd_model, p=None):
 
     if getattr(sd_model, "ztsnr", False) or shared.opts.sd_noise_schedule == "Zero Terminal SNR":
         if p is not None:
-            p.extra_generation_params["Noise Schedule"] = shared.opts.sd_noise_schedule
+            p.extra_generation_params["Noise Schedule"] = "Zero Terminal SNR"
         sd_model.alphas_cumprod = rescale_zero_terminal_snr_abar(sd_model.alphas_cumprod).to(shared.device)
 
 
