@@ -1,5 +1,4 @@
 from modules import sd_models, sd_samplers, sd_samplers_kdiffusion, sd_vae, shared
-from modules.shared import opts
 
 from .axis_application import (
     apply_checkpoint,
@@ -38,12 +37,7 @@ builtin_options = [
     AxisOption("CFG Scale", float, apply_field("cfg_scale")),
     AxisOptionImg2Img("Image CFG Scale", float, apply_field("image_cfg_scale")),
     AxisOption("Prompt S/R", str, apply_prompt, format_value=format_value),
-    AxisOption(
-        "Prompt order",
-        str_permutations,
-        apply_order,
-        format_value=format_value_join_list,
-    ),
+    AxisOption("Prompt order", str_permutations, apply_order, format_value=format_value_join_list),
     AxisOptionTxt2Img(
         "Sampler",
         str,
@@ -93,9 +87,7 @@ builtin_options = [
     AxisOption("Eta", float, apply_field("eta")),
     AxisOption("Clip skip", int, apply_clip_skip),
     AxisOption("Denoising", float, apply_field("denoising_strength")),
-    AxisOption(
-        "Initial noise multiplier", float, apply_field("initial_noise_multiplier")
-    ),
+    AxisOption("Initial noise multiplier", float, apply_field("initial_noise_multiplier")),
     AxisOption("Extra noise", float, apply_override("img2img_extra_noise")),
     AxisOptionTxt2Img(
         "Hires upscaler",
@@ -106,25 +98,13 @@ builtin_options = [
             *[x.name for x in shared.sd_upscalers],
         ],
     ),
-    AxisOptionImg2Img(
-        "Cond. Image Mask Weight", float, apply_field("inpainting_mask_weight")
-    ),
-    AxisOption(
-        "VAE",
-        str,
-        apply_vae,
-        cost=0.7,
-        choices=lambda: ["None"] + list(sd_vae.vae_dict),
-    ),
-    AxisOption(
-        "Styles", str, apply_styles, choices=lambda: list(shared.prompt_styles.styles)
-    ),
+    AxisOptionImg2Img("Cond. Image Mask Weight", float, apply_field("inpainting_mask_weight")),
+    AxisOption("VAE", str, apply_vae, cost=0.7, choices=lambda: ["None"] + list(sd_vae.vae_dict)),
+    AxisOption("Styles", str, apply_styles, choices=lambda: list(shared.prompt_styles.styles)),
     AxisOption("UniPC Order", int, apply_uni_pc_order, cost=0.5),
     AxisOption("Face restore", str, apply_face_restore, format_value=format_value),
     AxisOption("Token merging ratio", float, apply_override("token_merging_ratio")),
-    AxisOption(
-        "Token merging ratio high-res", float, apply_override("token_merging_ratio_hr")
-    ),
+    AxisOption("Token merging ratio high-res", float, apply_override("token_merging_ratio_hr")),
     AxisOption(
         "Always discard next-to-last sigma",
         str,

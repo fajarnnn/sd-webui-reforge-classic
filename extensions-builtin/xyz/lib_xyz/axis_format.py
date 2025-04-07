@@ -2,13 +2,13 @@ import os
 
 
 def format_value(p, opt, x):
-    if type(x) == float:
+    if type(x) is float:
         x = round(x, 8)
     return x
 
 
 def format_value_add_label(p, opt, x):
-    if type(x) == float:
+    if type(x) is float:
         x = round(x, 8)
 
     return f"{opt.label}: {x}"

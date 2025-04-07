@@ -38,11 +38,7 @@ def find_vae(name: str):
     if name.lower() == "none":
         return None
     else:
-        choices = [
-            x
-            for x in sorted(sd_vae.vae_dict, key=lambda x: len(x))
-            if name.lower().strip() in x.lower()
-        ]
+        choices = [x for x in sorted(sd_vae.vae_dict, key=lambda x: len(x)) if name.lower().strip() in x.lower()]
         if len(choices) == 0:
             print(f"No VAE found for {name}; using automatic")
             return sd_vae.unspecified

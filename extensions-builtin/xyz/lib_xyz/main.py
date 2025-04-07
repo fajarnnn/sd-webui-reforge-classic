@@ -1,10 +1,11 @@
 import re
 from copy import copy
 
+from PIL import Image
+
 from modules import images
 from modules.processing import Processed
 from modules.shared import state
-from PIL import Image
 
 
 def draw_xyz_grid(
@@ -101,14 +102,10 @@ def draw_xyz_grid(
 
     if not processed_result:
         # Should never happen, I've only seen it on one of four open tabs and it needed to refresh.
-        print(
-            "Unexpected error: Processing could not begin, you may need to refresh the tab or restart the service."
-        )
+        print("Unexpected error: Processing could not begin, you may need to refresh the tab or restart the service.")
         return Processed(p, [])
     elif not any(processed_result.images):
-        print(
-            "Unexpected error: draw_xyz_grid failed to return even a single processed image"
-        )
+        print("Unexpected error: draw_xyz_grid failed to return even a single processed image")
         return Processed(p, [])
 
     z_count = len(zs)
@@ -116,9 +113,7 @@ def draw_xyz_grid(
     for i in range(z_count):
         start_index = (i * len(xs) * len(ys)) + i
         end_index = start_index + len(xs) * len(ys)
-        grid = images.image_grid(
-            processed_result.images[start_index:end_index], rows=len(ys)
-        )
+        grid = images.image_grid(processed_result.images[start_index:end_index], rows=len(ys))
         if draw_legend:
             grid = images.draw_grid_annotations(
                 grid,
@@ -129,9 +124,7 @@ def draw_xyz_grid(
                 margin_size,
             )
         processed_result.images.insert(i, grid)
-        processed_result.all_prompts.insert(
-            i, processed_result.all_prompts[start_index]
-        )
+        processed_result.all_prompts.insert(i, processed_result.all_prompts[start_index])
         processed_result.all_seeds.insert(i, processed_result.all_seeds[start_index])
         processed_result.infotexts.insert(i, processed_result.infotexts[start_index])
 
@@ -154,16 +147,8 @@ def draw_xyz_grid(
     return processed_result
 
 
-re_range = re.compile(
-    r"\s*([+-]?\s*\d+)\s*-\s*([+-]?\s*\d+)(?:\s*\(([+-]\d+)\s*\))?\s*"
-)
-re_range_float = re.compile(
-    r"\s*([+-]?\s*\d+(?:.\d*)?)\s*-\s*([+-]?\s*\d+(?:.\d*)?)(?:\s*\(([+-]\d+(?:.\d*)?)\s*\))?\s*"
-)
+re_range = re.compile(r"\s*([+-]?\s*\d+)\s*-\s*([+-]?\s*\d+)(?:\s*\(([+-]\d+)\s*\))?\s*")
+re_range_float = re.compile(r"\s*([+-]?\s*\d+(?:.\d*)?)\s*-\s*([+-]?\s*\d+(?:.\d*)?)(?:\s*\(([+-]\d+(?:.\d*)?)\s*\))?\s*")
 
-re_range_count = re.compile(
-    r"\s*([+-]?\s*\d+)\s*-\s*([+-]?\s*\d+)(?:\s*\[(\d+)\s*])?\s*"
-)
-re_range_count_float = re.compile(
-    r"\s*([+-]?\s*\d+(?:.\d*)?)\s*-\s*([+-]?\s*\d+(?:.\d*)?)(?:\s*\[(\d+(?:.\d*)?)\s*])?\s*"
-)
+re_range_count = re.compile(r"\s*([+-]?\s*\d+)\s*-\s*([+-]?\s*\d+)(?:\s*\[(\d+)\s*])?\s*")
+re_range_count_float = re.compile(r"\s*([+-]?\s*\d+(?:.\d*)?)\s*-\s*([+-]?\s*\d+(?:.\d*)?)(?:\s*\[(\d+(?:.\d*)?)\s*])?\s*")
