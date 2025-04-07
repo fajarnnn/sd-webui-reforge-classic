@@ -52,6 +52,7 @@ class SDUpscale(scripts.Script):
             override = gr.Checkbox(
                 label="Save to Extras folder instead",
                 value=False,
+                elem_id=self.elem_id("override"),
             )
 
         return [overlap, upscaler_index, scale_factor, override]
