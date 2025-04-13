@@ -1,4 +1,3 @@
-from tqdm import tqdm
 import logging
 import os
 
@@ -10,6 +9,8 @@ class TqdmLoggingHandler(logging.Handler):
 
     def emit(self, record):
         try:
+            from tqdm import tqdm
+
             # If there are active tqdm progress bars,
             # attempt to not interfere with them.
             if tqdm._instances:
