@@ -514,3 +514,9 @@ def connect_paste(button, paste_fields, input_comp, override_settings_component,
         outputs=[],
         show_progress=False,
     )
+
+
+import sys
+
+# Backward Compatibility
+sys.modules["modules.generation_parameters_copypaste"] = sys.modules[__name__] 
