@@ -208,6 +208,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 ## Installation
 
+> For RTX **50**s, please additionally refer to [#8](https://github.com/Haoming02/sd-webui-forge-classic/issues/8)
+
 1. Install **git**
     - https://git-scm.com/downloads
 2. Install **Python**
