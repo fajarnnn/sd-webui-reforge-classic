@@ -2,7 +2,6 @@ GitPython==3.1.32
 Pillow==10.4.0
 accelerate==1.4.0
 albumentations==1.4.3
-blendmodes==2023
 clean-fid==0.1.35
 diskcache==5.6.3
 einops==0.4.1

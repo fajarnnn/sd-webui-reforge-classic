@@ -1,6 +1,5 @@
 from __future__ import annotations
 import json
-import logging
 import math
 import os
 import sys
@@ -12,7 +11,7 @@ import numpy as np
 from PIL import Image, ImageOps
 import random
 import cv2
-from skimage import exposure
+from skimage.exposure import match_histograms
 from typing import Any
 
 import modules.sd_hijack
@@ -30,7 +29,6 @@ import modules.sd_models as sd_models
 import modules.sd_vae as sd_vae
 
 from einops import repeat, rearrange
-from blendmodes.blend import blendLayers, BlendType
 from modules.sd_models import apply_token_merging
 from modules_forge.forge_util import apply_circular_forge
 from modules_forge.forge_loader import apply_alpha_schedule_override
@@ -41,26 +39,22 @@ opt_C = 4
 opt_f = 8
 
 
-def setup_color_correction(image):
-    logging.info("Calibrating color correction.")
-    correction_target = cv2.cvtColor(np.asarray(image.copy()), cv2.COLOR_RGB2LAB)
+def setup_color_correction(image: Image.Image) -> np.ndarray:
+    correction_target = cv2.cvtColor(np.asarray(image.copy(), dtype=np.uint8), cv2.COLOR_RGB2LAB)
     return correction_target
 
 
-def apply_color_correction(correction, original_image):
-    logging.info("Applying color correction.")
-    image = Image.fromarray(cv2.cvtColor(exposure.match_histograms(
-        cv2.cvtColor(
-            np.asarray(original_image),
-            cv2.COLOR_RGB2LAB
+def apply_color_correction(correction_target: np.ndarray, original_image: Image.Image):
+    image = cv2.cvtColor(
+        match_histograms(
+            cv2.cvtColor(np.asarray(original_image, dtype=np.uint8), cv2.COLOR_RGB2LAB),
+            correction_target,
+            channel_axis=2,
         ),
-        correction,
-        channel_axis=2
-    ), cv2.COLOR_LAB2RGB).astype("uint8"))
+        cv2.COLOR_Lab2RGB,
+    )
 
-    image = blendLayers(image, original_image, BlendType.LUMINOSITY)
-
-    return image.convert('RGB')
+    return Image.fromarray(image.astype("uint8")).convert("RGB")
 
 
 def uncrop(image, dest_size, paste_loc):
