@@ -55,7 +55,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <hr>
 
-## Features [Mar. 26]
+## Features [Apr. 14]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -93,6 +93,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - support most modern Upscaler architecture
 - [X] Add `pillow-heif` package
     - support `.avif` and `.heif` formats
+- [X] Automatic row split for `X/Y/Z Plot`
 - [X] Add an option to disable **Refiner**
 - [X] Add an option to disable ExtraNetworks **Tree View**
 - [X] Support [Union](https://huggingface.co/xinsir/controlnet-union-sdxl-1.0) / [ProMax](https://huggingface.co/brad-twinkl/controlnet-union-sdxl-1.0-promax) ControlNet
@@ -123,7 +124,6 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] **[Freedom]** Natively integrate the `SD1` and `SDXL` logics
     - no longer `git` `clone` any repository on fresh install
     - no more random hacks and monkey patches
-- [X] No longer install `open-clip` twice
 - [X] Fix memory leak when switching checkpoints
 - [X] Clean up the `ldm_patched` *(**ie.** `comfy`)* folder
 - [X] Remove unused `cmd_args`
@@ -132,6 +132,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Remove legacy codes
 - [X] Remove duplicated upscaler codes
     - put every upscaler inside the `ESRGAN` folder
+- [X] Improve color correction
 - [X] Improve code logics
 - [X] Improve hash caching
 - [X] Improve error logs
@@ -149,6 +150,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Lint & Format most of the Python and JavaScript codes
 - [X] Update to latest PyTorch
     - currently `2.6.0+cu126`
+- [X] No longer install `open-clip` twice
 - [X] Update certain packages to newer versions
 - [X] Update recommended Python to `3.11.9`
 - [X] many more... :tm:
@@ -214,36 +216,51 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 ## Installation
 
-> For RTX **50**s, please additionally refer to [#8](https://github.com/Haoming02/sd-webui-forge-classic/issues/8)
-
-1. Install **git**
-    - https://git-scm.com/downloads
-2. Install **Python**
-    - (Recommended) Install **[uv](https://github.com/astral-sh/uv)**
-    - (Manual) Install **[Python 3.11.9](https://www.python.org/downloads/release/python-3119/)**
-3. Clone the Repo
+0. Install **[git](https://git-scm.com/downloads)**
+1. Clone the Repo
     ```bash
     git clone https://github.com/Haoming02/sd-webui-forge-classic
     ```
-4. Prepare **uv** *(if you installed it)*
-    1. Set up **venv**
-        ```bash
-        cd sd-webui-forge-classic
-        uv venv venv --python 3.11
-        ```
-    2. Add the `--uv` flag *(see [Commandline](#by-classic))*
-5. Launch the Webui via `webui-user.bat`
-6. On first launch, it will automatically install all the requirements
-7. Once installation is finished, the Webui will start in a browser automatically
+
+2. Setup Python
+
+<details>
+<summary>Recommended Method</summary>
+
+- Install **[uv](https://github.com/astral-sh/uv)**
+- Set up **venv**
+    ```bash
+    cd sd-webui-forge-classic
+    uv venv venv --python 3.11
+    ```
+- Add the `--uv` flag *(see [Commandline](#classic))*
+
+</details>
+
+<details>
+<summary>Standard Method</summary>
+
+- Install **[Python 3.11.9](https://www.python.org/downloads/release/python-3119/)**
+
+</details>
+
+3. **(Optional)** Configure [Commandline](#commandline)
+
+> [!Note]
+> For RTX **50**s user, refer to [#8](https://github.com/Haoming02/sd-webui-forge-classic/issues/8) to install `PyTorch` first
+
+4. Launch the WebUI via `webui-user.bat`
+
+- During the first launch, it will automatically install all the requirements
+- Once installation is finished, the WebUI will start in a browser automatically
 
 <hr>
 
-<details>
-<summary>GitHub Related</summary>
+### GitHub Related
 
 - **Issues** about removed features will simply be ignored; **Issues** regarding installation will also be ignored if it's obviously user-error
 - **Feature Request** not related to performance or optimization will simply be ignored
-    - For cutting edge features, use [reForge](https://github.com/Panchovix/stable-diffusion-webui-reForge) instead
+    - For cutting edge features, check out [reForge](https://github.com/Panchovix/stable-diffusion-webui-reForge) instead
 
 </details>
 
