@@ -6,9 +6,9 @@ git = launch_utils.git
 index_url = launch_utils.index_url
 dir_repos = launch_utils.dir_repos
 
-if args.uv:
+if args.uv or args.uv_symlink:
     from modules_forge.uv_hook import patch
-    patch()
+    patch(args.uv_symlink)
 
 run = launch_utils.run
 is_installed = launch_utils.is_installed
@@ -28,6 +28,9 @@ def main():
         filename = launch_utils.dump_sysinfo()
         print(f"Sysinfo saved as {filename}. Exiting...")
         exit(0)
+
+    if args.uv or args.uv_symlink:
+        print("using uv")
 
     launch_utils.startup_timer.record("initial startup")
 

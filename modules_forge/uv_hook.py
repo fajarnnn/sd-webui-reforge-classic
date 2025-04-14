@@ -3,11 +3,10 @@ import subprocess
 from functools import wraps
 
 
-def patch():
+def patch(symlink: bool):
     if hasattr(subprocess, "__original_run"):
         return
 
-    print("using uv")
     subprocess.__original_run = subprocess.run
 
     @wraps(subprocess.__original_run)
@@ -32,7 +31,10 @@ def patch():
         BAD_FLAGS = ("--prefer-binary", "--ignore-installed", "-I")
         cmd = [arg for arg in cmd if arg not in BAD_FLAGS]
 
-        modified_command = ["uv", "pip", *cmd]
+        modified_command: list[str] = ["uv", "pip", *cmd]
+
+        if symlink:
+            modified_command.extend(["--link-mode", "symlink"])
 
         return subprocess.__original_run([*modified_command, *_args], **kwargs)
 

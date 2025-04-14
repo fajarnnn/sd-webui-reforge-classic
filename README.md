@@ -190,6 +190,12 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 - `--uv`: Replace the `python -m pip` calls with `uv pip` to massively speed up package installation
     - requires **uv** to be installed first *(see [Installation](#installation))*
+- `--uv-symlink`: Same as above; but additionally pass `--link-mode symlink` to the commands
+    - significantly reduces installation size (`~7 GB` to `~100 MB`)
+
+> [!Important]
+> Using `symlink` means it will directly access the packages from the cache folders; refrain from clearing the cache when setting this option
+
 - `--sage`: Install the `sageattention` package to speed up generation
     - requires RTX **30** +
     - requires manually installing **triton**
