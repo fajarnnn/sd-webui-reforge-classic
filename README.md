@@ -55,7 +55,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <hr>
 
-## Features [Apr. 14]
+## Features [Apr. 15]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -147,7 +147,10 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - improved `Presets` application
 - [X] Run `text encoder` on CPU by default
 - [X] Fix `pydantic` Errors
+- [X] Fix `Soft Inpainting`
 - [X] Lint & Format most of the Python and JavaScript codes
+- [X] Update to Pillow 11
+    - faster image processing
 - [X] Update to latest PyTorch
     - currently `2.6.0+cu126`
 - [X] No longer install `open-clip` twice

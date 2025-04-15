@@ -1,5 +1,5 @@
 GitPython==3.1.32
-Pillow==10.4.0
+Pillow==11.2.1
 accelerate==1.4.0
 albumentations==1.4.3
 clean-fid==0.1.35
@@ -7,7 +7,6 @@ diskcache==5.6.3
 einops==0.4.1
 facexlib==0.3.0
 fastapi==0.94.0
-gradio==3.43.2
 httpcore==0.15
 httpx==0.24.1
 huggingface-hub==0.26.5

@@ -276,6 +276,7 @@ def prepare_environment():
     clip_package = os.environ.get("CLIP_PACKAGE", "https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip")
 
     packaging_package = os.environ.get("PACKAGING_PACKAGE", "packaging==24.2")
+    gradio_package = os.environ.get("GRADIO_PACKAGE", "gradio==3.44.4")
     requirements_file = os.environ.get("REQS_FILE", "requirements.txt")
 
     try:
@@ -325,6 +326,9 @@ def prepare_environment():
 
     if not is_installed("packaging"):
         run_pip(f"install {packaging_package}", "packaging")
+
+    if not is_installed("gradio"):
+        run_pip(f"install {gradio_package}", "gradio")
 
     if not requirements_met(requirements_file):
         run_pip(f'install -r "{requirements_file}"', "requirements")
