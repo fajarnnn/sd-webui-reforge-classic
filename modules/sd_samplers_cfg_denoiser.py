@@ -1,12 +1,13 @@
 import torch
-from modules import prompt_parser, devices, sd_samplers_common
+from modules import prompt_parser, sd_samplers_common
 
 from modules.shared import opts, state
-import modules.shared as shared
-from modules.script_callbacks import CFGDenoiserParams, cfg_denoiser_callback
-from modules.script_callbacks import CFGDenoisedParams, cfg_denoised_callback
-from modules.script_callbacks import AfterCFGCallbackParams, cfg_after_cfg_callback
 from modules_forge import forge_sampler
+
+from modules.script_callbacks import CFGDenoiserParams, cfg_denoiser_callback
+from modules.script_callbacks import AfterCFGCallbackParams, cfg_after_cfg_callback
+
+# from modules.script_callbacks import CFGDenoisedParams, cfg_denoised_callback
 
 
 def catenate_conds(conds):
@@ -27,7 +28,7 @@ def pad_cond(tensor, repeats, empty):
     if not isinstance(tensor, dict):
         return torch.cat([tensor, empty.repeat((tensor.shape[0], repeats, 1))], axis=1)
 
-    tensor['crossattn'] = pad_cond(tensor['crossattn'], repeats, empty)
+    tensor["crossattn"] = pad_cond(tensor["crossattn"], repeats, empty)
     return tensor
 
 
@@ -69,7 +70,7 @@ class CFGDenoiser(torch.nn.Module):
         raise NotImplementedError()
 
     def combine_denoised(self, x_out, conds_list, uncond, cond_scale, timestep, x_in, cond):
-        denoised_uncond = x_out[-uncond.shape[0]:]
+        denoised_uncond = x_out[-uncond.shape[0] :]
         denoised = torch.clone(denoised_uncond)
 
         for i, conds in enumerate(conds_list):
@@ -91,8 +92,8 @@ class CFGDenoiser(torch.nn.Module):
         self.model_wrap = None
 
         c, uc = self.p.get_conds()
-        self.sampler.sampler_extra_args['cond'] = c
-        self.sampler.sampler_extra_args['uncond'] = uc
+        self.sampler.sampler_extra_args["cond"] = c
+        self.sampler.sampler_extra_args["uncond"] = uc
 
     def forward(self, x, sigma, uncond, cond, cond_scale, s_min_uncond, image_cond):
         if state.interrupted or state.skipped:
@@ -106,12 +107,12 @@ class CFGDenoiser(torch.nn.Module):
             fake_sigmas = ((1 - acd) / acd) ** 0.5
             real_sigma = fake_sigmas[sigma.round().long().clip(0, int(fake_sigmas.shape[0]))]
             real_sigma_data = 1.0
-            x = x * (((real_sigma ** 2.0 + real_sigma_data ** 2.0) ** 0.5)[:, None, None, None])
+            x = x * (((real_sigma**2.0 + real_sigma_data**2.0) ** 0.5)[:, None, None, None])
             sigma = real_sigma
 
         if sd_samplers_common.apply_refiner(self, x):
-            cond = self.sampler.sampler_extra_args['cond']
-            uncond = self.sampler.sampler_extra_args['uncond']
+            cond = self.sampler.sampler_extra_args["cond"]
+            uncond = self.sampler.sampler_extra_args["uncond"]
 
         cond_composition, cond = prompt_parser.reconstruct_multicond_batch(cond, self.step)
         uncond = prompt_parser.reconstruct_cond_batch(uncond, self.step)
@@ -123,26 +124,44 @@ class CFGDenoiser(torch.nn.Module):
 
             if self.p.scripts is not None:
                 from modules import scripts
-                mba = scripts.MaskBlendArgs(current_latent, self.nmask, self.init_latent, self.mask, blended_latent, denoiser=self, sigma=sigma)
+
+                mba = scripts.MaskBlendArgs(
+                    current_latent,
+                    self.nmask,
+                    self.init_latent,
+                    self.mask,
+                    blended_latent,
+                    denoiser=self,
+                    sigma=sigma,
+                )
                 self.p.scripts.on_mask_blend(self.p, mba)
                 blended_latent = mba.blended_latent
 
             return blended_latent
 
         if self.mask_before_denoising and self.mask is not None:
-            noisy_initial_latent = self.init_latent + sigma[:, None, None, None] * torch.randn_like(self.init_latent).to(self.init_latent)
-            x = apply_blend(x, noisy_initial_latent)
+            noisy_initial_latent = self.init_latent + sigma[
+                :,
+                None,
+                None,
+                None,
+            ] * torch.randn_like(self.init_latent)
+            x = apply_blend(x, noisy_initial_latent.to(self.init_latent))
 
         denoiser_params = CFGDenoiserParams(x, image_cond, sigma, state.sampling_step, state.sampling_steps, cond, uncond, self)
         cfg_denoiser_callback(denoiser_params)
 
         if 0.0 <= self.step / self.total_steps <= opts.skip_early_cond:
             cond_scale = 1.0
-        if s_min_uncond > 0.0 and sigma[0] < s_min_uncond:
+        if 0.0 <= sigma[0] <= s_min_uncond:
             cond_scale = 1.0
 
-        denoised = forge_sampler.forge_sample(self, denoiser_params=denoiser_params,
-                                              cond_scale=cond_scale, cond_composition=cond_composition)
+        denoised = forge_sampler.forge_sample(
+            self,
+            denoiser_params=denoiser_params,
+            cond_scale=cond_scale,
+            cond_composition=cond_composition,
+        )
 
         if not self.mask_before_denoising and self.mask is not None:
             denoised = apply_blend(denoised)
@@ -161,4 +180,3 @@ class CFGDenoiser(torch.nn.Module):
             return eps
 
         return denoised.to(device=original_x_device, dtype=original_x_dtype)
-
