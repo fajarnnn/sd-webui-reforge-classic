@@ -1016,6 +1016,7 @@ class UNetModel(nn.Module):
                 # nn.LogSoftmax(dim=1)  # change to cross_entropy and produce non-normalized logits
             )
 
+    @th.inference_mode()
     def forward(
         self,
         x,
