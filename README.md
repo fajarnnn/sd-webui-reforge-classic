@@ -70,7 +70,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - ~10% speed up
     - see [Commandline](#commandline)
 - [X] Support fast `cublas` operation *(`CublasLinear`)*
-    - requires **manually** installing the [cublas_ops](https://github.com/aredden/torch-cublas-hgemm) package
+    - requires **manually** installing the [cublas_ops](https://github.com/aredden/torch-cublas-hgemm) package [[tutorial](#github-related)]
     - ~25% speed up
     - enable in Settings
 - [X] Support fast `fp8` operation *(`torch._scaled_mm`)*
@@ -204,6 +204,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - `--sage`: Install the `sageattention` package to speed up generation
     - requires RTX **30** +
     - requires manually installing **triton**
+        - for Linux, simply do a `pip install`
+        - for Windows, refer to [woct0rdho's releases](https://github.com/woct0rdho/triton-windows/releases)
     - only affects **SDXL**
 
 > [!Tip]
@@ -256,6 +258,38 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 - During the first launch, it will automatically install all the requirements
 - Once installation is finished, the WebUI will start in a browser automatically
+
+<details>
+<summary>How to install <b>cublas</b></summary>
+
+0. Follow the above steps first, and ensure the WebUI can correctly run already
+1. Open the install directory
+    ```bash
+    cd sd-webui-forge-classic
+    ```
+2. Start the virtual environment
+    ```bash
+    venv\scripts\activate
+    ```
+3. Create a new folder
+    ```bash
+    mkdir repo
+    cd repo
+    ```
+4. Clone the repo
+    ```bash
+    git clone https://github.com/aredden/torch-cublas-hgemm
+    cd torch-cublas-hgemm
+    ```
+5. Install the library
+    ```
+    pip install -e . --no-build-isolation
+    ```
+
+    - This takes a few minutes
+    - If you installed `uv`, use `uv pip install` instead
+
+</details>
 
 <hr>
 
