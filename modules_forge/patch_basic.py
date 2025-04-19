@@ -5,6 +5,8 @@ from functools import wraps
 import safetensors
 import torch
 
+from modules.errors import display
+
 
 def build_loaded(module, loader_name):
     original_loader_name = f"{loader_name}_origin"
@@ -20,7 +22,9 @@ def build_loaded(module, loader_name):
             with warnings.catch_warnings():
                 warnings.simplefilter(action="ignore", category=FutureWarning)
                 return original_loader(*args, **kwargs)
-        except Exception:
+        except Exception as e:
+            display(e, f"{module.__name__}.{loader_name}")
+
             exc = "\n"
             for path in list(args) + list(kwargs.values()):
                 if isinstance(path, str) and os.path.isfile(path):
