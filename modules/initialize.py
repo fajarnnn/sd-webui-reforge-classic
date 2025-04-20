@@ -39,11 +39,11 @@ def imports():
     with HiddenPrints():
         from modules import paths, timer, errors  # noqa: F401
 
-        if "--xformers" not in "".join(sys.argv):
-            sys.modules["xformers"] = None
-        else:
+        try:
             import xformers  # noqa: F401
             import xformers.ops  # noqa: F401
+        except ImportError:
+            pass
 
         startup_timer.record("setup paths")
 
