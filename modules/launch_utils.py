@@ -277,6 +277,7 @@ def prepare_environment():
 
     packaging_package = os.environ.get("PACKAGING_PACKAGE", "packaging==24.2")
     gradio_package = os.environ.get("GRADIO_PACKAGE", "gradio==3.43.2")
+    insightface_package = os.environ.get("INSIGHT_PACKAGE", "insightface==0.7.3")
     requirements_file = os.environ.get("REQS_FILE", "requirements.txt")
 
     try:
@@ -333,6 +334,14 @@ def prepare_environment():
     if not requirements_met(requirements_file):
         run_pip(f'install -r "{requirements_file}"', "requirements")
         startup_timer.record("install requirements")
+
+    if not is_installed("insightface"):
+        run(
+            f'"{python}" -m pip install {insightface_package} --no-deps',
+            desc="Installing insightface",
+            errdesc="Failed to install insightface; please manually install C++ build tools first",
+            live=False,
+        )
 
     if not args.skip_install:
         run_extensions_installers(settings_file=args.ui_settings_file)

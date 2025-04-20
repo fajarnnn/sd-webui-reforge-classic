@@ -11,7 +11,6 @@ httpcore==0.15
 httpx==0.24.1
 huggingface-hub==0.26.5
 inflection==0.5.1
-insightface==0.7.3
 jsonmerge==1.8.0
 kornia==0.6.7
 lark==1.1.2
