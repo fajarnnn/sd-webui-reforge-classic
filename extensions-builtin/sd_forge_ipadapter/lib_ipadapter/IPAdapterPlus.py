@@ -741,19 +741,8 @@ insightface_face_align = None
 
 
 class InsightFaceLoader:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "provider": (["CPU", "CUDA", "ROCM"],),
-            },
-        }
 
-    RETURN_TYPES = ("INSIGHTFACE",)
-    FUNCTION = "load_insight_face"
-    CATEGORY = "ipadapter"
-
-    def load_insight_face(self, name="buffalo_l", provider="CPU"):
+    def load_insight_face(self, name="buffalo_l"):
         try:
             from insightface.app import FaceAnalysis
         except ImportError as e:
@@ -800,7 +789,8 @@ class InsightFaceLoader:
             name=name,
             root=INSIGHTFACE_DIR,
             providers=[
-                provider + "ExecutionProvider",
+                "CUDAExecutionProvider",
+                "CPUExecutionProvider",
             ],
         )
         model.prepare(ctx_id=0, det_size=(640, 640))
