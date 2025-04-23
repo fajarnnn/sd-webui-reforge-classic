@@ -36,16 +36,8 @@ def imports():
     import gradio  # noqa: F401
     startup_timer.record("import gradio")
 
-    with HiddenPrints():
-        from modules import paths, timer, errors  # noqa: F401
-
-        try:
-            import xformers  # noqa: F401
-            import xformers.ops  # noqa: F401
-        except ImportError:
-            pass
-
-        startup_timer.record("setup paths")
+    from modules import paths, timer, errors  # noqa: F401
+    startup_timer.record("setup paths")
 
     from modules import shared_init
     shared_init.initialize()

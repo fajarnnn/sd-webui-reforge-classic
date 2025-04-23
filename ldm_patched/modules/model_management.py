@@ -153,6 +153,25 @@ except Exception:
 if directml_enabled:
     OOM_EXCEPTION = Exception
 
+
+if torch.__version__.startswith("2.7"):
+    if args.fast_fp16:
+        torch.backends.cuda.allow_fp16_bf16_reduction_math_sdp(True)
+        torch.backends.cuda.matmul.allow_fp16_accumulation = True
+        print("allow_fp16_accumulation:", torch.backends.cuda.matmul.allow_fp16_accumulation)
+
+    try:
+        import importlib.metadata
+        import sys
+
+        if importlib.metadata.version("xformers").startswith("0.0.2"):
+            sys.modules["xformers"] = None
+            print("PyTorch 2.7 currently does not support xformers!")
+            print("Forcefully disabling xformers...")
+
+    except importlib.metadata.PackageNotFoundError:
+        pass
+
 XFORMERS_VERSION = ""
 XFORMERS_ENABLED_VAE = True
 if args.disable_xformers:

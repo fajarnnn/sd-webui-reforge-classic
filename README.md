@@ -158,7 +158,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Update `protobuf`
     - faster `insightface` loading
 - [X] Update to latest PyTorch
-    - currently `2.6.0+cu126`
+    - currently `2.7.0+cu128`
 - [X] No longer install `open-clip` twice
 - [X] Update certain packages to newer versions
 - [X] Update recommended Python to `3.11.9`
@@ -253,10 +253,6 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 </details>
 
 3. **(Optional)** Configure [Commandline](#commandline)
-
-> [!Note]
-> For RTX **50**s user, refer to [#8](https://github.com/Haoming02/sd-webui-forge-classic/issues/8) to install `PyTorch` first
-
 4. Launch the WebUI via `webui-user.bat`
 
 - During the first launch, it will automatically install all the requirements
@@ -322,6 +318,21 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
         pip install triton
         ```
     - If you installed `uv`, use `uv pip install` instead
+
+</details>
+
+### Install old version of PyTorch
+> Read this if your GPU does not support the latest PyTorch
+
+<details>
+<summary>Expand</summary>
+
+0. Navigate to the WebUI directory
+1. Edit the `webui-user.bat` file
+2. Manually specify an older version:
+```bash
+set TORCH_COMMAND=pip install torch==2.1.2 torchvision==0.16.2 --extra-index-url https://download.pytorch.org/whl/cu121
+```
 
 </details>
 
