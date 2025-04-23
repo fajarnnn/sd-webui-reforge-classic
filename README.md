@@ -55,7 +55,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <hr>
 
-## Features [Apr. 15]
+## Features [Apr. 23]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -66,17 +66,20 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - drastically speed up installation
     - see [Commandline](#commandline)
 - [X] Support [SageAttention](https://github.com/thu-ml/SageAttention)
+    - requires **manually** installing the [triton](https://github.com/triton-lang/triton) package
+        - [how to install](#install-triton)
     - requires RTX **30** +
     - ~10% speed up
     - see [Commandline](#commandline)
 - [X] Support fast `cublas` operation *(`CublasLinear`)*
-    - requires **manually** installing the [cublas_ops](https://github.com/aredden/torch-cublas-hgemm) package [[tutorial](#github-related)]
+    - requires **manually** installing the [cublas_ops](https://github.com/aredden/torch-cublas-hgemm) package
+        - [how to install](#install-cublas)
     - ~25% speed up
-    - enable in Settings
+    - enable in **Settings**
 - [X] Support fast `fp8` operation *(`torch._scaled_mm`)*
     - requires RTX **40** +
     - ~10% speed up; reduce quality
-    - enable in Settings
+    - enable in **Settings**
 
 > [!Note]
 > The `cublas` operation requires `fp16` precision, thus is not compatible with `fp8` operation
@@ -84,7 +87,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Implement RescaleCFG
     - reduce burnt colors; mainly for `v-pred` checkpoints
 - [X] Implement MaHiRo
-    - alternative CFG calculation; [[graph](https://www.desmos.com/calculator/wcztf0ktiq)]
+    - alternative CFG calculation
+    - [graph](https://www.desmos.com/calculator/wcztf0ktiq)
 - [X] Implement `diskcache`
     - *(backported from Automatic1111 Webui upstream)*
 - [X] Implement `skip_early_cond`
@@ -151,6 +155,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Lint & Format most of the Python and JavaScript codes
 - [X] Update to Pillow 11
     - faster image processing
+- [X] Update `protobuf`
+    - faster `insightface` loading
 - [X] Update to latest PyTorch
     - currently `2.6.0+cu126`
 - [X] No longer install `open-clip` twice
@@ -203,9 +209,6 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 - `--sage`: Install the `sageattention` package to speed up generation
     - requires RTX **30** +
-    - requires manually installing **triton**
-        - for Linux, simply do a `pip install`
-        - for Windows, refer to [woct0rdho's releases](https://github.com/woct0rdho/triton-windows/releases)
     - only affects **SDXL**
 
 > [!Tip]
@@ -259,11 +262,15 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - During the first launch, it will automatically install all the requirements
 - Once installation is finished, the WebUI will start in a browser automatically
 
-<details>
-<summary>How to install <b>cublas</b></summary>
+<br>
 
-0. Follow the above steps first, and ensure the WebUI can correctly run already
-1. Open the install directory
+### Install cublas
+
+<details>
+<summary>Expand</summary>
+
+0. Ensure the WebUI can correctly run already by following the [installation](#installation) steps first
+1. Open the console in the WebUI directory
     ```bash
     cd sd-webui-forge-classic
     ```
@@ -286,8 +293,70 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     pip install -e . --no-build-isolation
     ```
 
-    - This takes a few minutes
     - If you installed `uv`, use `uv pip install` instead
+    - The installation takes a few minutes
+
+</details>
+
+### Install triton
+
+<details>
+<summary>Expand</summary>
+
+0. Ensure the WebUI can correctly run already by following the [installation](#installation) steps first
+1. Open the console in the WebUI directory
+    ```bash
+    cd sd-webui-forge-classic
+    ```
+2. Start the virtual environment
+    ```bash
+    venv\scripts\activate
+    ```
+3. Install the library
+    - **Windows**
+        ```bash
+        pip install triton-windows
+        ```
+    - **Linux**
+        ```bash
+        pip install triton
+        ```
+    - If you installed `uv`, use `uv pip install` instead
+
+</details>
+
+### Install sageattention 2
+> If you only use **SDXL**, then `1.x` is already enough; `2.x` simply has partial support for **SD1** checkpoints
+
+<details>
+<summary>Expand</summary>
+
+0. Ensure the WebUI can correctly run already by following the [installation](#installation) steps first
+1. Open the console in the WebUI directory
+    ```bash
+    cd sd-webui-forge-classic
+    ```
+2. Start the virtual environment
+    ```bash
+    venv\scripts\activate
+    ```
+3. Create a new folder
+    ```bash
+    mkdir repo
+    cd repo
+    ```
+4. Clone the repo
+    ```bash
+    git clone https://github.com/thu-ml/SageAttention
+    cd SageAttention
+    ```
+5. Install the library
+    ```
+    pip install -e . --no-build-isolation
+    ```
+
+    - If you installed `uv`, use `uv pip install` instead
+    - The installation takes ~1 minute
 
 </details>
 
