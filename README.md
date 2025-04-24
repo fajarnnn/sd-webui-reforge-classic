@@ -64,13 +64,17 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Support [uv](https://github.com/astral-sh/uv) package manager
     - requires **uv**
     - drastically speed up installation
-    - see [Commandline](#commandline)
+    - see [Commandline](#by-classic)
 - [X] Support [SageAttention](https://github.com/thu-ml/SageAttention)
     - requires **manually** installing the [triton](https://github.com/triton-lang/triton) package
         - [how to install](#install-triton)
     - requires RTX **30** +
     - ~10% speed up
-    - see [Commandline](#commandline)
+    - see [Commandline](#by-classic)
+- [X] Support fast `fp16_accumulation`
+    - requires PyTorch **2.7.0** +
+    - ~25% speed up
+    - see [Commandline](#by-classic)
 - [X] Support fast `cublas` operation *(`CublasLinear`)*
     - requires **manually** installing the [cublas_ops](https://github.com/aredden/torch-cublas-hgemm) package
         - [how to install](#install-cublas)
@@ -82,7 +86,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - enable in **Settings**
 
 > [!Note]
-> The `cublas` operation requires `fp16` precision, thus is not compatible with `fp8` operation
+> - The `fp16_accumulation` and `cublas` operation achieve the same speed up; if you already install/update to `torch==2.7.0`, you do not need to go for `cublas_ops`
+> - The `fp16_accumulation` and `cublas` operation require `fp16` precision, thus is not compatible with the `fp8` operation
 
 - [X] Implement RescaleCFG
     - reduce burnt colors; mainly for `v-pred` checkpoints
@@ -174,6 +179,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - `--no-download-sd-model`: Do not download a default checkpoint
     - can be removed after you download some checkpoints of your choice
 - `--xformers`: Install the `xformers` package to speed up generation
+    - Currently, `torch==2.7.0` does **not** support `xformers` yet
 - `--port`: Specify a server port to use
     - defaults to `7860`
 - `--api`: Enable [API](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/API) access
@@ -207,7 +213,10 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 > [!Important]
 > Using `symlink` means it will directly access the packages from the cache folders; refrain from clearing the cache when setting this option
 
+- `--fast-fp16`: Enable the `allow_fp16_accumulation` option
+    - requires PyTorch **2.7.0** +
 - `--sage`: Install the `sageattention` package to speed up generation
+    - requires **triton**
     - requires RTX **30** +
     - only affects **SDXL**
 
