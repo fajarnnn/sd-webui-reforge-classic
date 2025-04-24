@@ -15,44 +15,6 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 > [Installation](#installation)
 
-<details>
-<summary>(Unscientific) Comparisons</summary>
-
-<table align="center">
-<thead>
-    <tr align="center">
-        <th></th>
-        <th>Forge Classic</th>
-        <th>Forge <code>previous</code></th>
-        <th>Forge <code>main</code></th>
-        <th>reForge <code>main</code></th>
-    </tr>
-</thead>
-<tbody>
-    <tr>
-        <td align="left"><sup>1</sup> Size</td>
-        <td align="center">4.3 MB</td>
-        <td align="center">6.8 MB</td>
-        <td align="center"><sup>2</sup> 18.5 MB</td>
-        <td align="center">7.8 MB</td>
-    </tr>
-    <tr>
-        <td align="left"><sup>3</sup> Startup</td>
-        <td align="center">4.5s</td>
-        <td align="center"><sup>4</sup> 9.5s</td>
-        <td align="center">5.2s</td>
-        <td align="center">5.7s</td>
-    </tr>
-</tbody>
-</table>
-
-> **1:** using the <code>Download ZIP</code> button on GitHub<br>
-> **2:** the large size is from `backend/huggingface`<br>
-> **3:** using only `--xformers` flag; disable all **extra** extensions; does **not** include `import torch` time<br>
-> **4:** the long time is from requirement conflicts
-
-</details>
-
 <hr>
 
 ## Features [Apr. 24]
