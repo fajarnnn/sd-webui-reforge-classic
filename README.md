@@ -55,7 +55,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <hr>
 
-## Features [Apr. 23]
+## Features [Apr. 24]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -250,7 +250,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     cd sd-webui-forge-classic
     uv venv venv --python 3.11 --seed
     ```
-- Add the `--uv` flag *(see [Commandline](#classic))*
+- Add the `--uv` flag to `webui-user.bat`
 
 </details>
 
@@ -258,14 +258,14 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 <summary>Standard Method</summary>
 
 - Install **[Python 3.11.9](https://www.python.org/downloads/release/python-3119/)**
+    - Remember to enable `Add Python to PATH`
 
 </details>
 
 3. **(Optional)** Configure [Commandline](#commandline)
 4. Launch the WebUI via `webui-user.bat`
-
-- During the first launch, it will automatically install all the requirements
-- Once installation is finished, the WebUI will start in a browser automatically
+5. During the first launch, it will automatically install all the requirements
+6. Once the installation is finished, the WebUI will start in a browser automatically
 
 <br>
 
@@ -274,7 +274,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 <details>
 <summary>Expand</summary>
 
-0. Ensure the WebUI can correctly run already by following the [installation](#installation) steps first
+0. Ensure the WebUI can properly launch already, by following the [installation](#installation) steps first
 1. Open the console in the WebUI directory
     ```bash
     cd sd-webui-forge-classic
@@ -308,7 +308,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 <details>
 <summary>Expand</summary>
 
-0. Ensure the WebUI can correctly run already by following the [installation](#installation) steps first
+0. Ensure the WebUI can properly launch already, by following the [installation](#installation) steps first
 1. Open the console in the WebUI directory
     ```bash
     cd sd-webui-forge-classic
@@ -330,28 +330,13 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 </details>
 
-### Install old version of PyTorch
-> Read this if your GPU does not support the latest PyTorch
-
-<details>
-<summary>Expand</summary>
-
-0. Navigate to the WebUI directory
-1. Edit the `webui-user.bat` file
-2. Manually specify an older version:
-```bash
-set TORCH_COMMAND=pip install torch==2.1.2 torchvision==0.16.2 --extra-index-url https://download.pytorch.org/whl/cu121
-```
-
-</details>
-
 ### Install sageattention 2
 > If you only use **SDXL**, then `1.x` is already enough; `2.x` simply has partial support for **SD1** checkpoints
 
 <details>
 <summary>Expand</summary>
 
-0. Ensure the WebUI can correctly run already by following the [installation](#installation) steps first
+0. Ensure the WebUI can properly launch already, by following the [installation](#installation) steps first
 1. Open the console in the WebUI directory
     ```bash
     cd sd-webui-forge-classic
@@ -376,7 +361,24 @@ set TORCH_COMMAND=pip install torch==2.1.2 torchvision==0.16.2 --extra-index-url
     ```
 
     - If you installed `uv`, use `uv pip install` instead
-    - The installation takes ~1 minute
+    - The installation takes a few minutes
+
+</details>
+
+<br>
+
+### Install older PyTorch
+> Read this if your GPU does not support the latest PyTorch
+
+<details>
+<summary>Expand</summary>
+
+0. Navigate to the WebUI directory
+1. Edit the `webui-user.bat` file
+2. Add a new line to specify an older version:
+```bash
+set TORCH_COMMAND=pip install torch==2.1.2 torchvision==0.16.2 --extra-index-url https://download.pytorch.org/whl/cu121
+```
 
 </details>
 
@@ -384,7 +386,8 @@ set TORCH_COMMAND=pip install torch==2.1.2 torchvision==0.16.2 --extra-index-url
 
 ### GitHub Related
 
-- **Issues** about removed features will simply be ignored; **Issues** regarding installation will also be ignored if it's obviously user-error
+- **Issues** about removed features will simply be ignored
+- **Issues** regarding installation will be ignored if it's obviously user-error
 - **Feature Request** not related to performance or optimization will simply be ignored
     - For cutting edge features, check out [reForge](https://github.com/Panchovix/stable-diffusion-webui-reForge) instead
 
