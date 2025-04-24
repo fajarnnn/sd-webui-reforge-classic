@@ -13,9 +13,10 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 "**Classic**" mainly serves as an archive for the "`previous`" version of Forge, which was built on [Gradio](https://github.com/gradio-app/gradio) `3.41.2` before the major changes *(see the original [announcement](https://github.com/lllyasviel/stable-diffusion-webui-forge/discussions/801))* were introduced. Additionally, this fork is focused exclusively on **SD1** and **SDXL** checkpoints, having various optimizations implemented, with the main goal of being the lightest WebUI without any bloatwares.
 
-> [Installation](#installation)
+> [!Tip]
+> [How to Install](#installation)
 
-<hr>
+<br>
 
 ## Features [Apr. 24]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
@@ -191,7 +192,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 > [!Important]
 > This simply **replaces** the `models` folder, rather than adding on top of it
 
-<hr>
+<br>
 
 ## Installation
 
@@ -344,14 +345,15 @@ set TORCH_COMMAND=pip install torch==2.1.2 torchvision==0.16.2 --extra-index-url
 
 </details>
 
-<hr>
+<br>
 
-### GitHub Related
+## Issues & Requests
 
 - **Issues** about removed features will simply be ignored
 - **Issues** regarding installation will be ignored if it's obviously user-error
 - **Feature Request** not related to performance or optimization will simply be ignored
     - For cutting edge features, check out [reForge](https://github.com/Panchovix/stable-diffusion-webui-reForge) instead
+    - Non-Windows platforms will not be supported, as I cannot verify nor maintain them
 
 </details>
 
