@@ -1,6 +1,5 @@
 GitPython==3.1.32
 Pillow==11.2.1
-accelerate==1.4.0
 albumentations==1.4.3
 clean-fid==0.1.35
 diskcache==5.6.3
