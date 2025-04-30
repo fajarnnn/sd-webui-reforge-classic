@@ -16,12 +16,12 @@ from modules_forge import stream
 
 
 class VRAMState(Enum):
-    DISABLED = 0  # No vram present: no need to move models to vram
-    NO_VRAM = 1  # Very low vram: enable all the options to save vram
+    DISABLED = 0
+    NO_VRAM = 1
     LOW_VRAM = 2
     NORMAL_VRAM = 3
     HIGH_VRAM = 4
-    SHARED = 5  # No dedicated vram: memory shared between CPU and GPU but models still need to be moved between both
+    SHARED = 5
 
 
 class CPUState(Enum):
@@ -34,6 +34,11 @@ class CPUState(Enum):
 vram_state = VRAMState.NORMAL_VRAM
 set_vram_to = VRAMState.NORMAL_VRAM
 cpu_state = CPUState.GPU
+
+try:
+    OOM_EXCEPTION = torch.cuda.OutOfMemoryError
+except Exception:
+    OOM_EXCEPTION = Exception
 
 total_vram = 0
 
@@ -145,14 +150,6 @@ if not args.always_normal_vram and not args.always_cpu:
         )
         set_vram_to = VRAMState.LOW_VRAM
 
-try:
-    OOM_EXCEPTION = torch.cuda.OutOfMemoryError
-except Exception:
-    OOM_EXCEPTION = Exception
-
-if directml_enabled:
-    OOM_EXCEPTION = Exception
-
 
 if torch.__version__.startswith("2.7"):
     if args.fast_fp16:
@@ -236,6 +233,8 @@ def is_nvidia():
 ENABLE_PYTORCH_ATTENTION = False
 if args.attention_pytorch:
     ENABLE_PYTORCH_ATTENTION = True
+    SAGE_IS_AVAILABLE = False
+    FLASH_IS_AVAILABLE = False
     XFORMERS_IS_AVAILABLE = False
 
 VAE_DTYPE = torch.float32
@@ -820,13 +819,6 @@ def xformers_enabled_vae():
 
 def pytorch_attention_enabled():
     return ENABLE_PYTORCH_ATTENTION
-
-
-def pytorch_attention_flash_attention():
-    if ENABLE_PYTORCH_ATTENTION:
-        if is_nvidia():
-            return True
-    return False
 
 
 def get_free_memory(dev=None, torch_free_too=False):

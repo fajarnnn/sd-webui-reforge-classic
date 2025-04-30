@@ -265,7 +265,11 @@ class BaseModel(torch.nn.Module):
         dtype = self.manual_cast_dtype if self.manual_cast_dtype is not None else self.get_dtype()
         dtype_size = ldm_patched.modules.model_management.dtype_size(dtype)
 
-        if ldm_patched.modules.model_management.xformers_enabled() or ldm_patched.modules.model_management.pytorch_attention_flash_attention():
+        if (
+            ldm_patched.modules.model_management.xformers_enabled()
+            or ldm_patched.modules.model_management.sage_enabled()
+            or ldm_patched.modules.model_management.flash_enabled()
+        ):
             scaler = 1.28
         else:
             scaler = 1.65

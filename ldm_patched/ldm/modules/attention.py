@@ -287,12 +287,12 @@ def attention_flash(q, k, v, heads, mask=None, attn_precision=None, skip_reshape
 if model_management.sage_enabled():
     print("Using sage attention")
     optimized_attention = attention_sage
-elif model_management.xformers_enabled():
-    print("Using xformers attention")
-    optimized_attention = attention_xformers
 elif model_management.flash_enabled():
     print("Using flash attention")
     optimized_attention = attention_flash
+elif model_management.xformers_enabled():
+    print("Using xformers attention")
+    optimized_attention = attention_xformers
 elif model_management.pytorch_attention_enabled():
     print("Using pytorch sdp attention")
     optimized_attention = attention_pytorch
