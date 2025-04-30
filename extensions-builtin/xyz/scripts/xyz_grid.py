@@ -735,14 +735,20 @@ class XYZ(scripts.Script):
 
             return new_image
 
-        target_count = 1
-        if row_count > 1 and y_type + z_type > 0:
-            target_count = 1
-            print("\n[Error] Row Count currently only supports X-Axis...\n")
-        if row_count == 0 and y_type + z_type == 0:
-            target_count = int(sqrt(len(xs)))
-            if target_count > 1:
-                print(f"Automatically split into {target_count} rows")
+        if row_count == 0:  # Automatic
+            if y_type + z_type > 0:
+                target_count = 1
+            else:
+                target_count = int(sqrt(len(xs)))
+                if target_count > 1:
+                    print(f"Automatically split into {target_count} rows")
+        else:
+            if y_type + z_type == 0:
+                target_count = row_count
+            else:
+                target_count = 1
+                if row_count > 1:
+                    print("\n[Error] Row Count currently only supports X-Axis...\n")
 
         if target_count > 1:
             processed.images[0] = rearrange_image(processed.images[0], target_count)
