@@ -18,7 +18,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <br>
 
-## Features [Apr. 24]
+## Features [Apr. 30]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -34,6 +34,10 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - requires RTX **30** +
     - ~10% speed up
     - see [Commandline](#by-classic)
+- [X] Support [FlashAttention](https://arxiv.org/abs/2205.14135)
+    - requires **manually** installing the [flash-attn](https://github.com/Dao-AILab/flash-attention) package
+        - [how to install](#install-flash-attn)
+    - ~10% speed up
 - [X] Support fast `fp16_accumulation`
     - requires PyTorch **2.7.0** +
     - ~25% speed up
@@ -126,7 +130,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Update `protobuf`
     - faster `insightface` loading
 - [X] Update to latest PyTorch
-    - currently `2.7.0+cu128`
+    - `torch==2.7.0+cu128`
+    - `xformers==0.0.30`
 - [X] No longer install `open-clip` twice
 - [X] Update certain packages to newer versions
 - [X] Update recommended Python to `3.11.9`
@@ -293,6 +298,36 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 </details>
 
+### Install flash-attn
+
+<details>
+<summary>Expand</summary>
+
+0. Ensure the WebUI can properly launch already, by following the [installation](#installation) steps first
+1. Open the console in the WebUI directory
+    ```bash
+    cd sd-webui-forge-classic
+    ```
+2. Start the virtual environment
+    ```bash
+    venv\scripts\activate
+    ```
+3. Install the library
+    - **Windows**
+        - Download the pre-built `.whl` package from https://github.com/kingbri1/flash-attention/releases
+        ```bash
+        pip install flash_attn...win...whl
+        ```
+    - **Linux**
+        - Download the pre-built `.whl` package from https://github.com/Dao-AILab/flash-attention/releases
+        ```bash
+        pip install flash_attn...linux...whl
+        ```
+    - If you installed `uv`, use `uv pip install` instead
+    - **Important:** Download the correct `.whl` for your Python and PyTorch version
+
+</details>
+
 ### Install sageattention 2
 > If you only use **SDXL**, then `1.x` is already enough; `2.x` simply has partial support for **SD1** checkpoints
 
@@ -346,6 +381,29 @@ set TORCH_COMMAND=pip install torch==2.1.2 torchvision==0.16.2 --extra-index-url
 </details>
 
 <br>
+
+## Attention
+
+> [!Important]
+> The `--xformers` and `--sage` args are only responsible for installing the packages, **not** whether its respective attention is used; This also means you can remove them once they are successfully installed
+
+**Forge Classic** tries to import the packages and automatically choose the first available attention function in the following order:
+
+1. `SageAttention`
+2. `FlashAttention`
+3. `xformers`
+4. `PyTorch`
+5. `Basic`
+
+> [!Note]
+> The VAE only checks for `xformers`
+
+In my experience, the speed of each attention function for SDXL is ranked in the following order:
+
+- `SageAttention` ≥ `FlashAttention` > `xformers` > `PyTorch` >> `Basic`
+
+> [!Note]
+> `SageAttention` is based on quantization, so its quality might be slightly worse than others
 
 ## Issues & Requests
 
