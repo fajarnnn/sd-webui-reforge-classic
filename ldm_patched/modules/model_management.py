@@ -165,9 +165,9 @@ if torch.__version__.startswith("2.7"):
         import sys
 
         if importlib.metadata.version("xformers").startswith("0.0.2"):
+            print("\n\nPyTorch 2.7.0 requires xformers 0.0.30 or above!")
+            print("Add the --reinstall-xformers arg to update xformers\n\n")
             sys.modules["xformers"] = None
-            print("PyTorch 2.7 currently does not support xformers!")
-            print("Forcefully disabling xformers...")
 
     except importlib.metadata.PackageNotFoundError:
         pass
