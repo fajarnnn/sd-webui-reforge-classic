@@ -214,6 +214,16 @@ else:
     else:
         SAGE_IS_AVAILABLE = True
 
+if args.disable_flash:
+    FLASH_IS_AVAILABLE = False
+else:
+    try:
+        from flash_attn import flash_attn_func  # noqa
+    except ImportError:
+        FLASH_IS_AVAILABLE = False
+    else:
+        FLASH_IS_AVAILABLE = True
+
 
 def is_nvidia():
     global cpu_state
@@ -234,13 +244,11 @@ try:
     if is_nvidia():
         torch_version = torch.version.__version__
         if int(torch_version[0]) >= 2:
-            if not (ENABLE_PYTORCH_ATTENTION or args.attention_split or args.attention_quad):
-                ENABLE_PYTORCH_ATTENTION = True
+            ENABLE_PYTORCH_ATTENTION = True
             if torch.cuda.is_bf16_supported() and torch.cuda.get_device_properties(torch.cuda.current_device()).major >= 8:
                 VAE_DTYPE = torch.bfloat16
     if is_intel_xpu():
-        if not (args.attention_split or args.attention_quad):
-            ENABLE_PYTORCH_ATTENTION = True
+        ENABLE_PYTORCH_ATTENTION = True
 except Exception:
     pass
 
@@ -782,9 +790,7 @@ def cast_to_device(tensor, device, dtype, copy=False):
 def xformers_enabled():
     if cpu_state != CPUState.GPU:
         return False
-    if is_intel_xpu():
-        return False
-    if directml_enabled:
+    if not is_nvidia():
         return False
     return XFORMERS_IS_AVAILABLE
 
@@ -795,6 +801,14 @@ def sage_enabled():
     if not is_nvidia():
         return False
     return SAGE_IS_AVAILABLE
+
+
+def flash_enabled():
+    if cpu_state != CPUState.GPU:
+        return False
+    if not is_nvidia():
+        return False
+    return FLASH_IS_AVAILABLE
 
 
 def xformers_enabled_vae():

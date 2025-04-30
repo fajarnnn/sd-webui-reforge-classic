@@ -36,11 +36,6 @@ fpte_group.add_argument("--clip-in-fp8-e5m2", action="store_true")
 fpte_group.add_argument("--clip-in-fp16", action="store_true")
 fpte_group.add_argument("--clip-in-fp32", action="store_true")
 
-attn_group = parser.add_mutually_exclusive_group()
-attn_group.add_argument("--attention-split", action="store_true")
-attn_group.add_argument("--attention-quad", action="store_true")
-attn_group.add_argument("--attention-pytorch", action="store_true")
-
 vram_group = parser.add_mutually_exclusive_group()
 vram_group.add_argument("--always-gpu", action="store_true")
 vram_group.add_argument("--always-high-vram", action="store_true")
@@ -51,6 +46,8 @@ vram_group.add_argument("--always-cpu", action="store_true")
 
 parser.add_argument("--disable-xformers", action="store_true")
 parser.add_argument("--disable-sage", action="store_true")
+parser.add_argument("--disable-flash", action="store_true")
+parser.add_argument("--attention-pytorch", action="store_true")
 
 parser.add_argument("--always-offload-from-vram", action="store_true")
 parser.add_argument("--pytorch-deterministic", action="store_true")
