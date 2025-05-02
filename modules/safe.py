@@ -53,6 +53,7 @@ class Extra:
         global_extra_handler = None
 
 
+load = torch.load
 unsafe_torch_load = torch.load
 global_extra_handler = None
 
