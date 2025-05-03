@@ -31,14 +31,14 @@ optimizers:
     lr: 0.0001
 visualizer:
   key_order:
-  - image
-  - predicted_image
-  - discr_output_fake
-  - discr_output_real
-  - inpainted
+    - image
+    - predicted_image
+    - discr_output_fake
+    - discr_output_real
+    - inpainted
   rescale_keys:
-  - discr_output_fake
-  - discr_output_real
+    - discr_output_fake
+    - discr_output_real
   kind: directory
   outdir: /group-volume/User-Driven-Content-Generation/r.suvorov/inpainting/experiments/r.suvorov_2021-04-30_14-41-12_train_simple_pix2pix2_gap_sdpl_novgg_large_b18_ffc075_batch8x15/samples
 location:

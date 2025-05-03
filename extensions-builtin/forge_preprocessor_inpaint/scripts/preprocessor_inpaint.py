@@ -1,16 +1,22 @@
-import os
-import cv2
-import torch
-import numpy as np
-import yaml
-import einops
+from typing import TYPE_CHECKING
 
-from omegaconf import OmegaConf
-from modules_forge.supported_preprocessor import Preprocessor, PreprocessorParameter
-from modules_forge.forge_util import resize_image_with_pad
-from modules_forge.shared import preprocessor_dir, add_supported_preprocessor
-from modules.modelloader import load_file_from_url
+if TYPE_CHECKING:
+    from modules.processing import StableDiffusionProcessing
+
+import os
+
+import cv2
+import einops
+import numpy as np
+import torch
+import yaml
 from annotator.lama.saicinpainting.training.trainers import load_checkpoint
+from omegaconf import OmegaConf
+
+from modules.modelloader import load_file_from_url
+from modules_forge.forge_util import resize_image_with_pad
+from modules_forge.shared import add_supported_preprocessor, preprocessor_dir
+from modules_forge.supported_preprocessor import Preprocessor, PreprocessorParameter
 
 
 class PreprocessorInpaint(Preprocessor):
@@ -23,7 +29,7 @@ class PreprocessorInpaint(Preprocessor):
         self.fill_mask_with_one_when_resize_and_fill = True
         self.expand_mask_when_resize_and_fill = True
 
-    def process_before_every_sampling(self, process, cond, mask, *args, **kwargs):
+    def process_before_every_sampling(self, p: "StableDiffusionProcessing", cond: torch.Tensor, mask: torch.Tensor, *args, **kwargs):
         mask = mask.round()
         mixed_cond = cond * (1.0 - mask) - mask
         return mixed_cond, None
@@ -37,51 +43,38 @@ class PreprocessorInpaintOnly(PreprocessorInpaint):
         self.mask = None
         self.latent = None
 
-    def process_before_every_sampling(self, process, cond, mask, *args, **kwargs):
+    def process_before_every_sampling(self, p: "StableDiffusionProcessing", cond: torch.Tensor, mask: torch.Tensor, *args, **kwargs):
         mask = mask.round()
         self.image = cond
         self.mask = mask
 
-        vae = process.sd_model.forge_objects.vae
-        # This is a powerful VAE with integrated memory management, bf16, and tiled fallback.
+        vae = p.sd_model.forge_objects.vae
 
         latent_image = vae.encode(self.image.movedim(1, -1))
-        latent_image = (
-            process.sd_model.forge_objects.unet.model.latent_format.process_in(
-                latent_image
-            )
-        )
+        latent_image = p.sd_model.forge_objects.unet.model.latent_format.process_in(latent_image)
 
         B, C, H, W = latent_image.shape
 
         latent_mask = self.mask
-        latent_mask = torch.nn.functional.interpolate(
-            latent_mask, size=(H * 8, W * 8), mode="bilinear"
-        ).round()
-        latent_mask = (
-            torch.nn.functional.max_pool2d(latent_mask, (8, 8)).round().to(latent_image)
-        )
+        latent_mask = torch.nn.functional.interpolate(latent_mask, size=(H * 8, W * 8), mode="bilinear").round()
+        latent_mask = torch.nn.functional.max_pool2d(latent_mask, (8, 8)).round().to(latent_image)
 
-        unet = process.sd_model.forge_objects.unet.clone()
+        unet = p.sd_model.forge_objects.unet.clone()
 
         def pre_cfg(model, c, uc, x, timestep, model_options):
-            noisy_latent = latent_image.to(x) + timestep[:, None, None, None].to(
-                x
-            ) * torch.randn_like(latent_image).to(x)
+            noisy_latent = latent_image.to(x) + timestep[:, None, None, None].to(x) * torch.randn_like(latent_image).to(x)
             x = x * latent_mask.to(x) + noisy_latent.to(x) * (1.0 - latent_mask.to(x))
             return model, c, uc, x, timestep, model_options
 
         def post_cfg(args):
             denoised = args["denoised"]
-            denoised = denoised * latent_mask.to(denoised) + latent_image.to(
-                denoised
-            ) * (1.0 - latent_mask.to(denoised))
+            denoised = denoised * latent_mask.to(denoised) + latent_image.to(denoised) * (1.0 - latent_mask.to(denoised))
             return denoised
 
         unet.add_sampler_pre_cfg_function(pre_cfg)
         unet.set_model_sampler_post_cfg_function(post_cfg)
 
-        process.sd_model.forge_objects.unet = unet
+        p.sd_model.forge_objects.unet = unet
 
         self.latent = latent_image
 
@@ -98,15 +91,12 @@ class PreprocessorInpaintOnly(PreprocessorInpaint):
             mask = self.mask[0, 0].detach().cpu().numpy().astype(np.float32)
             mask = cv2.dilate(mask, np.ones((sigma, sigma), dtype=np.uint8))
             mask = cv2.blur(mask, (sigma, sigma))[None]
-            mask = (
-                torch.from_numpy(np.ascontiguousarray(mask).copy()).to(img).clip(0, 1)
-            )
+            mask = torch.from_numpy(np.ascontiguousarray(mask).copy()).to(img).clip(0, 1)
             raw = self.image[0].to(img).clip(0, 1)
             img = img.clip(0, 1)
             new_results.append(raw * (1.0 - mask) + img * mask)
 
         a1111_batch_result.images = new_results
-        return
 
 
 class PreprocessorInpaintLama(PreprocessorInpaintOnly):
@@ -117,18 +107,13 @@ class PreprocessorInpaintLama(PreprocessorInpaintOnly):
     def load_model(self):
         remote_model_path = "https://huggingface.co/lllyasviel/Annotators/resolve/main/ControlNetLama.pth"
         model_path = load_file_from_url(remote_model_path, model_dir=preprocessor_dir)
-        config_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "lama_config.yaml"
-        )
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lama_config.yaml")
         cfg = yaml.safe_load(open(config_path, "rt"))
         cfg = OmegaConf.create(cfg)
         cfg.training_model.predict_only = True
         cfg.visualizer.kind = "noop"
-        model = load_checkpoint(
-            cfg, os.path.abspath(model_path), strict=False, map_location="cpu"
-        )
+        model = load_checkpoint(cfg, os.path.abspath(model_path), strict=False, map_location="cpu")
         self.setup_model_patcher(model)
-        return
 
     def __call__(
         self,
@@ -174,23 +159,65 @@ class PreprocessorInpaintLama(PreprocessorInpaintOnly):
         prd_color = cv2.resize(prd_color, (W, H))
 
         alpha = raw_mask.astype(np.float32) / 255.0
-        fin_color = prd_color.astype(np.float32) * alpha + raw_color.astype(
-            np.float32
-        ) * (1 - alpha)
+        fin_color = prd_color.astype(np.float32) * alpha + raw_color.astype(np.float32) * (1 - alpha)
         fin_color = fin_color.clip(0, 255).astype(np.uint8)
 
         return fin_color
 
-    def process_before_every_sampling(self, process, cond, mask, *args, **kwargs):
-        cond, mask = super().process_before_every_sampling(
-            process, cond, mask, *args, **kwargs
-        )
-        sigma_max = process.sd_model.forge_objects.unet.model.model_sampling.sigma_max
+    def process_before_every_sampling(self, p: "StableDiffusionProcessing", cond: torch.Tensor, mask: torch.Tensor, *args, **kwargs):
+        cond, mask = super().process_before_every_sampling(p, cond, mask, *args, **kwargs)
+        sigma_max = p.sd_model.forge_objects.unet.model.model_sampling.sigma_max
         original_noise = kwargs["noise"]
-        process.modified_noise = original_noise + self.latent.to(
-            original_noise
-        ) / sigma_max.to(original_noise)
+        p.modified_noise = original_noise + self.latent.to(original_noise) / sigma_max.to(original_noise)
         return cond, mask
+
+
+class PreprocessorInpaintNoobAIXL(PreprocessorInpaint):
+    def __init__(self):
+        super().__init__()
+        self.name = "inpaint_noobai"
+        self.tags = ["Inpaint"]
+        self.model_filename_filters = ["inpaint", "noobai"]
+
+    def __call__(
+        self,
+        input_image,
+        resolution=512,
+        slider_1=None,
+        slider_2=None,
+        slider_3=None,
+        input_mask=None,
+        **kwargs,
+    ):
+        if input_mask is None:
+            return input_image
+
+        if not isinstance(input_image, np.ndarray):
+            input_image = np.array(input_image)
+        if not isinstance(input_mask, np.ndarray):
+            input_mask = np.array(input_mask)
+
+        mask = input_mask.astype(np.float32) / 255.0
+        mask = (mask > 0.5).astype(bool)
+
+        if mask.ndim == 2:
+            mask = np.expand_dims(mask, axis=-1)
+        if mask.shape[-1] == 1:
+            mask = np.repeat(mask, 3, axis=-1)
+
+        result = input_image.copy()
+        result[mask] = 0.0
+
+        return result
+
+    def process_before_every_sampling(self, p: "StableDiffusionProcessing", cond: torch.Tensor, mask: torch.Tensor, *args, **kwargs):
+        if p.denoising_strength < 0.8:
+            print("Higher Denoising Strength is Recommended!")
+
+        mask = mask.round()
+        mixed_cond = cond * (1.0 - mask)
+
+        return mixed_cond, None
 
 
 add_supported_preprocessor(PreprocessorInpaint())
@@ -198,3 +225,5 @@ add_supported_preprocessor(PreprocessorInpaint())
 add_supported_preprocessor(PreprocessorInpaintOnly())
 
 add_supported_preprocessor(PreprocessorInpaintLama())
+
+add_supported_preprocessor(PreprocessorInpaintNoobAIXL())
