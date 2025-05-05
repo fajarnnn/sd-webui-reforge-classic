@@ -20,6 +20,16 @@ def load_network(name, network_on_disk):
     return net
 
 
+def get_networks_on_desk(names: list[str]) -> list["network.NetworkOnDisk"]:
+    networks_on_disk = [(available_networks.get(name, None) if name.lower() in forbidden_network_aliases else available_network_aliases.get(name, None)) for name in names]
+
+    if all(x is not None for x in networks_on_disk):
+        return networks_on_disk
+
+    list_available_networks()
+    return get_networks_on_desk(names)
+
+
 def load_networks(names, te_multipliers=None, unet_multipliers=None, dyn_dims=None):
     global lora_state_dict_cache
 
@@ -29,8 +39,7 @@ def load_networks(names, te_multipliers=None, unet_multipliers=None, dyn_dims=No
 
     loaded_networks.clear()
 
-    networks_on_disk = [(available_networks.get(name, None) if name.lower() in forbidden_network_aliases else available_network_aliases.get(name, None)) for name in names]
-    assert not any(x is None for x in networks_on_disk)
+    networks_on_disk = get_networks_on_desk(names)
 
     for network_on_disk, name in zip(networks_on_disk, names):
         try:

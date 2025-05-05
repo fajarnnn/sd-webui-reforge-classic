@@ -26,11 +26,11 @@ class SDVersion(enum.Enum):
 
 
 class NetworkOnDisk:
-    def __init__(self, name, filename):
-        self.name = name
-        self.filename = filename
-        self.metadata = {}
-        self.is_safetensors = filename.lower().endswith(".safetensors")
+    def __init__(self, name: str, filename: str):
+        self.name: str = name
+        self.filename: str = filename
+        self.metadata: dict[str, str] = {}
+        self.is_safetensors: bool = filename.lower().endswith(".safetensors")
 
         def read_metadata():
             metadata = sd_models.read_metadata_from_safetensors(filename)
@@ -50,13 +50,13 @@ class NetworkOnDisk:
 
             self.metadata = m
 
-        self.alias = self.metadata.get("ss_output_name", self.name)
+        self.alias: str = self.metadata.get("ss_output_name", self.name)
 
-        self.hash = None
-        self.shorthash = None
+        self.hash: str = None
+        self.shorthash: str = None
         self.set_hash(self.metadata.get("sshs_model_hash") or hashes.sha256_from_cache(self.filename, "/".join(["lora", self.name]), use_addnet_hash=self.is_safetensors) or "")
 
-        self.sd_version = self.detect_version()
+        self.sd_version: "SDVersion" = self.detect_version()
 
     def detect_version(self):
         if str(self.metadata.get("ss_base_model_version", "")).startswith("sdxl_"):

@@ -68,6 +68,7 @@ class LoraUserMetadataEditor(UserMetadataEditor):
         user_metadata["notes"] = notes
 
         self.write_user_metadata(name, user_metadata)
+        self.page.refresh()
 
     def get_metadata_table(self, name):
         table = super().get_metadata_table(name)
