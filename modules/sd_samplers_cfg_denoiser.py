@@ -1,13 +1,13 @@
 import torch
 from modules import prompt_parser, sd_samplers_common
-
+from modules.script_callbacks import (
+    AfterCFGCallbackParams,
+    CFGDenoiserParams,
+    cfg_after_cfg_callback,
+    cfg_denoiser_callback,
+)
 from modules.shared import opts, state
 from modules_forge import forge_sampler
-
-from modules.script_callbacks import CFGDenoiserParams, cfg_denoiser_callback
-from modules.script_callbacks import AfterCFGCallbackParams, cfg_after_cfg_callback
-
-# from modules.script_callbacks import CFGDenoisedParams, cfg_denoised_callback
 
 
 def catenate_conds(conds):
@@ -53,37 +53,29 @@ class CFGDenoiser(torch.nn.Module):
         """expected number of calls to denoiser calculated from self.steps and specifics of the selected sampler"""
 
         self.step = 0
-        self.image_cfg_scale = None
-        self.padded_cond_uncond = False
+        self.image_cfg_scale = 1.0
+        self.padded_cond_uncond = True
         self.padded_cond_uncond_v0 = False
         self.sampler = sampler
         self.model_wrap = None
         self.p = None
 
-        # Backward Compatibility
         self.mask_before_denoising = False
-
         self.classic_ddim_eps_estimation = False
 
     @property
     def inner_model(self):
-        raise NotImplementedError()
+        raise NotImplementedError
 
-    def combine_denoised(self, x_out, conds_list, uncond, cond_scale, timestep, x_in, cond):
-        denoised_uncond = x_out[-uncond.shape[0] :]
-        denoised = torch.clone(denoised_uncond)
+    # def combine_denoised(self, x_out, conds_list, uncond, cond_scale):
+    #     denoised_uncond = x_out[-uncond.shape[0] :]
+    #     denoised = torch.clone(denoised_uncond)
+    #     return denoised
 
-        for i, conds in enumerate(conds_list):
-            for cond_index, weight in conds:
-                denoised[i] += (x_out[cond_index] - denoised_uncond[i]) * (weight * cond_scale)
-
-        return denoised
-
-    def combine_denoised_for_edit_model(self, x_out, cond_scale):
-        out_cond, out_img_cond, out_uncond = x_out.chunk(3)
-        denoised = out_uncond + cond_scale * (out_cond - out_img_cond) + self.image_cfg_scale * (out_img_cond - out_uncond)
-
-        return denoised
+    # def combine_denoised_for_edit_model(self, x_out, cond_scale):
+    #     out_cond, out_img_cond, out_uncond = x_out.chunk(3)
+    #     denoised = out_uncond + cond_scale * (out_cond - out_img_cond) + self.image_cfg_scale * (out_img_cond - out_uncond)
+    #     return denoised
 
     def get_pred_x0(self, x_in, x_out, sigma):
         return x_out
@@ -95,7 +87,7 @@ class CFGDenoiser(torch.nn.Module):
         self.sampler.sampler_extra_args["cond"] = c
         self.sampler.sampler_extra_args["uncond"] = uc
 
-    def forward(self, x, sigma, uncond, cond, cond_scale, s_min_uncond, image_cond):
+    def forward(self, x, sigma, uncond, cond, cond_scale, s_min_uncond, image_cond, **kwargs):
         if state.interrupted or state.skipped:
             raise sd_samplers_common.InterruptedException
 
@@ -148,7 +140,16 @@ class CFGDenoiser(torch.nn.Module):
             ] * torch.randn_like(self.init_latent)
             x = apply_blend(x, noisy_initial_latent.to(self.init_latent))
 
-        denoiser_params = CFGDenoiserParams(x, image_cond, sigma, state.sampling_step, state.sampling_steps, cond, uncond, self)
+        denoiser_params = CFGDenoiserParams(
+            x,
+            image_cond,
+            sigma,
+            state.sampling_step,
+            state.sampling_steps,
+            cond,
+            uncond,
+            self,
+        )
         cfg_denoiser_callback(denoiser_params)
 
         if 0.0 <= self.step / self.total_steps <= opts.skip_early_cond:
@@ -156,12 +157,22 @@ class CFGDenoiser(torch.nn.Module):
         if 0.0 <= sigma[0] <= s_min_uncond:
             cond_scale = 1.0
 
+        skip_uncond: bool = abs(cond_scale - 1.0) < 10**-6
+        self.padded_cond_uncond = not skip_uncond
+
         denoised = forge_sampler.forge_sample(
             self,
             denoiser_params=denoiser_params,
             cond_scale=cond_scale,
             cond_composition=cond_composition,
+            skip_uncond=skip_uncond,
+            options=kwargs.get("model_options", None),
         )
+
+        # if getattr(self.p.sd_model, "cond_stage_key", None) == "edit" and getattr(self, "image_cfg_scale", 1.0) != 1.0:
+        #     denoised = self.combine_denoised_for_edit_model(denoised, cond_scale)
+        # elif not skip_uncond:
+        #     denoised = self.combine_denoised(denoised, cond_composition, uncond, cond_scale)
 
         if not self.mask_before_denoising and self.mask is not None:
             denoised = apply_blend(denoised)
