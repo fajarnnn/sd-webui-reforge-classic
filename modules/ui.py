@@ -2,42 +2,38 @@ import datetime
 import mimetypes
 import os
 import sys
-from functools import reduce
 import warnings
 from contextlib import ExitStack
+from functools import reduce
 
 import gradio as gr
+import gradio.deprecation
 import gradio.utils
 import numpy as np
 from PIL import Image, PngImagePlugin  # noqa: F401
-from modules.call_queue import wrap_gradio_gpu_call, wrap_queued_call, wrap_gradio_call
-
-from modules import gradio_extensons, sd_schedulers  # noqa: F401
-from modules import extras, sd_models, script_callbacks, ui_extensions, extra_networks, ui_common, ui_postprocessing, paths_internal, progress, ui_loadsave, shared_items, ui_settings, timer, sysinfo, scripts, sd_samplers, processing, ui_extra_networks, ui_toprow, launch_utils
-from modules.ui_components import FormRow, FormGroup, ToolButton, FormHTML, InputAccordion, ResizeHandleRow
-from modules.paths import script_path
-from modules.ui_common import create_refresh_button
-from modules.ui_gradio_extensions import reload_javascript
-
-from modules.shared import opts, cmd_opts
 
 import modules.infotext_utils as parameters_copypaste
-import modules.shared as shared
-from modules import prompt_parser
+from modules import gradio_extensons, launch_utils  # noqa: F401
+from modules import extra_networks, extras, paths_internal, processing, progress, prompt_parser, script_callbacks, scripts, sd_models, sd_samplers, sd_schedulers, shared, shared_items, sysinfo, timer, ui_common, ui_extensions, ui_extra_networks, ui_loadsave, ui_postprocessing, ui_settings, ui_toprow
+from modules.call_queue import wrap_gradio_call, wrap_gradio_gpu_call, wrap_queued_call
+from modules.infotext_utils import PasteField
+from modules.paths import script_path
 from modules.sd_hijack import model_hijack
-from modules.infotext_utils import image_from_url_text, PasteField
+from modules.shared import cmd_opts, opts
+from modules.ui_common import create_refresh_button
+from modules.ui_components import FormGroup, FormHTML, FormRow, InputAccordion, ResizeHandleRow, ToolButton
+from modules.ui_gradio_extensions import reload_javascript
 
 create_setting_component = ui_settings.create_setting_component
 
-warnings.filterwarnings("default" if opts.show_warnings else "ignore", category=UserWarning)
-warnings.filterwarnings("default" if opts.show_warnings else "ignore", category=FutureWarning)
-warnings.filterwarnings("default" if opts.show_gradio_deprecation_warnings else "ignore", category=gr.deprecation.GradioDeprecationWarning)
+if not opts.show_warnings:
+    warnings.filterwarnings("ignore", category=UserWarning)
+    warnings.filterwarnings("ignore", category=FutureWarning)
+if not opts.show_gradio_deprecation_warnings:
+    warnings.filterwarnings("ignore", category=gradio.deprecation.GradioDeprecationWarning)
 
-# this is a fix for Windows users. Without it, javascript files will be served with text/html content-type and the browser will not show any UI
 mimetypes.init()
 mimetypes.add_type("application/javascript", ".js")
-
-# Likewise, add explicit content-type header for certain missing image types
 mimetypes.add_type("image/webp", ".webp")
 
 if not cmd_opts.share and not cmd_opts.listen:
@@ -51,13 +47,6 @@ if cmd_opts.ngrok is not None:
     print("ngrok authtoken detected, trying to connect...")
     ngrok.connect(cmd_opts.ngrok, cmd_opts.port if cmd_opts.port is not None else 7860, cmd_opts.ngrok_options)
 
-
-def gr_show(visible=True):
-    return {"visible": visible, "__type__": "update"}
-
-
-sample_img2img = "assets/stable-samples/img2img/sketch-mountains-input.jpg"
-sample_img2img = sample_img2img if os.path.exists(sample_img2img) else None
 
 # Using constants for these since the variation selector isn't visible.
 # Important that they exactly match script.js for tooltip to work.
@@ -75,12 +64,6 @@ detect_image_size_symbol = "\U0001f4d0"  # 📐
 
 
 plaintext_to_html = ui_common.plaintext_to_html
-
-
-def send_gradio_gallery_to_image(x):
-    if len(x) == 0:
-        return None
-    return image_from_url_text(x[0])
 
 
 def calc_resolution_hires(enable, width, height, hr_scale, hr_resize_x, hr_resize_y):
@@ -101,16 +84,6 @@ def resize_from_to_html(width, height, scale_by):
         return "no image selected"
 
     return f"resize: from <span class='resolution'>{width}x{height}</span> to <span class='resolution'>{target_width}x{target_height}</span>"
-
-
-def connect_clear_prompt(button):
-    """Given clear button, prompt, and token_counter objects, setup clear prompt button click event"""
-    button.click(
-        _js="clear_prompt",
-        fn=None,
-        inputs=[],
-        outputs=[],
-    )
 
 
 def update_token_counter(text, steps, styles, *, is_positive=True):
@@ -156,10 +129,6 @@ def update_negative_prompt_token_counter(*args):
     return update_token_counter(*args, is_positive=False)
 
 
-def setup_progressbar(*args, **kwargs):
-    pass
-
-
 def apply_setting(key, value):
     if value is None:
         return gr.skip()
@@ -167,7 +136,7 @@ def apply_setting(key, value):
     if shared.cmd_opts.freeze_settings:
         return gr.skip()
 
-    # dont allow model to be swapped when model hash exists in prompt
+    # don't allow model to be swapped when model hash exists in prompt
     if key == "sd_model_checkpoint" and opts.disable_weights_auto_swap:
         return gr.skip()
 
