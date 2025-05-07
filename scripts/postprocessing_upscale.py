@@ -289,7 +289,7 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
                 pp.info["Postprocess upscaler 2"] = upscaler2.name
                 pp.info["Postprocess upscaler 2 visibility"] = upscaler_2_visibility
 
-        if upscale_cc:
+        if upscale_cc and "cc" in upscale_cache:  # postprocess during txt2img
             pp.image = apply_color_correction(upscale_cache["cc"], upscaled_image)
         else:
             pp.image = upscaled_image
