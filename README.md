@@ -18,24 +18,23 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <br>
 
-## Features [Apr. 30]
+## Features [May. 07]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
 
-- [X] Support `v-pred` **SDXL** checkpoints *(**eg.** [NoobAI](https://civitai.com/models/833294?modelVersionId=1190596))*
 - [X] Support [uv](https://github.com/astral-sh/uv) package manager
-    - requires **uv**
+    - requires **manually** installing [uv](https://github.com/astral-sh/uv/releases)
     - drastically speed up installation
     - see [Commandline](#by-classic)
 - [X] Support [SageAttention](https://github.com/thu-ml/SageAttention)
-    - requires **manually** installing the [triton](https://github.com/triton-lang/triton) package
+    - requires **manually** installing [triton](https://github.com/triton-lang/triton)
         - [how to install](#install-triton)
     - requires RTX **30** +
-    - ~10% speed up
+    - ~10% speed up for SDXL
     - see [Commandline](#by-classic)
 - [X] Support [FlashAttention](https://arxiv.org/abs/2205.14135)
-    - requires **manually** installing the [flash-attn](https://github.com/Dao-AILab/flash-attention) package
+    - requires **manually** installing [flash-attn](https://github.com/Dao-AILab/flash-attention)
         - [how to install](#install-flash-attn)
     - ~10% speed up
 - [X] Support fast `fp16_accumulation`
@@ -43,37 +42,44 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - ~25% speed up
     - see [Commandline](#by-classic)
 - [X] Support fast `cublas` operation *(`CublasLinear`)*
-    - requires **manually** installing the [cublas_ops](https://github.com/aredden/torch-cublas-hgemm) package
+    - requires **manually** installing [cublas_ops](https://github.com/aredden/torch-cublas-hgemm)
         - [how to install](#install-cublas)
     - ~25% speed up
-    - enable in **Settings**
+    - enable in **Settings/Optimizations**
 - [X] Support fast `fp8` operation *(`torch._scaled_mm`)*
     - requires RTX **40** +
     - ~10% speed up; reduce quality
-    - enable in **Settings**
+    - enable in **Settings/Optimizations**
 
 > [!Note]
-> - The `fp16_accumulation` and `cublas` operation achieve the same speed up; if you already install/update to `torch==2.7.0`, you do not need to go for `cublas_ops`
-> - The `fp16_accumulation` and `cublas` operation require `fp16` precision, thus is not compatible with the `fp8` operation
-
+> - Both `fp16_accumulation` and `cublas_ops` achieve the same speed up; if you already install/update to PyTorch **2.7.0**, you do not need to go for `cublas_ops`
+> - The `fp16_accumulation` and `cublas_ops` require `fp16` precision, thus is not compatible with the `fp8` operation
+- [X] Implement new Samplers
+    - *(ported from reForge Webui)*
+- [X] Implement Scheduler Dropdown
+    - *(backported from Automatic1111 Webui upstream)*
+    - enable in **Settings/UI alternatives**
 - [X] Implement RescaleCFG
     - reduce burnt colors; mainly for `v-pred` checkpoints
+    - enable in **Settings/UI alternatives**
 - [X] Implement MaHiRo
-    - alternative CFG calculation
-    - [graph](https://www.desmos.com/calculator/wcztf0ktiq)
-- [X] Implement `diskcache`
+    - alternative CFG calculation; improve prompt adherence
+    - enable in **Settings/UI alternatives**
+- [X] Implement `diskcache` for hashes
     - *(backported from Automatic1111 Webui upstream)*
 - [X] Implement `skip_early_cond`
     - *(backported from Automatic1111 Webui upstream)*
+    - enable in **Settings/Optimizations**
+- [X] Support `v-pred` **SDXL** checkpoints *(**eg.** [NoobAI](https://civitai.com/models/833294?modelVersionId=1190596))*
+- [X] Support new LoRA architectures
 - [X] Update `spandrel`
-    - support most modern Upscaler architecture
+    - support new Upscaler architectures
 - [X] Add `pillow-heif` package
-    - support `.avif` and `.heif` formats
-- [X] Automatic row split for `X/Y/Z Plot`
-- [X] Add an option to disable **Refiner**
-- [X] Add an option to disable ExtraNetworks **Tree View**
+    - support `.avif` and `.heif` images
+- [X] Automatically determine the optimal row count for `X/Y/Z Plot`
+- [X] Support [NoobAI Inpaint](https://civitai.com/models/1376234/noobai-inpainting-controlnet) ControlNet
 - [X] Support [Union](https://huggingface.co/xinsir/controlnet-union-sdxl-1.0) / [ProMax](https://huggingface.co/brad-twinkl/controlnet-union-sdxl-1.0-promax) ControlNet
-    - I just made them always show up in the dropdown
+    - they simply always show up in the dropdown
 
 #### Removed Features
 
@@ -88,9 +94,11 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Textual Inversion Training
 - [X] Checkpoint Merging
 - [X] LDSR
-- [X] Most **built-in** Extensions
-- [X] Some **built-in** Scripts
-- [X] The `test` scripts
+- [X] Most built-in Extensions
+- [X] Some built-in Scripts
+- [X] Some Samplers
+- [X] Sampler in RadioGroup
+- [X] `test` scripts
 - [X] `Photopea` and `openpose_editor` *(ControlNet)*
 - [X] Unix `.sh` launch scripts
     - You can still use this WebUI by copying a launch script from another working WebUI; I just don't want to maintain them...
@@ -103,13 +111,13 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Fix memory leak when switching checkpoints
 - [X] Clean up the `ldm_patched` *(**ie.** `comfy`)* folder
 - [X] Remove unused `cmd_args`
-- [X] Remove unused `shared_options`
 - [X] Remove unused `args_parser`
+- [X] Remove unused `shared_options`
 - [X] Remove legacy codes
 - [X] Remove duplicated upscaler codes
     - put every upscaler inside the `ESRGAN` folder
 - [X] Improve color correction
-- [X] Improve code logics
+- [X] Improve logics
 - [X] Improve hash caching
 - [X] Improve error logs
     - no longer prints `TypeError: 'NoneType' object is not iterable`
@@ -121,11 +129,15 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - remove multi-inputs, as they are "[misleading](https://github.com/lllyasviel/stable-diffusion-webui-forge/discussions/932)"
     - change `visible` toggle to `interactive` toggle; now the UI will no longer jump around
     - improved `Presets` application
+- [X] Disable Refiner by default
+    - enable again in **Settings/UI alternatives**
+- [X] Disable Tree View by default
+    - enable again in **Settings/Extra Networks**
 - [X] Run `text encoder` on CPU by default
 - [X] Fix `pydantic` Errors
 - [X] Fix `Soft Inpainting`
-- [X] Lint & Format most of the Python and JavaScript codes
-- [X] Update to Pillow 11
+- [X] Lint & Format
+- [X] Update to `Pillow` 11
     - faster image processing
 - [X] Update `protobuf`
     - faster `insightface` loading
@@ -133,7 +145,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - `torch==2.7.0+cu128`
     - `xformers==0.0.30`
 - [X] No longer install `open-clip` twice
-- [X] Update certain packages to newer versions
+- [X] Update some packages to newer versions
 - [X] Update recommended Python to `3.11.9`
 - [X] many more... :tm:
 
@@ -212,7 +224,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 <details>
 <summary>Recommended Method</summary>
 
-- Install **[uv](https://github.com/astral-sh/uv)**
+- Install **[uv](https://github.com/astral-sh/uv#installation)**
 - Set up **venv**
     ```bash
     cd sd-webui-forge-classic
