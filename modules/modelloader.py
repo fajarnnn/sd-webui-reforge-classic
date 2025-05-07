@@ -1,29 +1,23 @@
 from __future__ import annotations
 
-import importlib
 import logging
 import os
+import os.path
 from urllib.parse import urlparse
 
-import torch
 import spandrel
 import spandrel_extra_arches
+import torch
 
 from modules import shared
-from modules.upscaler import Upscaler, UpscalerLanczos, UpscalerNearest, UpscalerNone
-
+from modules.errors import display
+from modules.upscaler import UpscalerLanczos, UpscalerNearest, UpscalerNone
 
 spandrel_extra_arches.install()
 logger = logging.getLogger(__name__)
 
 
-def load_file_from_url(
-    url: str,
-    *,
-    model_dir: str,
-    progress: bool = True,
-    file_name: str | None = None,
-) -> str:
+def load_file_from_url(url: str, *, model_dir: str, progress: bool = True, file_name: str | None = None) -> str:
     """
     Download a file from `url` into `model_dir`, using the file present if possible.
     Returns the path to the downloaded file.
@@ -36,6 +30,7 @@ def load_file_from_url(
     if not os.path.exists(cached_file):
         print(f'Downloading: "{url}" to {cached_file}\n')
         from torch.hub import download_url_to_file
+
         download_url_to_file(url, cached_file, progress=progress)
     return cached_file
 
@@ -59,44 +54,40 @@ def load_models(
 
     @return: A list of paths containing the desired model(s)
     """
-    output = []
+    output: set[str] = set()
 
     try:
-        places = []
+        folders = [model_path]
 
-        if command_path is not None and command_path != model_path:
-            pretrained_path = os.path.join(command_path, "experiments", "pretrained_models")
-            if os.path.exists(pretrained_path):
-                print(f"Appending path: {pretrained_path}")
-                places.append(pretrained_path)
-            elif os.path.exists(command_path):
-                places.append(command_path)
+        if command_path != model_path and command_path is not None:
+            if os.path.isdir(command_path):
+                folders.append(command_path)
+            elif os.path.isfile(command_path):
+                output.add(command_path)
 
-        places.append(model_path)
-
-        for place in places:
+        for place in folders:
             for full_path in shared.walk_files(place, allowed_extensions=ext_filter):
                 if os.path.islink(full_path) and not os.path.exists(full_path):
                     print(f"Skipping broken symlink: {full_path}")
                     continue
                 if ext_blacklist is not None and any(full_path.endswith(x) for x in ext_blacklist):
                     continue
-                if full_path not in output:
-                    output.append(full_path)
+                if os.path.isfile(full_path):
+                    output.add(full_path)
 
         if model_url is not None and len(output) == 0:
             if download_name is not None:
-                output.append(load_file_from_url(model_url, model_dir=places[0], file_name=download_name))
+                output.add(load_file_from_url(model_url, model_dir=folders[0], file_name=download_name))
             else:
-                output.append(model_url)
+                output.add(model_url)
 
-    except Exception:
-        pass
+    except Exception as e:
+        display(e, "load_models")
 
-    return output
+    return list(output)
 
 
-def friendly_name(file: str):
+def friendly_name(file: str) -> str:
     if file.startswith("http"):
         file = urlparse(file).path
 
@@ -106,39 +97,19 @@ def friendly_name(file: str):
 
 
 def load_upscalers():
-    # We can only do this 'magic' method to dynamically load upscalers if they are referenced,
-    # so we'll try to import the esrgan_model.py file before looking in __subclasses__
-    importlib.import_module("modules.esrgan_model")
-    all_upscalers = []
-    commandline_options = vars(shared.cmd_opts)
+    from modules.esrgan_model import UpscalerESRGAN
 
-    # some of upscaler classes will not go away after reloading their modules, and we'll end
-    # up with two copies of those classes. The newest copy will always be the last in the list,
-    # so we go from end to beginning and ignore duplicates
-    used_classes = {}
-    for cls in reversed(Upscaler.__subclasses__()):
-        classname = str(cls)
-        if classname not in used_classes:
-            used_classes[classname] = cls
+    commandline_model_path = shared.cmd_opts.esrgan_models_path
+    upscaler = UpscalerESRGAN(commandline_model_path)
+    upscaler.user_path = commandline_model_path
+    upscaler.model_download_path = commandline_model_path or upscaler.model_path
 
-    for cls in reversed(used_classes.values()):
-        name = cls.__name__
-        cmd_name = f"{name.lower().replace('upscaler', '')}_models_path"
-        commandline_model_path = commandline_options.get(cmd_name, None)
-        scaler = cls(commandline_model_path)
-        scaler.user_path = commandline_model_path
-        scaler.model_download_path = commandline_model_path or scaler.model_path
-        all_upscalers += scaler.scalers
-
-    shared.sd_upscalers = sorted(
-        all_upscalers,
-        # Special case for UpscalerNone keeps it at the beginning of the list.
-        key=lambda x: (
-            ""
-            if isinstance(x.scaler, (UpscalerNone, UpscalerLanczos, UpscalerNearest))
-            else x.name.lower()
-        ),
-    )
+    shared.sd_upscalers = [
+        *UpscalerNone().scalers,
+        *UpscalerLanczos().scalers,
+        *UpscalerNearest().scalers,
+        *sorted(upscaler.scalers, key=lambda s: s.name.lower()),
+    ]
 
 
 def load_spandrel_model(
@@ -164,10 +135,7 @@ def load_spandrel_model(
     if dtype:
         model_descriptor.model.to(dtype=dtype)
 
-    logger.debug(
-        "Loaded %s from %s (device=%s, half=%s, dtype=%s)",
-        arch, path, device, half, dtype,
-    )
+    logger.debug("Loaded %s from %s (device=%s, half=%s, dtype=%s)", arch, path, device, half, dtype)
 
     model_descriptor.model.eval()
     return model_descriptor
