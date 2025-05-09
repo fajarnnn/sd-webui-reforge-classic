@@ -6,7 +6,7 @@ from enum import Enum
 import numpy as np
 
 from lib_controlnet.logging import logger
-from lib_controlnet.enums import InputMode, HiResFixOption
+from lib_controlnet.enums import HiResFixOption
 
 
 class ControlMode(Enum):
@@ -159,8 +159,6 @@ class ControlNetUnit:
     """
 
     # ====== UI-only Fields ======
-    # Specifies the input mode for the unit, defaulting to a simple mode.
-    input_mode: InputMode = InputMode.SIMPLE
     # Determines whether to use the preview image as input; defaults to False.
     use_preview_as_input: bool = False
     # Holds the preview image as a NumPy array; defaults to None.

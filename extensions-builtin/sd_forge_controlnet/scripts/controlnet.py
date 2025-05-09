@@ -151,11 +151,9 @@ class ControlNetForForgeOfficial(scripts.Script):
         return input_image
 
     def get_input_data(self, p, unit, preprocessor, h, w):
-        logger.info(f"ControlNet Input Mode: {unit.input_mode}")
         resize_mode = external_code.resize_mode_from_value(unit.resize_mode)
         image_list = []
 
-        assert unit.input_mode == external_code.InputMode.SIMPLE
         assert unit.use_preview_as_input is False
 
         a1111_i2i_image = getattr(p, "init_images", [None])[0]

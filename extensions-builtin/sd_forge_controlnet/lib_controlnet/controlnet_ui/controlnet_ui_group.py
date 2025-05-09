@@ -14,7 +14,7 @@ from lib_controlnet.controlnet_ui.tool_button import ToolButton
 from lib_controlnet.controlnet_ui.openpose_editor import OpenposeEditor
 from lib_controlnet.controlnet_ui.preset import ControlNetPresetUI, NEW_PRESET
 from lib_controlnet.utils import svg_preprocess, judge_image_type
-from lib_controlnet.enums import InputMode, HiResFixOption
+from lib_controlnet.enums import HiResFixOption
 from lib_controlnet.external_code import UiControlNetUnit
 from lib_controlnet import global_state, external_code
 
@@ -187,7 +187,6 @@ class ControlNetUiGroup:
         self.upload_independent_img_in_img2img = None
         self.image_upload_panel = None
         self.save_detected_map = None
-        self.input_mode = gr.State(InputMode.SIMPLE)
         self.hr_option = None
 
         self.dummy_update_trigger = None
@@ -504,7 +503,6 @@ class ControlNetUiGroup:
         self.preset_panel = ControlNetPresetUI(f"{elem_id_tabname}_{tabname}_")
 
         unit_args = [
-            self.input_mode,
             self.use_preview_as_input,
             self.generated_image,
             self.mask_image,
