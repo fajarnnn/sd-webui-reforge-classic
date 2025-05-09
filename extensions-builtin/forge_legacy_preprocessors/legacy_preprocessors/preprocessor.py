@@ -168,9 +168,7 @@ def mediapipe_face(img, res=512, thr_a: int = 10, thr_b: float = 0.5, **kwargs):
         from annotator.mediapipe_face import apply_mediapipe_face
 
         model_mediapipe_face = apply_mediapipe_face
-    result = model_mediapipe_face(
-        img, max_faces=max_faces, min_confidence=min_confidence
-    )
+    result = model_mediapipe_face(img, max_faces=max_faces, min_confidence=min_confidence)
     return remove_pad(result), True
 
 
@@ -215,6 +213,26 @@ def depth_anything(img, res: int = 512, colored: bool = True, **kwargs):
 def unload_depth_anything():
     if model_depth_anything is not None:
         model_depth_anything.unload_model()
+
+
+model_depth_anything_v2 = None
+
+
+def depth_anything_v2(img, res: int = 512, colored: bool = True, **kwargs):
+    img, remove_pad = resize_image_with_pad(img, res)
+    global model_depth_anything_v2
+    if model_depth_anything_v2 is None:
+        with Extra(torch_handler):
+            from annotator.depth_anything_v2 import DepthAnythingV2Detector
+
+            device = devices.get_device_for("controlnet")
+            model_depth_anything_v2 = DepthAnythingV2Detector(device)
+    return remove_pad(model_depth_anything_v2(img, colored=colored)), True
+
+
+def unload_depth_anything_v2():
+    if model_depth_anything_v2 is not None:
+        model_depth_anything_v2.unload_model()
 
 
 model_midas = None
@@ -305,17 +323,20 @@ class OpenposeModel(object):
 
             self.model_openpose = OpenposeDetector()
 
-        return remove_pad(
-            self.model_openpose(
-                img,
-                include_body=include_body,
-                include_hand=include_hand,
-                include_face=include_face,
-                use_dw_pose=use_dw_pose,
-                use_animal_pose=use_animal_pose,
-                json_pose_callback=json_pose_callback,
-            )
-        ), True
+        return (
+            remove_pad(
+                self.model_openpose(
+                    img,
+                    include_body=include_body,
+                    include_hand=include_hand,
+                    include_face=include_face,
+                    use_dw_pose=use_dw_pose,
+                    use_animal_pose=use_animal_pose,
+                    json_pose_callback=json_pose_callback,
+                )
+            ),
+            True,
+        )
 
     def unload(self):
         if self.model_openpose is not None:
@@ -566,9 +587,7 @@ def lama_inpaint(img, res=512, **kwargs):
     prd_color = cv2.resize(prd_color, (W, H))
 
     alpha = raw_mask.astype(np.float32) / 255.0
-    fin_color = prd_color.astype(np.float32) * alpha + raw_color.astype(np.float32) * (
-        1 - alpha
-    )
+    fin_color = prd_color.astype(np.float32) * alpha + raw_color.astype(np.float32) * (1 - alpha)
     fin_color = fin_color.clip(0, 255).astype(np.uint8)
 
     result = np.concatenate([fin_color, raw_mask], axis=2)
@@ -768,15 +787,10 @@ class InsightFaceModel:
         if not faces:
             raise Exception(f"Insightface: No face found in image {i}.")
         if len(faces) > 1:
-            print(
-                "Insightface: More than one face is detected in the image. "
-                f"Only the first one will be used {i}."
-            )
+            print("Insightface: More than one face is detected in the image. " f"Only the first one will be used {i}.")
         return torch.from_numpy(faces[0].normed_embedding).unsqueeze(0), False
 
-    def run_model_instant_id(
-        self, img: np.ndarray, res: int = 512, return_keypoints: bool = False, **kwargs
-    ) -> Tuple[Union[np.ndarray, torch.Tensor], bool]:
+    def run_model_instant_id(self, img: np.ndarray, res: int = 512, return_keypoints: bool = False, **kwargs) -> Tuple[Union[np.ndarray, torch.Tensor], bool]:
         """Run the insightface model for instant_id.
         Arguments:
             - img: Input image in any size.
@@ -837,10 +851,7 @@ class InsightFaceModel:
         if not face_info:
             raise Exception(f"Insightface: No face found in image.")
         if len(face_info) > 1:
-            print(
-                "Insightface: More than one face is detected in the image. "
-                f"Only the biggest one will be used."
-            )
+            print("Insightface: More than one face is detected in the image. " f"Only the biggest one will be used.")
         # only use the maximum face
         face_info = sorted(
             face_info,
@@ -853,9 +864,7 @@ class InsightFaceModel:
 
 
 g_insight_face_model = InsightFaceModel()
-g_insight_face_instant_id_model = InsightFaceModel(
-    face_analysis_model_name="antelopev2"
-)
+g_insight_face_instant_id_model = InsightFaceModel(face_analysis_model_name="antelopev2")
 
 
 @dataclass

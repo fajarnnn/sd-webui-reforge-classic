@@ -115,6 +115,19 @@ legacy_preprocessors = {
         "priority": 0,
         "tags": ["Depth"],
     },
+    "depth_anything_v2": {
+        "label": "depth_anything_v2",
+        "call_function": functools.partial(depth_anything_v2, colored=False),
+        "unload_function": unload_depth_anything_v2,
+        "managed_model": "model_depth_anything_v2",
+        "model_free": False,
+        "no_control_mode": False,
+        "resolution": None,
+        "slider_1": None,
+        "slider_2": None,
+        "priority": 0,
+        "tags": ["Depth"],
+    },
     "depth_hand_refiner": {
         "label": "depth_hand_refiner",
         "call_function": g_hand_refiner_model.run_model,
@@ -250,9 +263,7 @@ legacy_preprocessors = {
     },
     "instant_id_face_keypoints": {
         "label": "instant_id_face_keypoints",
-        "call_function": functools.partial(
-            g_insight_face_instant_id_model.run_model_instant_id, return_keypoints=True
-        ),
+        "call_function": functools.partial(g_insight_face_instant_id_model.run_model_instant_id, return_keypoints=True),
         "unload_function": None,
         "managed_model": "unknown",
         "model_free": False,

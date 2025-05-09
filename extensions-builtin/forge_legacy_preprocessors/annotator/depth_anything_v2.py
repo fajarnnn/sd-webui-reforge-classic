@@ -4,8 +4,9 @@ import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
-from depth_anything.dpt import DPT_DINOv2
-from depth_anything.util.transform import NormalizeImage, PrepareForNet, Resize
+from depth_anything_v2.dpt import DepthAnythingV2
+from depth_anything_v2.util.transform import NormalizeImage, PrepareForNet, Resize
+from safetensors.torch import load_file
 from torchvision.transforms import Compose
 
 from .annotator_path import models_path
@@ -28,29 +29,28 @@ transform = Compose(
 )
 
 
-class DepthAnythingDetector:
-    """https://github.com/LiheYoung/Depth-Anything"""
+class DepthAnythingV2Detector:
+    """https://github.com/MackinationsAi/Upgraded-Depth-Anything-V2"""
 
-    model_dir = os.path.join(models_path, "depth_anything")
+    model_dir = os.path.join(models_path, "depth_anything_v2")
 
     def __init__(self, device: torch.device):
         self.device = device
         self.model = (
-            DPT_DINOv2(
+            DepthAnythingV2(
                 encoder="vitl",
                 features=256,
                 out_channels=[256, 512, 1024, 1024],
-                localhub=False,
             )
             .to(device)
             .eval()
         )
         remote_url = os.environ.get(
-            "CONTROLNET_DEPTH_ANYTHING_MODEL_URL",
-            "https://huggingface.co/spaces/LiheYoung/Depth-Anything/resolve/main/checkpoints/depth_anything_vitl14.pth",
+            "CONTROLNET_DEPTH_ANYTHING_V2_MODEL_URL",
+            "https://huggingface.co/MackinationsAi/Depth-Anything-V2_Safetensors/resolve/main/depth_anything_v2_vitl.safetensors",
         )
-        model_path = load_model("depth_anything_vitl14.pth", remote_url=remote_url, model_dir=self.model_dir)
-        self.model.load_state_dict(torch.load(model_path))
+        model_path = load_model("depth_anything_v2_vitl.safetensors", remote_url=remote_url, model_dir=self.model_dir)
+        self.model.load_state_dict(load_file(model_path))
 
     def __call__(self, image: np.ndarray, colored: bool = True) -> np.ndarray:
         self.model.to(self.device)
@@ -69,7 +69,8 @@ class DepthAnythingDetector:
         depth = (depth - depth.min()) / (depth.max() - depth.min()) * 255.0
         depth = depth.cpu().numpy().astype(np.uint8)
         if colored:
-            return cv2.applyColorMap(depth, cv2.COLORMAP_INFERNO)[:, :, ::-1]
+            depth_color = cv2.applyColorMap(depth, cv2.COLORMAP_INFERNO)[:, :, ::-1]
+            return depth_color
         else:
             return depth
 
