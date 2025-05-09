@@ -84,7 +84,7 @@ def load_models(
     except Exception as e:
         display(e, "load_models")
 
-    return list(output)
+    return sorted(output, key=lambda mdl: mdl.lower())
 
 
 def friendly_name(file: str) -> str:

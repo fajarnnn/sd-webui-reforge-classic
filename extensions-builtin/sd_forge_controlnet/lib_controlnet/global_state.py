@@ -2,6 +2,7 @@ from modules_forge.shared import controlnet_dir, supported_preprocessors
 from modules import shared
 
 from collections import OrderedDict
+from functools import lru_cache
 import glob
 import os
 
@@ -44,17 +45,13 @@ def update_controlnet_filenames():
         shared.opts.data.get("control_net_models_path", None),
         getattr(shared.cmd_opts, "controlnet_dir", None),
     )
-    extra_paths = (
-        extra_path
-        for extra_path in ext_dirs
-        if extra_path is not None and os.path.exists(extra_path)
-    )
+    extra_paths = (extra_path for extra_path in ext_dirs if extra_path is not None and os.path.exists(extra_path))
 
     for path in [controlnet_dir, *extra_paths]:
         found = get_all_models(path, "name")
         controlnet_filename_dict.update(found)
 
-    controlnet_names = list(controlnet_filename_dict.keys())
+    controlnet_names = sorted(controlnet_filename_dict.keys(), key=lambda mdl: mdl)
 
 
 def get_all_controlnet_names() -> list[str]:
@@ -72,11 +69,7 @@ def get_filtered_controlnet_names(tag: str) -> list[str]:
     for p in filtered_preprocessors.values():
         filename_filters.extend(p.model_filename_filters)
 
-    return [
-        cnet
-        for cnet in controlnet_names
-        if cnet == "None" or any(f.lower() in cnet.lower() for f in filename_filters)
-    ]
+    return [cnet for cnet in controlnet_names if cnet == "None" or any(f.lower() in cnet.lower() for f in filename_filters)]
 
 
 def get_all_preprocessor_tags() -> list[str]:
@@ -91,10 +84,11 @@ def get_preprocessor(name: str):
     return supported_preprocessors[name]
 
 
+@lru_cache(maxsize=1, typed=False)
 def get_sorted_preprocessors() -> dict:
     results = OrderedDict({"None": supported_preprocessors["None"]})
     preprocessors = [p for (k, p) in supported_preprocessors.items() if k != "None"]
-    preprocessors = sorted(preprocessors, key=lambda x: x.name, reverse=True)
+    preprocessors = sorted(preprocessors, key=lambda mdl: mdl.name)
     for p in preprocessors:
         results[p.name] = p
     return results
@@ -111,8 +105,4 @@ def get_filtered_preprocessor_names(tag: str) -> list[str]:
 def get_filtered_preprocessors(tag: str) -> dict:
     if tag == "All":
         return supported_preprocessors
-    return {
-        k: v
-        for (k, v) in get_sorted_preprocessors().items()
-        if tag in v.tags or k == "None"
-    }
+    return {k: v for (k, v) in get_sorted_preprocessors().items() if tag in v.tags or k == "None"}
