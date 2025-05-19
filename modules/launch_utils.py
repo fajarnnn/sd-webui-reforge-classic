@@ -335,7 +335,7 @@ def prepare_environment():
         run_pip(f'install -r "{requirements_file}"', "requirements")
         startup_timer.record("install requirements")
 
-    if args.insightface and not is_installed("insightface"):
+    if not is_installed("insightface"):
         run(
             f'"{python}" -m pip install {insightface_package} --no-deps',
             desc="Installing insightface",

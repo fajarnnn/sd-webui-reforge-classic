@@ -42,7 +42,6 @@ parser.add_argument("--enable-insecure-extension-access", action="store_true", h
 parser.add_argument("--codeformer-models-path", type=normalized_filepath, help="Path to directory with codeformer model file(s).", default=os.path.join(models_path, "Codeformer"))
 parser.add_argument("--gfpgan-models-path", type=normalized_filepath, help="Path to directory with GFPGAN model file(s).", default=os.path.join(models_path, "GFPGAN"))
 parser.add_argument("--esrgan-models-path", type=normalized_filepath, help="Path to directory with ESRGAN model file(s).", default=os.path.join(models_path, "ESRGAN"))
-parser.add_argument("--insightface", action="store_true", help="try to install insightface package")
 parser.add_argument("--xformers", action="store_true", help="enable xformers for cross attention layers")
 parser.add_argument("--sage", action="store_true", help="enable sage for cross attention layers")
 parser.add_argument("--force-enable-xformers", action="store_true", help="enable xformers for cross attention layers regardless of whether the checking code thinks you can run it; do not make bug reports if this fails to work")
