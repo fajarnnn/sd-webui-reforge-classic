@@ -30,9 +30,7 @@ if model_management.flash_enabled():
     from flash_attn import flash_attn_func
 
     @torch.library.custom_op("flash_attention::flash_attn", mutates_args=())
-    def flash_attn_wrapper(
-        q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, dropout_p: float = 0.0, causal: bool = False
-    ) -> torch.Tensor:
+    def flash_attn_wrapper(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, dropout_p: float = 0.0, causal: bool = False) -> torch.Tensor:
         return flash_attn_func(q, k, v, dropout_p=dropout_p, causal=causal)
 
     @flash_attn_wrapper.register_fake
@@ -41,7 +39,7 @@ if model_management.flash_enabled():
 
 
 import ldm_patched.modules.ops
-from ldm_patched.modules.args_parser import args
+from ldm_patched.modules.args_parser import args, SageAttentionAPIs
 
 ops = ldm_patched.modules.ops.disable_weight_init
 
@@ -104,11 +102,7 @@ class FeedForward(nn.Module):
         super().__init__()
         inner_dim = int(dim * mult)
         dim_out = default(dim_out, dim)
-        project_in = (
-            nn.Sequential(operations.Linear(dim, inner_dim, dtype=dtype, device=device), nn.GELU())
-            if not glu
-            else GEGLU(dim, inner_dim, dtype=dtype, device=device, operations=operations)
-        )
+        project_in = nn.Sequential(operations.Linear(dim, inner_dim, dtype=dtype, device=device), nn.GELU()) if not glu else GEGLU(dim, inner_dim, dtype=dtype, device=device, operations=operations)
 
         self.net = nn.Sequential(
             project_in,
@@ -138,11 +132,7 @@ def attention_basic(q, k, v, heads, mask=None):
 
     h = heads
     q, k, v = map(
-        lambda t: t.unsqueeze(3)
-        .reshape(b, -1, heads, dim_head)
-        .permute(0, 2, 1, 3)
-        .reshape(b * heads, -1, dim_head)
-        .contiguous(),
+        lambda t: t.unsqueeze(3).reshape(b, -1, heads, dim_head).permute(0, 2, 1, 3).reshape(b * heads, -1, dim_head).contiguous(),
         (q, k, v),
     )
 
@@ -214,6 +204,18 @@ def attention_xformers(q, k, v, heads, mask=None):
     return out.unsqueeze(0).reshape(b, heads, -1, dim_head).transpose(1, 2).reshape(b, -1, heads * dim_head)
 
 
+if isSage2 and args.sageattn2_api is not SageAttentionAPIs.Automatic:
+    from functools import partial
+    from sageattention import sageattn_qk_int8_pv_fp16_triton, sageattn_qk_int8_pv_fp16_cuda, sageattn_qk_int8_pv_fp8_cuda
+
+    if args.sageattn2_api is SageAttentionAPIs.Triton16:
+        sageattn = sageattn_qk_int8_pv_fp16_triton
+    if args.sageattn2_api is SageAttentionAPIs.CUDA16:
+        sageattn = partial(sageattn_qk_int8_pv_fp16_cuda, qk_quant_gran="per_warp", pv_accum_dtype="fp16+fp32")
+    if args.sageattn2_api is SageAttentionAPIs.CUDA8:
+        sageattn = partial(sageattn_qk_int8_pv_fp8_cuda, qk_quant_gran="per_warp", pv_accum_dtype="fp16+fp32")
+
+
 def attention_sage(q, k, v, heads, mask=None):
     """
     Reference: https://github.com/comfyanonymous/ComfyUI/blob/v0.3.13/comfy/ldm/modules/attention.py#L472
@@ -234,13 +236,9 @@ def attention_sage(q, k, v, heads, mask=None):
         (q, k, v),
     )
 
-    if mask is not None:
-        if mask.ndim == 2:
-            mask = mask.unsqueeze(0)
-        if mask.ndim == 3:
-            mask = mask.unsqueeze(1)
+    assert mask is None
 
-    out = sageattn(q, k, v, attn_mask=mask, is_causal=False, tensor_layout="NHD")
+    out = sageattn(q, k, v, is_causal=False, tensor_layout="NHD")
     return out.reshape(b, -1, heads * dim_head)
 
 
@@ -285,7 +283,16 @@ def attention_flash(q, k, v, heads, mask=None, attn_precision=None, skip_reshape
 
 
 if model_management.sage_enabled():
-    print("Using sage attention")
+    match args.sageattn2_api:
+        case SageAttentionAPIs.Automatic:
+            print("Using sage attention")
+        case SageAttentionAPIs.Triton16:
+            print("Using sage attention (Triton fp16)")
+        case SageAttentionAPIs.CUDA16:
+            print("Using sage attention (CUDA fp16)")
+        case SageAttentionAPIs.CUDA8:
+            print("Using sage attention (CUDA fp8)")
+
     optimized_attention = attention_sage
 elif model_management.flash_enabled():
     print("Using flash attention")
