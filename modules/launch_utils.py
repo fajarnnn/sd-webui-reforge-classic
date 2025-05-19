@@ -336,12 +336,10 @@ def prepare_environment():
         startup_timer.record("install requirements")
 
     if not is_installed("insightface"):
-        run(
-            f'"{python}" -m pip install {insightface_package} --no-deps',
-            desc="Installing insightface",
-            errdesc="Failed to install insightface; please manually install C++ build tools first",
-            live=False,
-        )
+        try:
+            run_pip(f"install--no-deps {insightface_package}", "insightface")
+        except RuntimeError:
+            print("Failed to install insightface; please manually install C++ build tools first")
 
     if not args.skip_install:
         run_extensions_installers(settings_file=args.ui_settings_file)
