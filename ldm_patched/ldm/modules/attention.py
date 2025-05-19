@@ -16,6 +16,7 @@ from torch import einsum, nn
 
 from .diffusionmodules.util import AlphaBlender, checkpoint, timestep_embedding
 
+isSage2 = False
 if model_management.sage_enabled():
     import importlib.metadata
     from sageattention import sageattn
