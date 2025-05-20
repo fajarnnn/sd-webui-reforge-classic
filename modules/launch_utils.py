@@ -337,7 +337,7 @@ def prepare_environment():
 
     if not is_installed("insightface"):
         try:
-            run_pip(f"install--no-deps {insightface_package}", "insightface")
+            run_pip(f"install --no-deps {insightface_package}", "insightface")
         except RuntimeError:
             print("Failed to install insightface; please manually install C++ build tools first")
 
