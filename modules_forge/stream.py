@@ -1,7 +1,9 @@
 # https://github.com/AUTOMATIC1111/stable-diffusion-webui/pull/14855
 
 import torch
-from ldm_patched.modules import args_parser, model_management
+
+from ldm_patched.modules import model_management
+from ldm_patched.modules.args_parser import args
 
 
 def stream_context():
@@ -58,7 +60,7 @@ current_stream = None
 mover_stream = None
 using_stream = False
 
-if args_parser.args.cuda_stream:
+if args.cuda_stream:
     current_stream = get_current_stream()
     mover_stream = get_new_stream()
     using_stream = current_stream is not None and mover_stream is not None

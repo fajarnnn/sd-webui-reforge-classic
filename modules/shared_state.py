@@ -2,10 +2,13 @@ import datetime
 import logging
 import threading
 import time
+from contextlib import nullcontext
+from typing import Optional
+
 import torch
 
-from modules import errors, shared, devices
-from typing import Optional
+from modules import devices, errors, shared
+from modules_forge import stream
 
 log = logging.getLogger(__name__)
 
@@ -33,6 +36,7 @@ class State:
 
     def __init__(self):
         self.server_start = time.time()
+        self._stream = stream.mover_stream if stream.using_stream else None
 
     @property
     def need_restart(self) -> bool:
@@ -143,10 +147,7 @@ class State:
         if not shared.parallel_processing_allowed:
             return
 
-        if (
-            (shared.opts.live_previews_enable and shared.opts.show_progress_every_n_steps != -1) and
-            ((self.sampling_step - self.current_image_sampling_step) >= shared.opts.show_progress_every_n_steps)
-        ):
+        if (shared.opts.live_previews_enable and shared.opts.show_progress_every_n_steps != -1) and ((self.sampling_step - self.current_image_sampling_step) >= shared.opts.show_progress_every_n_steps):
             self.do_set_current_image()
 
     @torch.inference_mode()
@@ -154,13 +155,14 @@ class State:
         if self.current_latent is None:
             return
 
-        import modules.sd_samplers
+        if shared.opts.show_progress_grid:
+            from modules.sd_samplers import samples_to_image_grid as sample
+        else:
+            from modules.sd_samplers import sample_to_image as sample
 
         try:
-            if shared.opts.show_progress_grid:
-                self.assign_current_image(modules.sd_samplers.samples_to_image_grid(self.current_latent))
-            else:
-                self.assign_current_image(modules.sd_samplers.sample_to_image(self.current_latent))
+            with stream.stream_context()(self._stream) if self._stream is not None else nullcontext():
+                self.assign_current_image(sample(self.current_latent))
 
             self.current_image_sampling_step = self.sampling_step
             self.current_latent = None
