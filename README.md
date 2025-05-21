@@ -18,7 +18,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <br>
 
-## Features [May. 07]
+## Features [May. 21]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -54,6 +54,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 > [!Note]
 > - Both `fp16_accumulation` and `cublas_ops` achieve the same speed up; if you already install/update to PyTorch **2.7.0**, you do not need to go for `cublas_ops`
 > - The `fp16_accumulation` and `cublas_ops` require `fp16` precision, thus is not compatible with the `fp8` operation
+
 - [X] Implement new Samplers
     - *(ported from reForge Webui)*
 - [X] Implement Scheduler Dropdown
@@ -77,6 +78,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Add `pillow-heif` package
     - support `.avif` and `.heif` images
 - [X] Automatically determine the optimal row count for `X/Y/Z Plot`
+- [X] `DepthAnything v2` Preprocessor
 - [X] Support [NoobAI Inpaint](https://civitai.com/models/1376234/noobai-inpainting-controlnet) ControlNet
 - [X] Support [Union](https://huggingface.co/xinsir/controlnet-union-sdxl-1.0) / [ProMax](https://huggingface.co/brad-twinkl/controlnet-union-sdxl-1.0-promax) ControlNet
     - they simply always show up in the dropdown
@@ -97,9 +99,9 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Most built-in Extensions
 - [X] Some built-in Scripts
 - [X] Some Samplers
-- [X] Some Preprocessors
 - [X] Sampler in RadioGroup
 - [X] `test` scripts
+- [X] Some Preprocessors *(ControlNet)*
 - [X] `Photopea` and `openpose_editor` *(ControlNet)*
 - [X] Unix `.sh` launch scripts
     - You can still use this WebUI by copying a launch script from another working WebUI; I just don't want to maintain them...
@@ -117,12 +119,14 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Remove legacy codes
 - [X] Remove duplicated upscaler codes
     - put every upscaler inside the `ESRGAN` folder
+    - optimize upscaler logics
 - [X] Improve color correction
-- [X] Improve logics
 - [X] Improve hash caching
 - [X] Improve error logs
-    - no longer prints `TypeError: 'NoneType' object is not iterable`
-- [X] Improve setting descriptions
+    - no longer just print `TypeError: 'NoneType' object is not iterable`
+- [X] Revamp settings
+    - improve formatting
+    - update descriptions
 - [X] Check for Extension updates in parallel
 - [X] Moved `embeddings` folder into `models` folder
 - [X] ControlNet Rewrite
@@ -138,7 +142,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Fix `pydantic` Errors
 - [X] Fix `Soft Inpainting`
 - [X] Lint & Format
-- [X] Update to `Pillow` 11
+- [X] Update `Pillow`
     - faster image processing
 - [X] Update `protobuf`
     - faster `insightface` loading
