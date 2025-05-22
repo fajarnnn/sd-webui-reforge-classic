@@ -36,7 +36,7 @@ class State:
 
     def __init__(self):
         self.server_start = time.time()
-        self._stream = stream.mover_stream if stream.using_stream else None
+        self._stream = stream.get_new_stream() if stream.using_stream else None
 
     @property
     def need_restart(self) -> bool:
