@@ -98,5 +98,14 @@ def apply_override(field, boolean: bool = False):
     return fun
 
 
+def apply_size(p, x: str, xs) -> None:
+    try:
+        width, height = x.split("x")
+        p.width = int(width.strip())
+        p.height = int(height.strip())
+    except Exception:
+        print(f"Invalid size in XYZ plot: {x}")
+
+
 def do_nothing(p, x, xs):
     pass
