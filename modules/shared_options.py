@@ -226,7 +226,7 @@ options_templates.update(
             "img2img_inpaint_sketch_default_brush_color": OptionInfo("#ff0000", "Initial Brush Color for Inpaint Sketch", ui_components.FormColorPicker, {}).needs_reload_ui(),
             "return_mask": OptionInfo(False, "For inpainting, append the greyscale mask to results"),
             "return_mask_composite": OptionInfo(False, "For inpainting, append the masked composite to results"),
-            "overlay_inpaint": OptionInfo(True, "For inpainting, overlay the original image over the areas that were untouched"),
+            "overlay_inpaint": OptionInfo(True, "For inpainting, overlay the resulting image back onto the original image").info('when using the "Only masked" option'),
             "img2img_batch_show_results_limit": OptionInfo(32, "Show the first N batch of img2img results in UI", gr.Slider, {"minimum": -1, "maximum": 256, "step": 1}).info("0 = disable; -1 = show all; too many images causes severe lag"),
         },
     )
