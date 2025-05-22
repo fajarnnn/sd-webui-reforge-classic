@@ -59,7 +59,7 @@ class ScriptPostprocessing:
     args_to = None
 
     order = 1000
-    """scripts will be ordred by this value in postprocessing UI"""
+    """scripts will be ordered by this value in postprocessing UI"""
 
     name = None
     """this function should return the title of the script."""
