@@ -228,6 +228,8 @@ options_templates.update(
             "return_mask_composite": OptionInfo(False, "For inpainting, append the masked composite to results"),
             "overlay_inpaint": OptionInfo(True, "For inpainting, overlay the resulting image back onto the original image").info('when using the "Only masked" option'),
             "img2img_batch_show_results_limit": OptionInfo(32, "Show the first N batch of img2img results in UI", gr.Slider, {"minimum": -1, "maximum": 256, "step": 1}).info("0 = disable; -1 = show all; too many images causes severe lag"),
+            "div_exp": OptionDiv(),
+            "img2img_inpaint_precise_mask": OptionInfo(False, 'For inpainting, process the "Mask blur" in fp32 instead of uint8 precision; improve blending result').info('<b>Experimental</b> ; may break functions that access the "overlay_images"'),
         },
     )
 )
