@@ -17,6 +17,7 @@ from modules_forge.forge_sampler import sampling_cleanup, sampling_prepare
 samplers_k_diffusion = [
     ("DPM++ 2M", "sample_dpmpp_2m", ["k_dpmpp_2m"], {"scheduler": "karras"}),
     ("DPM++ SDE", "sample_dpmpp_sde", ["k_dpmpp_sde"], {"scheduler": "karras", "second_order": True, "brownian_noise": True}),
+    ("DPM++ 2M SDE", "sample_dpmpp_2m_sde", ["k_dpmpp_2m_sde_ka"], {"brownian_noise": True}),
     ("DPM++ 3M SDE", "sample_dpmpp_3m_sde", ["k_dpmpp_3m_sde"], {"scheduler": "exponential", "discard_next_to_last_sigma": True, "brownian_noise": True}),
     ("Euler a", "sample_euler_ancestral", ["k_euler_a", "k_euler_ancestral"], {"uses_ensd": True}),
     ("Euler", "sample_euler", ["k_euler"], {}),
@@ -41,6 +42,7 @@ samplers_data_k_diffusion = [
 
 sampler_extra_params = {
     "sample_dpmpp_sde": ["eta", "s_noise", "r"],
+    "sample_dpmpp_2m_sde": ["eta", "s_noise"],
     "sample_dpmpp_3m_sde": ["eta", "s_noise"],
     "sample_euler_ancestral": ["eta", "s_noise"],
     "sample_euler": ["s_churn", "s_tmin", "s_tmax", "s_noise"],
@@ -56,11 +58,7 @@ class CFGDenoiserKDiffusion(sd_samplers_cfg_denoiser.CFGDenoiser):
     @property
     def inner_model(self):
         if self.model_wrap is None:
-            denoiser = (
-                k_diffusion.external.CompVisVDenoiser
-                if shared.sd_model.parameterization == "v"
-                else k_diffusion.external.CompVisDenoiser
-            )
+            denoiser = k_diffusion.external.CompVisVDenoiser if shared.sd_model.parameterization == "v" else k_diffusion.external.CompVisDenoiser
             self.model_wrap = denoiser(shared.sd_model, quantize=True)
 
         return self.model_wrap
