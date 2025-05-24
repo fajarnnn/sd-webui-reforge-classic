@@ -93,3 +93,6 @@ parser.add_argument("--fps", type=int, default=30, help="refresh rate for thread
 pkm = parser.add_mutually_exclusive_group()
 pkm.add_argument("--uv", action="store_true", help="Use the uv package manager")
 pkm.add_argument("--uv-symlink", action="store_true", help="Use the uv package manager with symlink")
+
+# ===== backward compatibility ===== #
+parser.add_argument("--disable-safe-unpickle", action="store_true", help="does absolutely nothing", default=False)  # adetailer
