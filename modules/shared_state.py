@@ -2,13 +2,11 @@ import datetime
 import logging
 import threading
 import time
-from contextlib import nullcontext
 from typing import Optional
 
 import torch
 
 from modules import devices, errors, shared
-from modules_forge import stream
 
 log = logging.getLogger(__name__)
 
@@ -36,7 +34,6 @@ class State:
 
     def __init__(self):
         self.server_start = time.time()
-        self._stream = stream.get_new_stream() if stream.using_stream else None
 
     @property
     def need_restart(self) -> bool:
@@ -161,9 +158,7 @@ class State:
             from modules.sd_samplers import sample_to_image as sample
 
         try:
-            with stream.stream_context()(self._stream) if self._stream is not None else nullcontext():
-                self.assign_current_image(sample(self.current_latent))
-
+            self.assign_current_image(sample(self.current_latent))
             self.current_image_sampling_step = self.sampling_step
             self.current_latent = None
 
