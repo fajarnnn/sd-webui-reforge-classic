@@ -1,6 +1,10 @@
 import re
+from typing import TYPE_CHECKING
 
 from modules import script_callbacks, scripts, shared
+
+if TYPE_CHECKING:
+    from modules.processing import StableDiffusionProcessing
 
 
 def strip_comments(text):
@@ -17,7 +21,7 @@ class ScriptComments(scripts.Script):
     def show(self, is_img2img):
         return scripts.AlwaysVisible
 
-    def process(self, p, *args):
+    def process(self, p: "StableDiffusionProcessing", *args):
         if not shared.opts.enable_prompt_comments:
             return
 
@@ -26,6 +30,13 @@ class ScriptComments(scripts.Script):
 
         p.main_prompt = strip_comments(p.main_prompt)
         p.main_negative_prompt = strip_comments(p.main_negative_prompt)
+
+        if getattr(p, "enable_hr", False):
+            p.all_hr_prompts = [strip_comments(x) for x in p.all_hr_prompts]
+            p.all_hr_negative_prompts = [strip_comments(x) for x in p.all_hr_negative_prompts]
+
+            p.hr_prompt = strip_comments(p.hr_prompt)
+            p.hr_negative_prompt = strip_comments(p.hr_negative_prompt)
 
 
 def before_token_counter(params: script_callbacks.BeforeTokenCounterParams):
