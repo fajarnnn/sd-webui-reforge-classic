@@ -376,8 +376,7 @@ class LoadedModel:
         if disable_async_load:
             patch_model_to = self.device
 
-        self.model.model_patches_to(self.device)
-        self.model.model_patches_to(self.model.model_dtype())
+        self.model.model_patches_to(device=self.device, dtype=self.model.model_dtype())
 
         try:
             # TODO: do something with loras and offloading to CPU
