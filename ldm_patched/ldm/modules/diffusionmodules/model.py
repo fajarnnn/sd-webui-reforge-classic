@@ -549,7 +549,7 @@ class Decoder(nn.Module):
                 _h = self.up[i_level].upsample(h)
                 del h
                 h = _h
-            torch.cuda.empty_cache()
+            model_management.soft_empty_cache()
 
         # end
         if self.give_pre_end:
