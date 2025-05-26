@@ -495,6 +495,8 @@ options_templates.update(
             "disable_all_extensions": OptionInfo("none", "Disable all extensions (preserves the list of disabled extensions)", gr.Radio, {"choices": ("none", "extra", "all")}),
             "restore_config_state_file": OptionInfo("", 'Config state file to restore from, under "config-states/" folder'),
             "sd_checkpoint_hash": OptionInfo("", "SHA256 hash of the current checkpoint"),
+            "tile_size": OptionInfo(512, "Tile Size for Tiled VAE", gr.Number, {"precision": 0}),
+            "tile_overlap": OptionInfo(64, "Overlap for Tiled VAE", gr.Number, {"precision": 0}),
         },
     )
 )

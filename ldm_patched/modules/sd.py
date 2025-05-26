@@ -1,16 +1,15 @@
 # Reference: https://github.com/comfyanonymous/ComfyUI
 
 
-import ldm_patched.modules.lora
-import ldm_patched.modules.model_patcher
-import ldm_patched.modules.supported_models_base
-import ldm_patched.modules.utils
-import ldm_patched.t2ia.adapter
-import ldm_patched.taesd.taesd
 import torch
 
-from ldm_patched.ldm.models.autoencoder import AutoencoderKL, AutoencodingEngine
+import ldm_patched.modules.lora
+import ldm_patched.modules.model_patcher
+import ldm_patched.modules.utils
+import ldm_patched.taesd.taesd
+from ldm_patched.ldm.models.autoencoder import AutoencoderKL
 from ldm_patched.modules import model_management
+from modules.shared import opts
 
 from . import diffusers_convert
 
@@ -218,7 +217,11 @@ class VAE:
         n.output_device = self.output_device
         return n
 
-    def decode_tiled_(self, samples, tile_x=64, tile_y=64, overlap=16):
+    def decode_tiled_(self, samples, tile_x=0, tile_y=0, overlap=0):
+        tile_x = int(tile_x or (opts.tile_size / 8))
+        tile_y = int(tile_y or (opts.tile_size / 8))
+        overlap = int(overlap or (opts.tile_overlap / 8))
+
         steps = samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(samples.shape[3], samples.shape[2], tile_x, tile_y, overlap)
         steps += samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(samples.shape[3], samples.shape[2], tile_x // 2, tile_y * 2, overlap)
         steps += samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(samples.shape[3], samples.shape[2], tile_x * 2, tile_y // 2, overlap)
@@ -267,7 +270,11 @@ class VAE:
         )
         return output
 
-    def encode_tiled_(self, pixel_samples, tile_x=512, tile_y=512, overlap=64):
+    def encode_tiled_(self, pixel_samples, tile_x=0, tile_y=0, overlap=0):
+        tile_x = int(tile_x or opts.tile_size)
+        tile_y = int(tile_y or opts.tile_size)
+        overlap = int(overlap or opts.tile_overlap)
+
         steps = pixel_samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(pixel_samples.shape[3], pixel_samples.shape[2], tile_x, tile_y, overlap)
         steps += pixel_samples.shape[0] * ldm_patched.modules.utils.get_tiled_scale_steps(
             pixel_samples.shape[3],
@@ -363,9 +370,9 @@ class VAE:
         else:
             return wrapper(self.decode_inner, samples_in)
 
-    def decode_tiled(self, samples, tile_x=64, tile_y=64, overlap=16):
+    def decode_tiled(self, samples):
         model_management.load_model_gpu(self.patcher)
-        output = self.decode_tiled_(samples, tile_x, tile_y, overlap)
+        output = self.decode_tiled_(samples)
         return output.movedim(1, -1)
 
     def encode_inner(self, pixel_samples):
@@ -405,10 +412,10 @@ class VAE:
         else:
             return wrapper(self.encode_inner, pixel_samples)
 
-    def encode_tiled(self, pixel_samples, tile_x=512, tile_y=512, overlap=64):
+    def encode_tiled(self, pixel_samples):
         model_management.load_model_gpu(self.patcher)
         pixel_samples = pixel_samples.movedim(-1, 1)
-        samples = self.encode_tiled_(pixel_samples, tile_x=tile_x, tile_y=tile_y, overlap=overlap)
+        samples = self.encode_tiled_(pixel_samples)
         return samples
 
     def get_sd(self):
