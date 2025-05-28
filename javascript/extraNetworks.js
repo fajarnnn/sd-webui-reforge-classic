@@ -197,7 +197,7 @@ function setupExtraNetworks() {
     setupExtraNetworksForTab('img2img');
 }
 
-const re_extranet = /<([^:^>]+:[^:]+):[\d.]+>(.*)/;
+const re_extranet = /<([^:^>]+:[^:]+):[\d.]+>(.*)/s;
 const re_extranet_g = /<([^:^>]+:[^:]+):[\d.]+>/g;
 
 const re_extranet_neg = /\(([^:^>]+:[\d.]+)\)/;

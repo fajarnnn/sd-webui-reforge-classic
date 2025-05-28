@@ -62,9 +62,9 @@ class LoraUserMetadataEditor(UserMetadataEditor):
         user_metadata = self.get_user_metadata(name)
         user_metadata["description"] = desc
         user_metadata["sd version"] = sd_version
-        user_metadata["activation text"] = re.sub(r"\s+", " ", activation_text)
+        user_metadata["activation text"] = activation_text
         user_metadata["preferred weight"] = preferred_weight
-        user_metadata["negative text"] = re.sub(r"\s+", " ", negative_text)
+        user_metadata["negative text"] = negative_text
         user_metadata["notes"] = notes
 
         self.write_user_metadata(name, user_metadata)
@@ -156,8 +156,8 @@ class LoraUserMetadataEditor(UserMetadataEditor):
         self.create_default_editor_elems()
 
         self.taginfo = gr.HighlightedText(label="Training dataset tags")
-        self.edit_activation_text = gr.Textbox(label="Positive Prompt", info="Will be added to the prompt after the LoRA syntax", lines=1, max_lines=1)
-        self.edit_negative_text = gr.Textbox(label="Negative Prompt", info="Will be added to the negative prompt", lines=1, max_lines=1)
+        self.edit_activation_text = gr.Textbox(label="Positive Prompt", info="Will be added to the prompt after the LoRA syntax", lines=2)
+        self.edit_negative_text = gr.Textbox(label="Negative Prompt", info="Will be added to the negative prompt", lines=2)
         self.slider_preferred_weight = gr.Slider(
             label="Preferred weight",
             info="Set to 0 to use the default set in Settings",
