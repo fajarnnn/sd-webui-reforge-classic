@@ -18,7 +18,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <br>
 
-## Features [May. 21]
+## Features [May. 28]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -55,17 +55,23 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 > - Both `fp16_accumulation` and `cublas_ops` achieve the same speed up; if you already install/update to PyTorch **2.7.0**, you do not need to go for `cublas_ops`
 > - The `fp16_accumulation` and `cublas_ops` require `fp16` precision, thus is not compatible with the `fp8` operation
 
+- [X] Persistent LoRA Patching
+    - speed up LoRA loading in subsequent generations
+    - see [Commandline](#by-classic)
 - [X] Implement new Samplers
     - *(ported from reForge Webui)*
 - [X] Implement Scheduler Dropdown
     - *(backported from Automatic1111 Webui upstream)*
-    - enable in **Settings/UI alternatives**
+    - enable in **Settings/UI Alternatives**
+- [X] Add `CFG` slider to the `Hires. fix` section
 - [X] Implement RescaleCFG
     - reduce burnt colors; mainly for `v-pred` checkpoints
-    - enable in **Settings/UI alternatives**
+    - enable in **Settings/UI Alternatives**
 - [X] Implement MaHiRo
     - alternative CFG calculation; improve prompt adherence
-    - enable in **Settings/UI alternatives**
+    - enable in **Settings/UI Alternatives**
+- [X] Implement full precision calculation for `Mask blur` blending
+    - enable in **Settings/img2img**
 - [X] Implement `diskcache` for hashes
     - *(backported from Automatic1111 Webui upstream)*
 - [X] Implement `skip_early_cond`
@@ -117,13 +123,14 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Remove unused `args_parser`
 - [X] Remove unused `shared_options`
 - [X] Remove legacy codes
-- [X] Remove duplicated upscaler codes
+- [X] Fix some typos
+- [X] Remove redundant upscaler codes
     - put every upscaler inside the `ESRGAN` folder
-    - optimize upscaler logics
+- [X] Optimize upscaler logics
 - [X] Improve color correction
 - [X] Improve hash caching
 - [X] Improve error logs
-    - no longer just print `TypeError: 'NoneType' object is not iterable`
+    - no longer print `TypeError: 'NoneType' object is not iterable`
 - [X] Revamp settings
     - improve formatting
     - update descriptions
@@ -135,7 +142,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - change `visible` toggle to `interactive` toggle; now the UI will no longer jump around
     - improved `Presets` application
 - [X] Disable Refiner by default
-    - enable again in **Settings/UI alternatives**
+    - enable again in **Settings/UI Alternatives**
 - [X] Disable Tree View by default
     - enable again in **Settings/Extra Networks**
 - [X] Run `text encoder` on CPU by default
@@ -150,7 +157,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - `torch==2.7.0+cu128`
     - `xformers==0.0.30`
 
-> [!Tip]
+> [!Note]
 > If your GPU does not support the latest PyTorch, manually [install](#install-older-pytorch) older version of PyTorch
 
 - [X] No longer install `open-clip` twice
@@ -207,6 +214,10 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 > [!Important]
 > This simply **replaces** the `models` folder, rather than adding on top of it
+
+- `--persistent-patches`: Enable the persistent LoRA patching
+    - no longer apply LoRA every single generation, if the weight is unchanged
+    - save around 1 second per generation when using LoRA
 
 - `--fast-fp16`: Enable the `allow_fp16_accumulation` option
     - requires PyTorch **2.7.0** +
