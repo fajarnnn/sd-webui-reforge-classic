@@ -210,11 +210,11 @@ if isSage2 and args.sageattn2_api is not SageAttentionAPIs.Automatic:
     from sageattention import sageattn_qk_int8_pv_fp16_triton, sageattn_qk_int8_pv_fp16_cuda, sageattn_qk_int8_pv_fp8_cuda
 
     if args.sageattn2_api is SageAttentionAPIs.Triton16:
-        sageattn = sageattn_qk_int8_pv_fp16_triton
+        sageattn = partial(sageattn_qk_int8_pv_fp16_triton, quantization_backend="cuda")
     if args.sageattn2_api is SageAttentionAPIs.CUDA16:
         sageattn = partial(sageattn_qk_int8_pv_fp16_cuda, qk_quant_gran="per_warp", pv_accum_dtype="fp16+fp32")
     if args.sageattn2_api is SageAttentionAPIs.CUDA8:
-        sageattn = partial(sageattn_qk_int8_pv_fp8_cuda, qk_quant_gran="per_warp", pv_accum_dtype="fp16+fp32")
+        sageattn = partial(sageattn_qk_int8_pv_fp8_cuda, qk_quant_gran="per_thread", pv_accum_dtype="fp32+fp32")
 
 
 def attention_sage(q, k, v, heads, mask=None):
