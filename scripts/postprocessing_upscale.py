@@ -88,7 +88,7 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
                     )
                 with gr.Row():
                     extras_color_correction = gr.Checkbox(
-                        value=True,
+                        value=False,
                         label="Color Correction",
                         elem_id="extras_color_correction",
                     )
@@ -125,10 +125,11 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
         )
 
         extras_upscaler_2_visibility.change(
-            fn=lambda vis: gr.update(interactive=(vis > 0.0)),
+            fn=lambda vis: gr.update(interactive=(vis > 0.04)),
             inputs=[extras_upscaler_2_visibility],
             outputs=[extras_upscaler_2],
             show_progress="hidden",
+            queue=False,
         )
 
         return {
@@ -218,7 +219,7 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
             pp.shared.target_width = int(pp.image.width * upscale_by)
             pp.shared.target_height = int(pp.image.height * upscale_by)
 
-        if upscale_cc and "cc" not in upscale_cache:
+        if upscale_cc:
             upscale_cache["cc"] = setup_color_correction(pp.image)
 
     def process(
@@ -265,9 +266,7 @@ class ScriptPostprocessingUpscale(scripts_postprocessing.ScriptPostprocessing):
                     None,
                 )
 
-                assert (
-                    upscaler2 is not None
-                ), f'Could not find upscaler "{upscaler_2_name}"'
+                assert upscaler2 is not None, f'Could not find upscaler "{upscaler_2_name}"'
 
                 second_upscale = self._upscale(
                     pp.image,
