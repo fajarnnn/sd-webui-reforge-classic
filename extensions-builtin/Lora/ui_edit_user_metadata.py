@@ -51,24 +51,23 @@ class LoraUserMetadataEditor(UserMetadataEditor):
 
     def save_lora_user_metadata(
         self,
-        name,
-        desc,
-        sd_version,
-        activation_text,
-        preferred_weight,
-        negative_text,
-        notes,
+        name: str,
+        desc: str,
+        sd_version: str,
+        activation_text: str,
+        preferred_weight: float,
+        negative_text: str,
+        notes: str,
     ):
         user_metadata = self.get_user_metadata(name)
         user_metadata["description"] = desc
         user_metadata["sd version"] = sd_version
-        user_metadata["activation text"] = activation_text
+        user_metadata["activation text"] = re.sub(r"\s+", " ", activation_text)
         user_metadata["preferred weight"] = preferred_weight
-        user_metadata["negative text"] = negative_text
+        user_metadata["negative text"] = re.sub(r"\s+", " ", negative_text)
         user_metadata["notes"] = notes
 
         self.write_user_metadata(name, user_metadata)
-        self.page.refresh()
 
     def get_metadata_table(self, name):
         table = super().get_metadata_table(name)
@@ -157,8 +156,8 @@ class LoraUserMetadataEditor(UserMetadataEditor):
         self.create_default_editor_elems()
 
         self.taginfo = gr.HighlightedText(label="Training dataset tags")
-        self.edit_activation_text = gr.Text(label="Activation text", info="Will be added to prompt along with Lora")
-        self.edit_negative_text = gr.Text(label="Negative prompt", info="Will be added to negative prompts")
+        self.edit_activation_text = gr.Textbox(label="Positive Prompt", info="Will be added to the prompt after the LoRA syntax", lines=1, max_lines=1)
+        self.edit_negative_text = gr.Textbox(label="Negative Prompt", info="Will be added to the negative prompt", lines=1, max_lines=1)
         self.slider_preferred_weight = gr.Slider(
             label="Preferred weight",
             info="Set to 0 to use the default set in Settings",

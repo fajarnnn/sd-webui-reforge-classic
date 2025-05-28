@@ -590,6 +590,9 @@ function extraNetworksEditUserMetadata(event, tabname, extraPage, cardName) {
 }
 
 function extraNetworksRefreshSingleCard(page, tabname, name) {
+    const refreshButton = document.getElementById(`${tabname}_${page}_extra_refresh`);
+    refreshButton.click();
+
     requestGet("./sd_extra_networks/get-single-card", { page: page, tabname: tabname, name: name }, function (data) {
         if (data && data.html) {
             let card = gradioApp().querySelector(`#${tabname}_${page.replace(" ", "_")}_cards > .card[data-name="${name}"]`);
