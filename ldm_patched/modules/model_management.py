@@ -1,8 +1,11 @@
-# 1st edit by https://github.com/comfyanonymous/ComfyUI
-# 2nd edit by Forge Official
+"""
+Credit: ComfyUI
+https://github.com/comfyanonymous/ComfyUI
 
+- Edited by. Forge Official
+- Edited by. Haoming02
+"""
 
-import gc
 import time
 from enum import Enum
 from functools import lru_cache
@@ -379,7 +382,6 @@ class LoadedModel:
         self.model.model_patches_to(device=self.device, dtype=self.model.model_dtype())
 
         try:
-            # TODO: do something with loras and offloading to CPU
             self.real_model = self.model.patch_model(device_to=patch_model_to)
         except Exception as e:
             self.model.unpatch_model(self.model.offload_device)
@@ -433,7 +435,7 @@ class LoadedModel:
 
         return self.real_model
 
-    def model_unload(self, avoid_model_moving: bool = False):
+    def model_unload(self, *, avoid_model_moving: bool = False):
         if self.model_accelerated:
             for m in self.real_model.modules():
                 if hasattr(m, "prev_ldm_patched_cast_weights"):
@@ -445,7 +447,7 @@ class LoadedModel:
         if avoid_model_moving:
             self.model.unpatch_model()
         else:
-            self.model.unpatch_model(self.model.offload_device)
+            self.model.unpatch_model(device_to=self.model.offload_device)
             self.model.model_patches_to(self.model.offload_device)
 
     def __eq__(self, other: "LoadedModel"):
@@ -470,7 +472,6 @@ def unload_model_clones(model):
     if len(to_unload) > 0:
         print(f"Reusing {len(to_unload)} loaded model{'s' if len(to_unload) > 1 else ''}")
         soft_empty_cache()
-        gc.collect()
 
 
 def free_memory(memory_required, device, keep_loaded=[]):

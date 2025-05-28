@@ -1,15 +1,63 @@
-# 1st edit by https://github.com/comfyanonymous/ComfyUI
-# 2nd edit by Forge Official
+"""
+Credit: ComfyUI
+https://github.com/comfyanonymous/ComfyUI
 
+- Edited by. Forge Official
+- Edited by. Haoming02
+"""
 
 import copy
 import inspect
 
-import ldm_patched.modules.model_management
-import ldm_patched.modules.utils
 import torch
 
-extra_weight_calculators = {}
+import ldm_patched.modules.model_management
+import ldm_patched.modules.utils
+from ldm_patched.modules.args_parser import args
+
+extra_weight_calculators = {}  # backward compatibility
+
+
+PERSISTENT_PATCHES = args.persistent_patches
+if PERSISTENT_PATCHES:
+    print("[Experimental] Persistent Patches:", PERSISTENT_PATCHES)
+
+
+class PatchStatus:
+    def __init__(self):
+        self.current = 0  # the current status of the ModelPatcher
+        self.updated = 0  # the last time a patch was modified
+
+    def require_patch(self) -> bool:
+        if not PERSISTENT_PATCHES:
+            return True
+
+        return self.current == 0
+
+    def require_unpatch(self) -> bool:
+        if not PERSISTENT_PATCHES:
+            return True
+
+        if not PatchStatus.has_lora():
+            return True
+
+        return self.current != self.updated
+
+    def patch(self):
+        if self.updated > 0:
+            self.current = self.updated
+
+    def unpatch(self):
+        self.current = 0
+
+    def update(self):
+        self.updated += 1
+
+    @staticmethod
+    def has_lora() -> bool:
+        from modules.shared import sd_model
+
+        return sd_model.current_lora_hash != str([])
 
 
 class ModelPatcher:
@@ -24,12 +72,10 @@ class ModelPatcher:
         self.model_size()
         self.load_device = load_device
         self.offload_device = offload_device
-        if current_device is None:
-            self.current_device = self.offload_device
-        else:
-            self.current_device = current_device
-
+        self.current_device = self.offload_device if current_device is None else current_device
         self.weight_inplace_update = weight_inplace_update
+
+        self.patch_status = PatchStatus()
 
     def model_size(self):
         if self.size > 0:
@@ -46,21 +92,22 @@ class ModelPatcher:
             self.offload_device,
             self.size,
             self.current_device,
-            weight_inplace_update=self.weight_inplace_update,
+            self.weight_inplace_update,
         )
-        n.patches = {}
+
         for k in self.patches:
             n.patches[k] = self.patches[k][:]
 
+        n.backup = self.backup
         n.object_patches = self.object_patches.copy()
         n.model_options = copy.deepcopy(self.model_options)
         n.model_keys = self.model_keys
+        n.patch_status = self.patch_status
+
         return n
 
     def is_clone(self, other):
-        if hasattr(other, "model") and self.model is other.model:
-            return True
-        return False
+        return getattr(other, "model", None) is self.model
 
     def memory_required(self, input_shape):
         return self.model.memory_required(input_shape=input_shape)
@@ -136,7 +183,7 @@ class ModelPatcher:
         self.object_patches[name] = obj
 
     def model_patches_to(self, device, *, dtype=None):
-        to: dict[str, dict[str, list["torch.nn.Module"] | dict[str, "torch.nn.Module"]]] = self.model_options["transformer_options"]
+        to: dict[str, dict[str, list["torch.Tensor"] | dict[str, "torch.Tensor"]]] = self.model_options["transformer_options"]
         if "patches" in to:
             patches = to["patches"]
             for name in patches:
@@ -152,7 +199,7 @@ class ModelPatcher:
                     if hasattr(patch_list[k], "to"):
                         patch_list[k] = patch_list[k].to(device=device, dtype=dtype)
         if "model_function_wrapper" in self.model_options:
-            wrap_func: "torch.nn.Module" = self.model_options["model_function_wrapper"]
+            wrap_func: "torch.Tensor" = self.model_options["model_function_wrapper"]
             if hasattr(wrap_func, "to"):
                 self.model_options["model_function_wrapper"] = wrap_func.to(device=device, dtype=dtype)
 
@@ -169,6 +216,7 @@ class ModelPatcher:
                 current_patches.append((strength_patch, patches[k], strength_model))
                 self.patches[k] = current_patches
 
+        self.patch_status.update()
         return list(p)
 
     def get_key_patches(self, filter_prefix=None):
@@ -201,7 +249,10 @@ class ModelPatcher:
                 self.object_patches_backup[k] = old
             ldm_patched.modules.utils.set_attr_raw(self.model, k, self.object_patches[k])
 
-        if patch_weights:
+        if not patch_weights:
+            return self.model
+
+        if self.patches and self.patch_status.require_patch():
             model_sd = self.model_state_dict()
             for key in self.patches:
                 if key not in model_sd:
@@ -226,9 +277,11 @@ class ModelPatcher:
                     ldm_patched.modules.utils.set_attr(self.model, key, out_weight)
                 del temp_weight
 
-            if device_to is not None:
-                self.model.to(device_to)
-                self.current_device = device_to
+            self.patch_status.patch()
+
+        if device_to is not None:
+            self.model.to(device_to)
+            self.current_device = device_to
 
         return self.model
 
@@ -403,16 +456,18 @@ class ModelPatcher:
         return weight
 
     def unpatch_model(self, device_to=None):
-        keys = list(self.backup.keys())
+        if self.backup and self.patch_status.require_unpatch():
+            keys = list(self.backup.keys())
 
-        if self.weight_inplace_update:
-            for k in keys:
-                ldm_patched.modules.utils.copy_to_param(self.model, k, self.backup[k])
-        else:
-            for k in keys:
-                ldm_patched.modules.utils.set_attr(self.model, k, self.backup[k])
+            if self.weight_inplace_update:
+                for k in keys:
+                    ldm_patched.modules.utils.copy_to_param(self.model, k, self.backup[k])
+            else:
+                for k in keys:
+                    ldm_patched.modules.utils.set_attr(self.model, k, self.backup[k])
 
-        self.backup = {}
+            self.backup.clear()
+            self.patch_status.unpatch()
 
         if device_to is not None:
             self.model.to(device_to)
@@ -422,7 +477,7 @@ class ModelPatcher:
         for k in keys:
             ldm_patched.modules.utils.set_attr_raw(self.model, k, self.object_patches_backup[k])
 
-        self.object_patches_backup = {}
+        self.object_patches_backup.clear()
 
     def __del__(self):
         del self.patches

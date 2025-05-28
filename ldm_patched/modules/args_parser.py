@@ -1,5 +1,10 @@
-# Reference: https://github.com/comfyanonymous/ComfyUI
+"""
+Credit: ComfyUI
+https://github.com/comfyanonymous/ComfyUI
 
+- Edited by. Forge Official
+- Edited by. Haoming02
+"""
 
 import argparse
 import enum
@@ -77,6 +82,7 @@ parser.add_argument("--cuda-stream", action="store_true")
 parser.add_argument("--pin-shared-memory", action="store_true")
 
 parser.add_argument("--fast-fp16", action="store_true")
+parser.add_argument("--persistent-patches", action="store_true")
 
 
 class SageAttentionAPIs(enum.Enum):
