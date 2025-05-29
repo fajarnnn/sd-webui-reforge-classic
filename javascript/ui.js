@@ -337,6 +337,7 @@ var txt2img_textarea, img2img_textarea = undefined;
 
 function restart_reload() {
     document.body.innerHTML = '<h1 style="font-family:monospace;margin-top:20%;color:lightgray;text-align:center;">Reloading...</h1>';
+    if (opts.no_flashbang) document.body.style.backgroundColor = "black";
 
     let requestPing = function () {
         requestGet("./internal/ping", {}, function (data) {

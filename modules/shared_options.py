@@ -151,6 +151,7 @@ options_templates.update(
             "list_hidden_files": OptionInfo(True, "List the models/files under hidden directories").info('directory is hidden if its name starts with "."'),
             "disable_mmap_load_safetensors": OptionInfo(False, "Disable memmapping when loading .safetensors").info("fix slow loading speed in certain cases"),
             "dump_stacks_on_signal": OptionInfo(False, "Print the stack trace before terminating the webui via Ctrl + C"),
+            "no_flashbang": OptionInfo(False, 'Force the background color of the "Reloading..." screen to be black'),
         },
     )
 )
