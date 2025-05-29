@@ -468,6 +468,43 @@ class ExtraNetworksPage:
 
         return res
 
+    def create_dir_buttons_html(self, tabname: str) -> str:
+        """Generates HTML for the folder buttons"""
+
+        subdirs: list[str] = []
+        roots = [os.path.abspath(x) for x in self.allowed_directories_for_previews()]
+
+        for parentdir in roots:
+            for root, dirs, _ in os.walk(parentdir, followlinks=True):
+                for dirname in dirs:
+                    x = os.path.join(root, dirname)
+
+                    if not os.path.isdir(x):
+                        continue
+                    if len(os.listdir(x)) == 0:
+                        continue
+
+                    subdir = os.path.abspath(x)[len(parentdir) :]
+                    while subdir.startswith(os.path.sep):
+                        subdir = subdir[1:]
+
+                    if subdir.startswith(".") and (not shared.opts.extra_networks_hidden_models == "Always"):
+                        continue
+
+                    subdirs.append(subdir)
+
+        if len(subdirs) > 0:
+            subdirs = ("all", *sorted(subdirs, key=shared.natural_sort_key))
+
+        return "".join(
+            f"""
+<button class='lg secondary gradio-button custom-button {"search-all" if subdir == "all" else ""}' onclick='extraNetworksSearchButton("{tabname}", "{self.extra_networks_tabname}", event)'>
+{html.escape(subdir)}
+</button>
+            """
+            for subdir in subdirs
+        )
+
     def create_html(self, tabname, *, empty=False):
         """
         Generates an HTML string for the current pane
@@ -520,6 +557,7 @@ class ExtraNetworksPage:
                 "tree_view_btn_extra_class": tree_view_btn_extra_class,
                 "tree_view_div_extra_class": tree_view_div_extra_class,
                 "tree_html": self.create_tree_view_html(tabname) if shared.opts.extra_networks_tree_view_enable else "",
+                "dir_btns_html": self.create_dir_buttons_html(tabname) if shared.opts.extra_networks_dir_btn_enable else "",
                 "items_html": self.create_card_view_html(tabname, none_message="Loading..." if empty else None),
             }
         )

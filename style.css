@@ -1198,6 +1198,26 @@ body.resizing .resize-handle {
     border: 1px solid var(--block-border-color);
 }
 
+.extra-network-pane .extra-network-dirs {
+    display: flex;
+    flex-direction: row;
+    background-color: var(--background-fill-secondary);
+    border-radius: 0.5em;
+    margin: 0.25em;
+    padding: 0.25em 1em;
+    gap: 0.5em;
+}
+
+.extra-network-pane .extra-network-dirs:not(:has(*)) {
+    display: none;
+}
+
+.extra-network-pane .extra-network-dirs button {
+    margin: var(--spacing-sm) 0px;
+    padding: 0.5em 1em;
+    border: 1px solid var(--block-border-color);
+}
+
 .extra-network-pane .extra-network-tree .tree-list {
     flex: 1;
     display: flex;

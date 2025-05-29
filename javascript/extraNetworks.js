@@ -273,6 +273,15 @@ function saveCardPreview(event, tabname, filename) {
     event.preventDefault();
 }
 
+function extraNetworksSearchButton(tabname, extra_networks_tabname, event) {
+    const searchTextarea = gradioApp().querySelector("#" + tabname + "_" + extra_networks_tabname + "_extra_search");
+    const button = event.target;
+    const text = button.classList.contains("search-all") ? "" : button.textContent.trim();
+
+    searchTextarea.value = text;
+    updateInput(searchTextarea);
+}
+
 function extraNetworksTreeProcessFileClick(event, btn, tabname, extra_networks_tabname) {
     /**
      * Processes `onclick` events when user clicks on files in tree.
