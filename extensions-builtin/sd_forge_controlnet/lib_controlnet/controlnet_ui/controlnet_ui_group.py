@@ -960,6 +960,7 @@ class ControlNetUiGroup:
     @staticmethod
     def reset():
         ControlNetUiGroup.a1111_context = A1111Context()
+        ControlNetUiGroup.all_callbacks_registered = False
         ControlNetUiGroup.callbacks_registered = False
         ControlNetUiGroup.all_ui_groups = []
 
