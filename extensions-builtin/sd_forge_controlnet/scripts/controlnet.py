@@ -9,7 +9,7 @@ from modules.processing import (
 )
 
 from typing import Optional
-from PIL import Image
+from PIL import Image, ImageOps
 import gradio as gr
 import numpy as np
 import functools
@@ -158,6 +158,9 @@ class ControlNetForForgeOfficial(scripts.Script):
 
         a1111_i2i_image = getattr(p, "init_images", [None])[0]
         a1111_i2i_mask = getattr(p, "image_mask", None)
+
+        if a1111_i2i_mask is not None and getattr(p, "inpainting_mask_invert", False):
+            a1111_i2i_mask = ImageOps.invert(a1111_i2i_mask)
 
         using_a1111_data = False
 
