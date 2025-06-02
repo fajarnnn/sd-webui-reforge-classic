@@ -914,16 +914,16 @@ footer {
 }
 
 .extra-network-pane .nocards {
-    margin: 1.25em 0.5em 0.5em 0.5em;
+    margin: 1em;
+    padding: 1em;
 }
 
-.extra-network-pane .nocards h1 {
-    font-size: 1.5em;
-    margin-bottom: 1em;
+.extra-network-pane .nocards h2 {
+    margin: 0em 0em 1em 0em;
 }
 
 .extra-network-pane .nocards li {
-    margin-left: 0.5em;
+    margin-left: 1em;
 }
 
 .extra-network-pane .card .button-row {
