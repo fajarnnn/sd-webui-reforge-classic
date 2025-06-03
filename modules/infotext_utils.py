@@ -147,7 +147,7 @@ def connect_paste_params_buttons():
         if binding.source_image_component and destination_image_component:
             if isinstance(binding.source_image_component, gr.Gallery):
                 func = send_image_and_dimensions if destination_width_component else image_from_url_text
-                jsfunc = "extract_image_from_gallery"
+                jsfunc = f'(gal) => {{ return extract_image_from_gallery(gal, "{binding.source_tabname}"); }}'
             else:
                 func = send_image_and_dimensions if destination_width_component else lambda x: x
                 jsfunc = None
