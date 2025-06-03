@@ -10,6 +10,11 @@ from modules.upscaler_utils import upscale_with_model
 from modules_forge.forge_util import prepare_free_memory
 
 
+PREFER_HALF = opts.prefer_fp16_upscalers
+if PREFER_HALF:
+    print("[Upscalers] Prefer Half-Precision:", PREFER_HALF)
+
+
 class UpscalerESRGAN(Upscaler):
     def __init__(self, dirname: str):
         self.user_path = dirname
@@ -65,6 +70,6 @@ class UpscalerESRGAN(Upscaler):
                 file_name=path.rsplit("/", 1)[-1],
             )
 
-        model = modelloader.load_spandrel_model(filename, device="cpu")
+        model = modelloader.load_spandrel_model(filename, device="cpu", prefer_half=PREFER_HALF)
         model.to(devices.device_esrgan)
         return model
