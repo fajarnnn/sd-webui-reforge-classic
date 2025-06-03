@@ -66,6 +66,10 @@ detect_image_size_symbol = "\U0001f4d0"  # 📐
 plaintext_to_html = ui_common.plaintext_to_html
 
 
+def _zoom() -> bool:
+    return "canvas-zoom-and-pan" not in shared.opts.disabled_extensions
+
+
 def calc_resolution_hires(enable, width, height, hr_scale, hr_resize_x, hr_resize_y):
     if not enable:
         return ""
@@ -416,21 +420,11 @@ def create_ui():
                     tabname="txt2img",
                     source_text_component=toprow.prompt,
                     source_image_component=None,
+                    is_paste=True,
                 )
             )
 
             steps = scripts.scripts_txt2img.script("Sampler").steps
-
-            txt2img_preview_params = [
-                toprow.prompt,
-                toprow.negative_prompt,
-                steps,
-                scripts.scripts_txt2img.script("Sampler").sampler_name,
-                cfg_scale,
-                scripts.scripts_txt2img.script("Seed").seed,
-                width,
-                height,
-            ]
 
             toprow.ui_styles.dropdown.change(fn=wrap_queued_call(update_token_counter), inputs=[toprow.prompt, steps, toprow.ui_styles.dropdown], outputs=[toprow.token_counter])
             toprow.ui_styles.dropdown.change(fn=wrap_queued_call(update_negative_prompt_token_counter), inputs=[toprow.negative_prompt, steps, toprow.ui_styles.dropdown], outputs=[toprow.negative_token_counter])
@@ -540,15 +534,24 @@ def create_ui():
 
                         for button, name, elem in copy_image_buttons:
                             button.click(
+                                fn=lambda: gr.update(value=None),
+                                outputs=[copy_image_destinations[name]],
+                                show_progress=False,
+                            ).then(
                                 fn=copy_image,
                                 inputs=[elem],
                                 outputs=[copy_image_destinations[name]],
                             )
+
+                            _tabname = name.replace(" ", "_")
+
                             button.click(
                                 fn=lambda: None,
-                                _js=f"switch_to_{name.replace(' ', '_')}",
-                                inputs=[],
-                                outputs=[],
+                                _js=f"switch_to_{_tabname}",
+                                show_progress=False,
+                            ).then(
+                                fn=None,
+                                _js=f'() => {{ trigger_zoom_resize("{_tabname}"); }}' if _zoom() else None,
                             )
 
                         with FormRow():
@@ -778,6 +781,7 @@ def create_ui():
                     tabname="img2img",
                     source_text_component=toprow.prompt,
                     source_image_component=None,
+                    is_paste=True,
                 )
             )
 

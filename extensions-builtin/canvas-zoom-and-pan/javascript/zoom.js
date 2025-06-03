@@ -1,53 +1,55 @@
+const ZoomAndPanReset = {};
+
+const elementIDs = {
+    img2imgTabs: "#mode_img2img .tab-nav",
+    inpaint: "#img2maskimg",
+    inpaintSketch: "#inpaint_sketch",
+    rangeGroup: "#img2img_column_size",
+    sketch: "#img2img_sketch",
+};
+
+const tabNameToElementId = {
+    "Inpaint sketch": elementIDs.inpaintSketch,
+    "Inpaint": elementIDs.inpaint,
+    "Sketch": elementIDs.sketch,
+};
+
 (function () {
-
     onUiLoaded(async () => {
-        const elementIDs = {
-            img2imgTabs: "#mode_img2img .tab-nav",
-            inpaint: "#img2maskimg",
-            inpaintSketch: "#inpaint_sketch",
-            rangeGroup: "#img2img_column_size",
-            sketch: "#img2img_sketch"
-        };
-
-        const tabNameToElementId = {
-            "Inpaint sketch": elementIDs.inpaintSketch,
-            "Inpaint": elementIDs.inpaint,
-            "Sketch": elementIDs.sketch
-        };
-
         /** Waits for an element to be present in the DOM */
-        const waitForElement = (id) => new Promise(resolve => {
-            const checkForElement = () => {
-                const element = document.querySelector(id);
-                if (element) return resolve(element);
-                setTimeout(checkForElement, 100);
-            };
-            checkForElement();
-        });
+        const waitForElement = (id) =>
+            new Promise((resolve) => {
+                const checkForElement = () => {
+                    const element = document.querySelector(id);
+                    if (element) return resolve(element);
+                    setTimeout(checkForElement, 100);
+                };
+                checkForElement();
+            });
 
         function getActiveTab(elements, all = false) {
+            if (!elements.img2imgTabs) return null;
+
             const tabs = elements.img2imgTabs.querySelectorAll("button");
             if (all) return tabs;
 
             for (let tab of tabs) {
-                if (tab.classList.contains("selected"))
-                    return tab;
+                if (tab.classList.contains("selected")) return tab;
             }
         }
 
         // Get tab ID
         function getTabId(elements) {
             const activeTab = getActiveTab(elements);
+            if (!activeTab) return null;
             return tabNameToElementId[activeTab.innerText];
         }
 
         // Wait until opts loaded
         async function waitForOpts() {
             for (; ;) {
-                if (window.opts && Object.keys(window.opts).length) {
-                    return window.opts;
-                }
-                await new Promise(resolve => setTimeout(resolve, 100));
+                if (window.opts && Object.keys(window.opts).length) return window.opts;
+                await new Promise((resolve) => setTimeout(resolve, 100));
             }
         }
 
@@ -108,8 +110,7 @@
                     typeof userValue === "object" ||
                     userValue === "disable"
                 ) {
-                    result[key] =
-                        userValue === undefined ? defaultValue : userValue;
+                    result[key] = userValue === undefined ? defaultValue : userValue;
                 } else if (isValidHotkey(userValue)) {
                     const normalizedUserValue = normalizeHotkey(userValue);
 
@@ -120,20 +121,20 @@
                     } else {
                         console.error(
                             `Hotkey: ${formatHotkeyForDisplay(
-                                userValue
+                                userValue,
                             )} for ${key} is repeated and conflicts with another hotkey. The default hotkey is used: ${formatHotkeyForDisplay(
-                                defaultValue
-                            )}`
+                                defaultValue,
+                            )}`,
                         );
                         result[key] = defaultValue;
                     }
                 } else {
                     console.error(
                         `Hotkey: ${formatHotkeyForDisplay(
-                            userValue
+                            userValue,
                         )} for ${key} is not valid. The default hotkey is used: ${formatHotkeyForDisplay(
-                            defaultValue
-                        )}`
+                            defaultValue,
+                        )}`,
                     );
                     result[key] = defaultValue;
                 }
@@ -145,11 +146,10 @@
         // Disables functions in the config object based on the provided list of function names
         function disableFunctions(config, disabledFunctions) {
             // Bind the hasOwnProperty method to the functionMap object to avoid errors
-            const hasOwnProperty =
-                Object.prototype.hasOwnProperty.bind(functionMap);
+            const hasOwnProperty = Object.prototype.hasOwnProperty.bind(functionMap);
 
             // Loop through the disabledFunctions array and disable the corresponding functions in the config object
-            disabledFunctions.forEach(funcName => {
+            disabledFunctions.forEach((funcName) => {
                 if (hasOwnProperty(funcName)) {
                     const key = functionMap[funcName];
                     config[key] = "disable";
@@ -182,13 +182,11 @@
             if (parseFloat(mainTab.style.width) > 865) {
                 const transformString = mainTab.style.transform;
                 const scaleMatch = transformString.match(
-                    /scale\(([-+]?[0-9]*\.?[0-9]+)\)/
+                    /scale\(([-+]?[0-9]*\.?[0-9]+)\)/,
                 );
                 let zoom = 1; // default zoom
 
-                if (scaleMatch && scaleMatch[1]) {
-                    zoom = Number(scaleMatch[1]);
-                }
+                if (scaleMatch && scaleMatch[1]) zoom = Number(scaleMatch[1]);
 
                 imageARPreview.style.transformOrigin = "0 0";
                 imageARPreview.style.transform = `scale(${zoom})`;
@@ -200,7 +198,7 @@
 
             setTimeout(() => {
                 img.style.display = "none";
-            }, 400);
+            }, 500);
         }
 
         const hotkeysConfigOpts = await waitForOpts();
@@ -229,39 +227,39 @@
             "Moving canvas": "canvas_hotkey_move",
             "Fullscreen": "canvas_hotkey_fullscreen",
             "Reset Zoom": "canvas_hotkey_reset",
-            "Overlap": "canvas_hotkey_overlap"
+            "Overlap": "canvas_hotkey_overlap",
         };
 
         // Loading the configuration from opts
         const preHotkeysConfig = createHotkeyConfig(
             defaultHotkeysConfig,
-            hotkeysConfigOpts
+            hotkeysConfigOpts,
         );
 
         // Disable functions that are not needed by the user
         const hotkeysConfig = disableFunctions(
             preHotkeysConfig,
-            preHotkeysConfig.canvas_disabled_functions
+            preHotkeysConfig.canvas_disabled_functions,
         );
 
         let isMoving = false;
-        let mouseX, mouseY;
         let activeElement;
+        let interactedWithAltKey = false;
 
         const elements = Object.fromEntries(
-            Object.keys(elementIDs).map(id => [
+            Object.keys(elementIDs).map((id) => [
                 id,
-                gradioApp().querySelector(elementIDs[id])
-            ])
+                gradioApp().querySelector(elementIDs[id]),
+            ]),
         );
         const elemData = {};
 
         // Apply functionality to the range inputs. Restore redmask and correct for long images.
-        const rangeInputs = elements.rangeGroup ?
-            Array.from(elements.rangeGroup.querySelectorAll("input")) :
-            [
+        const rangeInputs = elements.rangeGroup
+            ? Array.from(elements.rangeGroup.querySelectorAll("input"))
+            : [
                 gradioApp().querySelector("#img2img_width input[type='range']"),
-                gradioApp().querySelector("#img2img_height input[type='range']")
+                gradioApp().querySelector("#img2img_height input[type='range']"),
             ];
 
         for (const input of rangeInputs) {
@@ -272,7 +270,7 @@
             const targetElement = gradioApp().querySelector(elemId);
 
             if (!targetElement) {
-                console.log("Element not found");
+                console.log(`Element ${elemId} not found...`);
                 return;
             }
 
@@ -281,14 +279,13 @@
             elemData[elemId] = {
                 zoom: 1,
                 panX: 0,
-                panY: 0
+                panY: 0,
             };
             let fullScreenMode = false;
 
             // Create tooltip
             function createTooltip() {
-                const toolTipElement =
-                    targetElement.querySelector(".image-container");
+                const toolTipElement = targetElement.querySelector(".image-container");
                 const tooltip = document.createElement("div");
                 tooltip.className = "canvas-tooltip";
 
@@ -306,39 +303,37 @@
                     {
                         configKey: "canvas_hotkey_zoom",
                         action: "Zoom canvas",
-                        keySuffix: " + wheel"
+                        keySuffix: " + wheel",
                     },
                     {
                         configKey: "canvas_hotkey_adjust",
                         action: "Adjust brush size",
-                        keySuffix: " + wheel"
+                        keySuffix: " + wheel",
                     },
                     { configKey: "canvas_hotkey_reset", action: "Reset zoom" },
                     {
                         configKey: "canvas_hotkey_fullscreen",
-                        action: "Fullscreen mode"
+                        action: "Fullscreen mode",
                     },
                     { configKey: "canvas_hotkey_move", action: "Move canvas" },
-                    { configKey: "canvas_hotkey_overlap", action: "Overlap" }
+                    { configKey: "canvas_hotkey_overlap", action: "Overlap" },
                 ];
 
                 // Create hotkeys array with disabled property based on the config values
-                const hotkeys = hotkeysInfo.map(info => {
+                const hotkeys = hotkeysInfo.map((info) => {
                     const configValue = hotkeysConfig[info.configKey];
-                    const key = info.keySuffix ?
-                        `${configValue}${info.keySuffix}` :
-                        configValue.charAt(configValue.length - 1);
+                    const key = info.keySuffix
+                        ? `${configValue}${info.keySuffix}`
+                        : configValue.charAt(configValue.length - 1);
                     return {
                         key,
                         action: info.action,
-                        disabled: configValue === "disable"
+                        disabled: configValue === "disable",
                     };
                 });
 
                 for (const hotkey of hotkeys) {
-                    if (hotkey.disabled) {
-                        continue;
-                    }
+                    if (hotkey.disabled) continue;
 
                     const p = document.createElement("p");
                     p.innerHTML = `<b>${hotkey.key}</b> - ${hotkey.action}`;
@@ -354,15 +349,13 @@
             }
 
             //Show tool tip if setting enable
-            if (hotkeysConfig.canvas_show_tooltip) {
-                createTooltip();
-            }
+            if (hotkeysConfig.canvas_show_tooltip) createTooltip();
 
             // In the course of research, it was found that the tag img is very harmful when zooming and creates white canvases. This hack allows you to almost never think about this problem, it has no effect on webui.
             function fixCanvas() {
-                const activeTab = getActiveTab(elements).textContent.trim();
+                const activeTab = getActiveTab(elements)?.textContent.trim();
 
-                if (activeTab !== "img2img") {
+                if (activeTab && activeTab !== "img2img") {
                     const img = targetElement.querySelector(`${elemId} img`);
 
                     if (img && img.style.display !== "none") {
@@ -377,12 +370,10 @@
                 elemData[elemId] = {
                     zoomLevel: 1,
                     panX: 0,
-                    panY: 0
+                    panY: 0,
                 };
 
-                if (isExtension) {
-                    targetElement.style.overflow = "hidden";
-                }
+                if (isExtension) targetElement.style.overflow = "hidden";
 
                 targetElement.isZoomed = false;
 
@@ -390,16 +381,16 @@
                 targetElement.style.transform = `scale(${elemData[elemId].zoomLevel}) translate(${elemData[elemId].panX}px, ${elemData[elemId].panY}px)`;
 
                 const canvas = gradioApp().querySelector(
-                    `${elemId} canvas[key="interface"]`
+                    `${elemId} canvas[key="interface"]`,
                 );
 
                 toggleOverlap("off");
                 fullScreenMode = false;
 
-                const closeBtn = targetElement.querySelector("button[aria-label='Remove Image']");
-                if (closeBtn) {
-                    closeBtn.addEventListener("click", resetZoom);
-                }
+                const closeBtn = targetElement.querySelector(
+                    "button[aria-label='Remove Image']",
+                );
+                if (closeBtn) closeBtn.addEventListener("click", resetZoom);
 
                 if (canvas && isExtension) {
                     const parentElement = targetElement.closest('[id^="component-"]');
@@ -411,7 +402,6 @@
                         fitToElement();
                         return;
                     }
-
                 }
 
                 if (
@@ -427,6 +417,8 @@
                 targetElement.style.width = "";
             }
 
+            ZoomAndPanReset[elemId] = resetZoom;
+
             // Toggle the zIndex of the target element between two values, allowing it to overlap or be overlapped by other elements
             function toggleOverlap(forced = "") {
                 const zIndex1 = "0";
@@ -435,11 +427,8 @@
                 targetElement.style.zIndex =
                     targetElement.style.zIndex !== zIndex2 ? zIndex2 : zIndex1;
 
-                if (forced === "off") {
-                    targetElement.style.zIndex = zIndex1;
-                } else if (forced === "on") {
-                    targetElement.style.zIndex = zIndex2;
-                }
+                if (forced === "off") targetElement.style.zIndex = zIndex1;
+                else if (forced === "on") targetElement.style.zIndex = zIndex2;
             }
 
             // Adjust the brush size based on the deltaY value from a mouse wheel event
@@ -447,21 +436,18 @@
                 elemId,
                 deltaY,
                 withoutValue = false,
-                percentage = 5
+                percentage = 5,
             ) {
                 const input =
                     gradioApp().querySelector(
-                        `${elemId} input[aria-label='Brush radius']`
+                        `${elemId} input[aria-label='Brush radius']`,
                     ) ||
-                    gradioApp().querySelector(
-                        `${elemId} button[aria-label="Use brush"]`
-                    );
+                    gradioApp().querySelector(`${elemId} button[aria-label="Use brush"]`);
 
                 if (input) {
                     input.click();
                     if (!withoutValue) {
-                        const maxValue =
-                            parseFloat(input.getAttribute("max")) || 100;
+                        const maxValue = parseFloat(input.getAttribute("max")) || 100;
                         const changeAmount = maxValue * (percentage / 100);
                         const newValue =
                             parseFloat(input.value) +
@@ -474,7 +460,7 @@
 
             // Reset zoom when uploading a new image
             const fileInput = gradioApp().querySelector(
-                `${elemId} input[type="file"][accept="image/*"].svelte-116rqfv`
+                `${elemId} input[type="file"][accept="image/*"].svelte-116rqfv`,
             );
             fileInput.addEventListener("click", resetZoom);
 
@@ -482,18 +468,23 @@
             function updateZoom(newZoomLevel, mouseX, mouseY) {
                 newZoomLevel = Math.max(0.1, Math.min(newZoomLevel, 15));
 
-                elemData[elemId].panX +=
-                    mouseX - (mouseX * newZoomLevel) / elemData[elemId].zoomLevel;
-                elemData[elemId].panY +=
-                    mouseY - (mouseY * newZoomLevel) / elemData[elemId].zoomLevel;
+                // Check if we're close to the original zoom level (1.0)
+                if (Math.abs(newZoomLevel - 1.0) < 0.01) {
+                    newZoomLevel = 1;
+                    elemData[elemId].panX = 0;
+                    elemData[elemId].panY = 0;
+                } else {
+                    elemData[elemId].panX +=
+                        mouseX - (mouseX * newZoomLevel) / elemData[elemId].zoomLevel;
+                    elemData[elemId].panY +=
+                        mouseY - (mouseY * newZoomLevel) / elemData[elemId].zoomLevel;
+                }
 
                 targetElement.style.transformOrigin = "0 0";
                 targetElement.style.transform = `translate(${elemData[elemId].panX}px, ${elemData[elemId].panY}px) scale(${newZoomLevel})`;
 
                 toggleOverlap("on");
-                if (isExtension) {
-                    targetElement.style.overflow = "visible";
-                }
+                if (isExtension) targetElement.style.overflow = "visible";
 
                 return newZoomLevel;
             }
@@ -502,27 +493,26 @@
             function changeZoomLevel(operation, e) {
                 if (isModifierKey(e, hotkeysConfig.canvas_hotkey_zoom)) {
                     e.preventDefault();
+                    if (hotkeysConfig.canvas_hotkey_zoom === "Alt")
+                        interactedWithAltKey = true;
 
                     let zoomPosX, zoomPosY;
                     let delta = 0.2;
-                    if (elemData[elemId].zoomLevel > 7) {
-                        delta = 0.9;
-                    } else if (elemData[elemId].zoomLevel > 2) {
-                        delta = 0.6;
-                    }
+                    if (elemData[elemId].zoomLevel > 7) delta = 0.9;
+                    else if (elemData[elemId].zoomLevel > 2) delta = 0.6;
 
                     zoomPosX = e.clientX;
                     zoomPosY = e.clientY;
 
                     fullScreenMode = false;
                     elemData[elemId].zoomLevel = updateZoom(
-                        elemData[elemId].zoomLevel +
-                        (operation === "+" ? delta : -delta),
+                        elemData[elemId].zoomLevel + (operation === "+" ? delta : -delta),
                         zoomPosX - targetElement.getBoundingClientRect().left,
-                        zoomPosY - targetElement.getBoundingClientRect().top
+                        zoomPosY - targetElement.getBoundingClientRect().top,
                     );
 
-                    targetElement.isZoomed = true;
+                    targetElement.isZoomed =
+                        Math.abs(elemData[elemId].zoomLevel - 1.0) > 0.01;
                 }
             }
 
@@ -538,12 +528,9 @@
 
                 let parentElement;
 
-                if (isExtension) {
+                if (isExtension)
                     parentElement = targetElement.closest('[id^="component-"]');
-                } else {
-                    parentElement = targetElement.parentElement;
-                }
-
+                else parentElement = targetElement.parentElement;
 
                 // Get element and screen dimensions
                 const elementWidth = targetElement.offsetWidth;
@@ -569,8 +556,7 @@
                 const originYValue = parseFloat(originY);
 
                 const offsetX =
-                    (screenWidth - elementWidth * scale) / 2 -
-                    originXValue * (1 - scale);
+                    (screenWidth - elementWidth * scale) / 2 - originXValue * (1 - scale);
                 const offsetY =
                     (screenHeight - elementHeight * scale) / 2.5 -
                     originYValue * (1 - scale);
@@ -596,18 +582,15 @@
             // Fullscreen mode
             function fitToScreen() {
                 const canvas = gradioApp().querySelector(
-                    `${elemId} canvas[key="interface"]`
+                    `${elemId} canvas[key="interface"]`,
                 );
 
                 if (!canvas) return;
 
-                if (canvas.offsetWidth > 862 || isExtension) {
-                    targetElement.style.width = (canvas.offsetWidth + 2) + "px";
-                }
+                if (canvas.offsetWidth > 862 || isExtension)
+                    targetElement.style.width = canvas.offsetWidth + 2 + "px";
 
-                if (isExtension) {
-                    targetElement.style.overflow = "visible";
-                }
+                if (isExtension) targetElement.style.overflow = "visible";
 
                 if (fullScreenMode) {
                     resetZoom();
@@ -670,24 +653,31 @@
             // Handle keydown events
             function handleKeyDown(event) {
                 // Disable key locks to make pasting from the buffer work correctly
-                if ((event.ctrlKey && event.code === 'KeyV') || (event.ctrlKey && event.code === 'KeyC') || event.code === "F5") {
+                if (
+                    (event.ctrlKey && event.code === "KeyV") ||
+                    (event.ctrlKey && event.code === "KeyC") ||
+                    event.code === "F5"
+                ) {
                     return;
                 }
 
                 // before activating shortcut, ensure user is not actively typing in an input field
                 if (!hotkeysConfig.canvas_blur_prompt) {
-                    if (event.target.nodeName === 'TEXTAREA' || event.target.nodeName === 'INPUT') {
+                    if (
+                        event.target.nodeName === "TEXTAREA" ||
+                        event.target.nodeName === "INPUT"
+                    )
                         return;
-                    }
                 }
-
 
                 const hotkeyActions = {
                     [hotkeysConfig.canvas_hotkey_reset]: resetZoom,
                     [hotkeysConfig.canvas_hotkey_overlap]: toggleOverlap,
                     [hotkeysConfig.canvas_hotkey_fullscreen]: fitToScreen,
-                    [hotkeysConfig.canvas_hotkey_shrink_brush]: () => adjustBrushSize(elemId, 10),
-                    [hotkeysConfig.canvas_hotkey_grow_brush]: () => adjustBrushSize(elemId, -10)
+                    [hotkeysConfig.canvas_hotkey_shrink_brush]: () =>
+                        adjustBrushSize(elemId, 10),
+                    [hotkeysConfig.canvas_hotkey_grow_brush]: () =>
+                        adjustBrushSize(elemId, -10),
                 };
 
                 const action = hotkeyActions[event.code];
@@ -699,15 +689,8 @@
                 if (
                     isModifierKey(event, hotkeysConfig.canvas_hotkey_zoom) ||
                     isModifierKey(event, hotkeysConfig.canvas_hotkey_adjust)
-                ) {
+                )
                     event.preventDefault();
-                }
-            }
-
-            // Get Mouse position
-            function getMousePosition(e) {
-                mouseX = e.offsetX;
-                mouseY = e.offsetY;
             }
 
             // Simulation of the function to put a long image into the screen.
@@ -716,29 +699,33 @@
 
             targetElement.isExpanded = false;
             function autoExpand() {
-                const canvas = document.querySelector(`${elemId} canvas[key="interface"]`);
+                const canvas = document.querySelector(
+                    `${elemId} canvas[key="interface"]`,
+                );
                 if (canvas) {
-                    if (hasHorizontalScrollbar(targetElement) && targetElement.isExpanded === false) {
-                        targetElement.style.visibility = "hidden";
+                    if (
+                        hasHorizontalScrollbar(targetElement) &&
+                        targetElement.isExpanded === false
+                    ) {
                         setTimeout(() => {
                             fitToScreen();
                             resetZoom();
-                            targetElement.style.visibility = "visible";
                             targetElement.isExpanded = true;
-                        }, 10);
+                        }, 25);
                     }
                 }
             }
-
-            targetElement.addEventListener("mousemove", getMousePosition);
 
             //observers
             // Creating an observer with a callback function to handle DOM changes
             const observer = new MutationObserver((mutationsList, observer) => {
                 for (let mutation of mutationsList) {
                     // If the style attribute of the canvas has changed, by observation it happens only when the picture changes
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'style' &&
-                        mutation.target.tagName.toLowerCase() === 'canvas') {
+                    if (
+                        mutation.type === "attributes" &&
+                        mutation.attributeName === "style" &&
+                        mutation.target.tagName.toLowerCase() === "canvas"
+                    ) {
                         targetElement.isExpanded = false;
                         setTimeout(resetZoom, 10);
                     }
@@ -749,7 +736,11 @@
             if (hotkeysConfig.canvas_auto_expand) {
                 targetElement.addEventListener("mousemove", autoExpand);
                 // Set up an observer to track attribute changes
-                observer.observe(targetElement, { attributes: true, childList: true, subtree: true });
+                observer.observe(targetElement, {
+                    attributes: true,
+                    childList: true,
+                    subtree: true,
+                });
             }
 
             // Handle events only inside the targetElement
@@ -778,43 +769,52 @@
             targetElement.addEventListener("mouseleave", handleMouseLeave);
 
             // Reset zoom when click on another tab
-            elements.img2imgTabs.addEventListener("click", resetZoom);
-            elements.img2imgTabs.addEventListener("click", () => {
-                // targetElement.style.width = "";
-                if (parseInt(targetElement.style.width) > 865) {
-                    setTimeout(fitToElement, 0);
-                }
-            });
+            if (elements.img2imgTabs) {
+                elements.img2imgTabs.addEventListener("click", resetZoom);
+                elements.img2imgTabs.addEventListener("click", () => {
+                    // targetElement.style.width = "";
+                    if (parseInt(targetElement.style.width) > 865)
+                        setTimeout(fitToElement, 0);
+                });
+            }
 
-            targetElement.addEventListener("wheel", e => {
-                // change zoom level
-                const operation = e.deltaY > 0 ? "-" : "+";
-                changeZoomLevel(operation, e);
+            targetElement.addEventListener(
+                "wheel",
+                (e) => {
+                    // change zoom level
+                    const operation = (e.deltaY || -e.wheelDelta) > 0 ? "-" : "+";
+                    changeZoomLevel(operation, e);
 
-                // Handle brush size adjustment with ctrl key pressed
-                if (isModifierKey(e, hotkeysConfig.canvas_hotkey_adjust)) {
-                    e.preventDefault();
+                    // Handle brush size adjustment with ctrl key pressed
+                    if (isModifierKey(e, hotkeysConfig.canvas_hotkey_adjust)) {
+                        e.preventDefault();
 
-                    // Increase or decrease brush size based on scroll direction
-                    adjustBrushSize(elemId, e.deltaY);
-                }
-            });
+                        if (hotkeysConfig.canvas_hotkey_adjust === "Alt")
+                            interactedWithAltKey = true;
+
+                        // Increase or decrease brush size based on scroll direction
+                        adjustBrushSize(elemId, e.deltaY);
+                    }
+                },
+                { passive: false },
+            );
 
             // Handle the move event for pan functionality. Updates the panX and panY variables and applies the new transform to the target element.
             function handleMoveKeyDown(e) {
-
                 // Disable key locks to make pasting from the buffer work correctly
-                if ((e.ctrlKey && e.code === 'KeyV') || (e.ctrlKey && event.code === 'KeyC') || e.code === "F5") {
+                if (
+                    (e.ctrlKey && e.code === "KeyV") ||
+                    (e.ctrlKey && event.code === "KeyC") ||
+                    e.code === "F5"
+                ) {
                     return;
                 }
 
                 // before activating shortcut, ensure user is not actively typing in an input field
                 if (!hotkeysConfig.canvas_blur_prompt) {
-                    if (e.target.nodeName === 'TEXTAREA' || e.target.nodeName === 'INPUT') {
+                    if (e.target.nodeName === "TEXTAREA" || e.target.nodeName === "INPUT")
                         return;
-                    }
                 }
-
 
                 if (e.code === hotkeysConfig.canvas_hotkey_move) {
                     if (!e.ctrlKey && !e.metaKey && isKeyDownHandlerAttached) {
@@ -826,21 +826,26 @@
             }
 
             function handleMoveKeyUp(e) {
-                if (e.code === hotkeysConfig.canvas_hotkey_move) {
-                    isMoving = false;
-                }
+                if (e.code === hotkeysConfig.canvas_hotkey_move) isMoving = false;
             }
 
             document.addEventListener("keydown", handleMoveKeyDown);
             document.addEventListener("keyup", handleMoveKeyUp);
 
+            /** Prevent firefox from opening main menu when alt is used as a hotkey for zoom or brush size */
+            function handleAltKeyUp(e) {
+                if (e.key !== "Alt" || !interactedWithAltKey) return;
+                e.preventDefault();
+                interactedWithAltKey = false;
+            }
+
+            document.addEventListener("keyup", handleAltKeyUp);
+
             // Detect zoom level and update the pan speed.
             function updatePanPosition(movementX, movementY) {
                 let panSpeed = 2;
 
-                if (elemData[elemId].zoomLevel > 8) {
-                    panSpeed = 3.5;
-                }
+                if (elemData[elemId].zoomLevel > 8) panSpeed = 3.5;
 
                 elemData[elemId].panX += movementX * panSpeed;
                 elemData[elemId].panY += movementY * panSpeed;
@@ -857,10 +862,7 @@
                     updatePanPosition(e.movementX, e.movementY);
                     targetElement.style.pointerEvents = "none";
 
-                    if (isExtension) {
-                        targetElement.style.overflow = "visible";
-                    }
-
+                    if (isExtension) targetElement.style.overflow = "visible";
                 } else {
                     targetElement.style.pointerEvents = "auto";
                 }
@@ -874,26 +876,36 @@
             // Checks for extension
             function checkForOutBox() {
                 const parentElement = targetElement.closest('[id^="component-"]');
-                if (parentElement.offsetWidth < targetElement.offsetWidth && !targetElement.isExpanded) {
+                if (
+                    parentElement.offsetWidth < targetElement.offsetWidth &&
+                    !targetElement.isExpanded
+                ) {
                     resetZoom();
                     targetElement.isExpanded = true;
                 }
 
-                if (parentElement.offsetWidth < targetElement.offsetWidth && elemData[elemId].zoomLevel == 1) {
+                if (
+                    parentElement.offsetWidth < targetElement.offsetWidth &&
+                    elemData[elemId].zoomLevel == 1
+                ) {
                     resetZoom();
                 }
 
-                if (parentElement.offsetWidth < targetElement.offsetWidth && targetElement.offsetWidth * elemData[elemId].zoomLevel > parentElement.offsetWidth && elemData[elemId].zoomLevel < 1 && !targetElement.isZoomed) {
+                if (
+                    parentElement.offsetWidth < targetElement.offsetWidth &&
+                    targetElement.offsetWidth * elemData[elemId].zoomLevel >
+                    parentElement.offsetWidth &&
+                    elemData[elemId].zoomLevel < 1 &&
+                    !targetElement.isZoomed
+                ) {
                     resetZoom();
                 }
             }
 
-            if (isExtension) {
+            if (isExtension)
                 targetElement.addEventListener("mousemove", checkForOutBox);
-            }
 
-
-            window.addEventListener('resize', (e) => {
+            window.addEventListener("resize", (e) => {
                 resetZoom();
 
                 if (isExtension) {
@@ -903,8 +915,6 @@
             });
 
             gradioApp().addEventListener("mousemove", handleMoveByKey);
-
-
         }
 
         applyZoomAndPan(elementIDs.sketch, false);
@@ -924,17 +934,42 @@
             }
 
             if (!mainEl) return;
-            mainEl.addEventListener("click", async () => {
-                for (const elementID of elementIDs) {
-                    const el = await waitForElement(elementID);
-                    if (!el) break;
-                    applyZoomAndPan(elementID);
-                }
-            }, { once: true });
+            mainEl.addEventListener(
+                "click",
+                async () => {
+                    for (const elementID of elementIDs) {
+                        const el = await waitForElement(elementID);
+                        if (!el) break;
+                        applyZoomAndPan(elementID);
+                    }
+                },
+                { once: true },
+            );
         };
 
         window.applyZoomAndPan = applyZoomAndPan; // Only 1 elements, argument elementID, for example applyZoomAndPan("#txt2img_controlnet_ControlNet_input_image")
         window.applyZoomAndPanIntegration = applyZoomAndPanIntegration; // for any extension
     });
-
 })();
+
+function trigger_zoom_resize(tabname) {
+    const id = elementIDs[tabname];
+    if (id == undefined) return;
+    ZoomAndPanReset[id]();
+
+    const img = gradioApp().querySelector(id);
+
+    function _reset() {
+        if (img.querySelector("img") == undefined) {
+            setTimeout(_reset, 50);
+            return;
+        }
+
+        img.dispatchEvent(new Event("mousemove"));
+        setTimeout(() => {
+            img.querySelector("button[aria-label='Clear']").click();
+        }, 50);
+    }
+
+    setTimeout(_reset, 500);
+}
