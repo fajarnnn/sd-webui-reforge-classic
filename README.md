@@ -18,7 +18,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <br>
 
-## Features [May. 28]
+## Features [Jun. 04]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -72,6 +72,11 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - enable in **Settings/UI Alternatives**
 - [X] Implement full precision calculation for `Mask blur` blending
     - enable in **Settings/img2img**
+- [X] Support loading upscalers in `fp16` precision
+    - speed up; reduce quality
+    - enable in **Settings/Upscaling**
+- [X] Allow `newline` in LoRA metadata
+    - *(backported from Automatic1111 Webui upstream)*
 - [X] Implement `diskcache` for hashes
     - *(backported from Automatic1111 Webui upstream)*
 - [X] Implement `skip_early_cond`
@@ -117,6 +122,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] **[Freedom]** Natively integrate the `SD1` and `SDXL` logics
     - no longer `git` `clone` any repository on fresh install
     - no more random hacks and monkey patches
+- [X] Fix `canvas-zoom-and-pan` built-in extension
+    - no more infinite-resizing bug when using `Send to` buttons
 - [X] Fix memory leak when switching checkpoints
 - [X] Clean up the `ldm_patched` *(**ie.** `comfy`)* folder
 - [X] Remove unused `cmd_args`
@@ -135,12 +142,13 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - improve formatting
     - update descriptions
 - [X] Check for Extension updates in parallel
-- [X] Moved `embeddings` folder into `models` folder
+- [X] Move `embeddings` folder into `models` folder
 - [X] ControlNet Rewrite
     - change Units to `gr.Tab`
     - remove multi-inputs, as they are "[misleading](https://github.com/lllyasviel/stable-diffusion-webui-forge/discussions/932)"
     - change `visible` toggle to `interactive` toggle; now the UI will no longer jump around
-    - improved `Presets` application
+    - improve `Presets` application
+    - fix `Inpaint not masked` mode
 - [X] Disable Refiner by default
     - enable again in **Settings/UI Alternatives**
 - [X] Disable Tree View by default
