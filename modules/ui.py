@@ -81,8 +81,8 @@ def calc_resolution_hires(enable, width, height, hr_scale, hr_resize_x, hr_resiz
 
 
 def resize_from_to_html(width, height, scale_by):
-    target_width = int(width * scale_by)
-    target_height = int(height * scale_by)
+    target_width = round(width * scale_by / 64) * 64
+    target_height = round(height * scale_by / 64) * 64
 
     if not target_width or not target_height:
         return "no image selected"
@@ -588,7 +588,7 @@ def create_ui():
                                         show_progress=False,
                                     )
 
-                                    scale_by.release(**on_change_args)
+                                    scale_by.change(**on_change_args)
                                     button_update_resize_to.click(**on_change_args)
 
                             tab_scale_to.select(fn=lambda: 0, inputs=[], outputs=[selected_scale_tab])
