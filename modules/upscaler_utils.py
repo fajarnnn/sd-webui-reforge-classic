@@ -72,6 +72,8 @@ def upscale_with_model(
         for y, h, row in grid.tiles:
             newrow = []
             for x, w, tile in row:
+                if shared.state.interrupted:
+                    break
                 logger.debug("Tile (%d, %d) %s...", x, y, tile)
                 output = upscale_pil_patch(model, tile)
                 scale_factor = output.width // tile.width

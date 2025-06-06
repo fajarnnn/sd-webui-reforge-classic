@@ -3,7 +3,7 @@ from abc import abstractmethod
 
 from PIL import Image
 
-from modules import devices, modelloader
+from modules import devices, modelloader, shared
 from modules.images import LANCZOS, NEAREST
 from modules.shared import cmd_opts, models_path, opts
 
@@ -52,6 +52,8 @@ class Upscaler:
         dest_h: int = (img.height * scale) // 8 * 8
 
         for _ in range(UPSCALE_ITERATIONS):
+            if shared.state.interrupted:
+                break
             img = self.do_upscale(img, selected_model)
             if ((img.width >= dest_w) and (img.height >= dest_h)) or (int(scale) == 1):
                 break
