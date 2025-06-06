@@ -1115,6 +1115,9 @@ class StableDiffusionProcessingTxt2Img(StableDiffusionProcessing):
     hr_negative_prompts: list = field(default=None, init=False)
     hr_extra_network_data: list = field(default=None, init=False)
 
+    txt2img_upscale: bool = field(default=False, init=False)
+    """attribute signifying that this is processed by the Upscale button"""
+
     def __post_init__(self):
         super().__post_init__()
 

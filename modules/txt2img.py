@@ -86,21 +86,25 @@ def txt2img_create_processing(
     return p
 
 
-def txt2img_upscale_function(id_task: str, request: gr.Request, gallery, gallery_index, generation_info, *args):
-    assert len(gallery) > 0, "No image to upscale"
-    assert 0 <= gallery_index < len(gallery), f"Bad image index: {gallery_index}"
+def txt2img_upscale_function(id_task: str, request: gr.Request, gallery: list[dict], gallery_index: int, generation_info: str, *args):
+    _gallery = [infotext_utils.image_from_url_text(info) for info in gallery]
+
+    if len(gallery) == 0:
+        return _gallery, generation_info, "No image to upscale...", ""
+    if not (0 <= gallery_index < len(gallery)):
+        return _gallery, generation_info, f"Bad Index: {gallery_index}", ""
+    if len(gallery) > 1 and opts.return_grid and gallery_index == 0:
+        return _gallery, generation_info, "Cannot upscale the grid image...", ""
 
     p = txt2img_create_processing(id_task, request, *args, force_enable_hr=True)
     p.batch_size = 1
     p.n_iter = 1
-    # txt2img_upscale attribute that signifies this is called by txt2img_upscale
     p.txt2img_upscale = True
 
+    p.firstpass_image = _gallery[gallery_index]
+    p.width, p.height = p.firstpass_image.size
+
     geninfo = json.loads(generation_info)
-
-    image_info = gallery[gallery_index] if 0 <= gallery_index < len(gallery) else gallery[0]
-    p.firstpass_image = infotext_utils.image_from_url_text(image_info)
-
     parameters = parse_generation_parameters(geninfo.get("infotexts")[gallery_index], [])
     p.seed = parameters.get("Seed", -1)
     p.subseed = parameters.get("Variation seed", -1)
@@ -116,14 +120,11 @@ def txt2img_upscale_function(id_task: str, request: gr.Request, gallery, gallery
     shared.total_tqdm.clear()
 
     new_gallery = []
-    for i, image in enumerate(gallery):
+    for i, image in enumerate(_gallery):
         if i == gallery_index:
-            geninfo["infotexts"][gallery_index : gallery_index + 1] = processed.infotexts
             new_gallery.extend(processed.images)
         else:
-            fake_image = Image.new(mode="RGB", size=(1, 1))
-            fake_image.already_saved_as = image["name"].rsplit("?", 1)[0]
-            new_gallery.append(fake_image)
+            new_gallery.append(image)
 
     geninfo["infotexts"][gallery_index] = processed.info
 
