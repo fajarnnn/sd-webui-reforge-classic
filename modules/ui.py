@@ -541,6 +541,7 @@ def create_ui():
                                 fn=copy_image,
                                 inputs=[elem],
                                 outputs=[copy_image_destinations[name]],
+                                show_progress=False,
                             )
 
                             _tabname = name.replace(" ", "_")
