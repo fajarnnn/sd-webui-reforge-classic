@@ -10,6 +10,52 @@ from modules import devices, images, shared, torch_utils
 
 logger = logging.getLogger(__name__)
 
+def try_apply_spandrel_patches():
+    try:
+        from spandrel.architectures.__arch_helpers.block import ResidualDenseBlock_5C, RRDB
+
+        _orig_init = ResidualDenseBlock_5C.__init__
+
+        def ResidualDenseBlock_5C_init(self, *args, **kwargs):
+            _orig_init(self, *args, **kwargs)
+            self.nf, self.gc = kwargs.get('nf', 64), kwargs.get('gc', 32)
+
+        def ResidualDenseBlock_5C_forward(self, x):
+            B, _, H, W = x.shape
+            nf, gc = self.nf, self.gc
+
+            buf = torch.empty((B, nf + 4 * gc, H, W), dtype=x.dtype, device=x.device)
+            buf[:, :nf].copy_(x)
+
+            x1 = self.conv1(x)
+            buf[:, nf:nf+gc].copy_(x1)
+
+            x2 = self.conv2(buf[:, :nf+gc])
+            if self.conv1x1: x2.add_(self.conv1x1(x))
+            buf[:, nf+gc:nf+2*gc].copy_(x2)
+
+            x3 = self.conv3(buf[:, :nf+2*gc])
+            buf[:, nf+2*gc:nf+3*gc].copy_(x3)
+
+            x4 = self.conv4(buf[:, :nf+3*gc])
+            if self.conv1x1: x4.add_(x2)
+            buf[:, nf+3*gc:nf+4*gc].copy_(x4)
+
+            x5 = self.conv5(buf)
+            return x5.mul_(0.2).add_(x)
+
+        def RRDB_forward(self, x):
+            return self.RDB3(self.RDB2(self.RDB1(x))).mul_(0.2).add_(x)
+
+        ResidualDenseBlock_5C.__init__ = ResidualDenseBlock_5C_init
+        ResidualDenseBlock_5C.forward = ResidualDenseBlock_5C_forward
+        RRDB.forward = RRDB_forward
+
+        print("[Upscalers] Patched Spandrel blocks with optimized forward passes")
+    except Exception as e:
+        print(f"[Upscalers] Failed to patch Spandrel blocks: {type(e).__name__}: {e}")
+
+try_apply_spandrel_patches()
 
 def pil_image_to_torch_bgr(img: Image.Image) -> torch.Tensor:
     img = np.array(img.convert("RGB"))
