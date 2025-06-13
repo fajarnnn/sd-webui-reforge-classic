@@ -133,10 +133,6 @@ def register_paste_params_button(binding: ParamBinding):
     registered_param_bindings.append(binding)
 
 
-def _zoom() -> bool:
-    return "canvas-zoom-and-pan" not in shared.opts.disabled_extensions
-
-
 def _parse_info(output: gr.components.IOComponent, key: str | Callable, params: dict[str, Any]):
     if callable(key):
         v = key(params)
@@ -183,10 +179,6 @@ def connect_paste_params_buttons():
                 jsfunc = None
 
             binding.paste_button.click(
-                fn=lambda: gr.update(value=None),
-                outputs=[destination_image_component],
-                show_progress=False,
-            ).then(
                 fn=func,
                 _js=jsfunc,
                 inputs=[binding.source_image_component],
@@ -247,12 +239,9 @@ def connect_paste_params_buttons():
                 )
 
         binding.paste_button.click(
-            fn=lambda: None,
+            fn=None,
             _js=f"switch_to_{binding.tabname}",
             show_progress=False,
-        ).then(
-            fn=None,
-            _js=f'() => {{ trigger_zoom_resize("{binding.tabname}"); }}' if _zoom() else None,
         )
 
 
