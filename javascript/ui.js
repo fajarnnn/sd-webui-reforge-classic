@@ -256,16 +256,6 @@ onUiLoaded(function () {
 });
 
 
-function modelmerger() {
-    let id = randomId();
-    requestProgress(id, gradioApp().getElementById('modelmerger_results_panel'), null, function () { });
-
-    let res = create_submit_args(arguments);
-    res[0] = id;
-    return res;
-}
-
-
 function ask_for_style_name(_, prompt_text, negative_prompt_text) {
     let name_ = prompt('Style name:');
     return [name_, prompt_text, negative_prompt_text];
