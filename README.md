@@ -183,7 +183,6 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - `--no-download-sd-model`: Do not download a default checkpoint
     - can be removed after you download some checkpoints of your choice
 - `--xformers`: Install the `xformers` package to speed up generation
-    - Currently, `torch==2.7.0` does **not** support `xformers` yet
 - `--port`: Specify a server port to use
     - defaults to `7860`
 - `--api`: Enable [API](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/API) access
