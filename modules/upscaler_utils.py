@@ -67,20 +67,22 @@ def try_patch_spandrel():
 
 try_patch_spandrel()
 
-def call_model(model: Callable[[torch.Tensor], torch.Tensor], x: torch.Tensor) -> torch.Tensor:
-    # Spandrel does not correctly handle non-FP32 for ATD and DAT models.
-    if x.dtype != torch.float32 and model.architecture.name in ['ATD', 'DAT']:
-        try:
-            # Force the upscaler to use the dtype it should for new tensors.
-            torch.set_default_dtype(x.dtype)
-            # Using torch.device incurs a small amount of overhead, but makes sure we don't
-            # get errors when unsupported dtype tensors would be made on the CPU.
-            with torch.device(x.device):
-                return model(x)
-        finally:
-            torch.set_default_dtype(torch.float32)
-    else:
+
+def _model(model: Callable, x: torch.Tensor) -> torch.Tensor:
+    if x.dtype == torch.float32 or model.architecture.name not in ("ATD", "DAT"):
         return model(x)
+
+    # Spandrel does not correctly handle non-FP32 for ATD and DAT models
+    try:
+        # Force the upscaler to use the dtype it should for new tensors
+        torch.set_default_dtype(x.dtype)
+        # Using torch.device incurs a small amount of overhead, but makes sure we don't
+        # get errors when unsupported dtype tensors would be made on the CPU.
+        with torch.device(x.device):
+            return model(x)
+    finally:
+        torch.set_default_dtype(torch.float32)
+
 
 def pil_rgb_to_tensor_bgr(img: Image.Image, param: torch.Tensor) -> torch.Tensor:
     tensor = torch.from_numpy(np.asarray(img)).to(param.device)
@@ -94,18 +96,39 @@ def tensor_bgr_to_pil_rgb(tensor: torch.Tensor) -> Image.Image:
     return Image.fromarray(tensor.to(torch.uint8).cpu().numpy())
 
 
+def pil_image_to_torch_bgr(img: Image.Image) -> torch.Tensor:
+    img = np.array(img.convert("RGB"))
+    img = img[:, :, ::-1]
+    img = np.transpose(img, (2, 0, 1))
+    img = np.ascontiguousarray(img) / 255
+    return torch.from_numpy(img)
+
+
+def torch_bgr_to_pil_image(tensor: torch.Tensor) -> Image.Image:
+    if tensor.ndim == 4:
+        if tensor.shape[0] != 1:
+            raise ValueError(f"{tensor.shape} does not describe a BCHW tensor")
+        tensor = tensor.squeeze(0)
+    assert tensor.ndim == 3, f"{tensor.shape} does not describe a CHW tensor"
+    arr = tensor.detach().float().cpu().numpy()
+    arr = 255.0 * np.moveaxis(arr, 0, 2)
+    arr = np.clip(arr, 0, 255).astype(np.uint8)
+    arr = arr[:, :, ::-1]
+    return Image.fromarray(arr, "RGB")
+
+
 @torch.inference_mode()
-def upscale_tensor_tiles(model, tensor: torch.Tensor, tile_size: int, overlap: int, desc: str) -> torch.Tensor:
+def upscale_tensor_tiles(model: Callable, tensor: torch.Tensor, tile_size: int, overlap: int, desc: str) -> torch.Tensor:
     _, _, H_in, W_in = tensor.shape
     stride = tile_size - overlap
     n_tiles_x, n_tiles_y = (W_in + stride - 1) // stride, (H_in + stride - 1) // stride
     total_tiles = n_tiles_x * n_tiles_y
 
     if tile_size <= 0 or total_tiles <= 4:
-        return model(tensor)
+        return _model(model, tensor)
 
     device = tensor.device
-    dtype = tensor.dtype  # Accumulate in native model dtype.
+    dtype = tensor.dtype  # Accumulate in native model dtype
 
     accum = None
     model_scale = None
@@ -114,8 +137,8 @@ def upscale_tensor_tiles(model, tensor: torch.Tensor, tile_size: int, overlap: i
     last_mask = None
     last_mask_key = None
 
-    # Generate feathered mask for tile overlap.
     def get_weight_mask(h, w, y, x):
+        """Generate feathered mask for tile overlap"""
         top, bottom, left, right = y > 0, y + h < H_out, x > 0, x + w < W_out
         key = (h, w, top, bottom, left, right)
 
@@ -142,12 +165,12 @@ def upscale_tensor_tiles(model, tensor: torch.Tensor, tile_size: int, overlap: i
             if shared.state.interrupted:
                 return None
 
-            # Loop in row-major or column-major, depending on aspect ratio to maximise hit-rate on cached mask.
+            # Loop in row-major or column-major, depending on aspect ratio to maximise hit-rate on cached mask
             x_idx, y_idx = (tile_idx % n_tiles_x, tile_idx // n_tiles_x) if W_in >= H_in else (tile_idx // n_tiles_y, tile_idx % n_tiles_y)
             x, y = x_idx * stride, y_idx * stride
 
             tile = tensor[:, :, y : y + tile_size, x : x + tile_size]
-            out = model(tile)
+            out = _model(model, tile)
 
             if model_scale is None:
                 model_scale = out.shape[-2] / tile.shape[-2]
@@ -159,7 +182,6 @@ def upscale_tensor_tiles(model, tensor: torch.Tensor, tile_size: int, overlap: i
             ys, ye = y_out, y_out + h_out
             xs, xe = x_out, x_out + w_out
 
-            # With correct traversal order, mask hit-rate is about 40%.
             last_mask_key, last_mask = get_weight_mask(h_out, w_out, y_out, x_out)
             accum_slice = accum[:, :, ys:ye, xs:xe]
             accum_slice[:, :3].addcmul_(out, last_mask)
@@ -186,40 +208,15 @@ def upscale_with_model_gpu(
     return img if out is None else tensor_bgr_to_pil_rgb(out)
 
 
-def pil_image_to_torch_bgr(img: Image.Image) -> torch.Tensor:
-    img = np.array(img.convert("RGB"))
-    img = img[:, :, ::-1]  # flip RGB to BGR
-    img = np.transpose(img, (2, 0, 1))  # HWC to CHW
-    img = np.ascontiguousarray(img) / 255  # Rescale to [0, 1]
-    return torch.from_numpy(img)
-
-
-def torch_bgr_to_pil_image(tensor: torch.Tensor) -> Image.Image:
-    if tensor.ndim == 4:
-        # If we're given a tensor with a batch dimension, squeeze it out
-        # (but only if it's a batch of size 1).
-        if tensor.shape[0] != 1:
-            raise ValueError(f"{tensor.shape} does not describe a BCHW tensor")
-        tensor = tensor.squeeze(0)
-    assert tensor.ndim == 3, f"{tensor.shape} does not describe a CHW tensor"
-    arr = tensor.detach().float().cpu().numpy()
-    arr = 255.0 * np.moveaxis(arr, 0, 2)  # CHW to HWC, rescale
-    arr = np.clip(arr, 0, 255).astype(np.uint8)  # clamp
-    arr = arr[:, :, ::-1]  # flip BGR to RGB
-    return Image.fromarray(arr, "RGB")
-
-
 def upscale_pil_patch(model, img: Image.Image) -> Image.Image:
-    """
-    Upscale a given PIL image using the given model.
-    """
+    """Upscale a given PIL image using the given model"""
     param = torch_utils.get_param(model)
 
     with torch.inference_mode():
-        tensor = pil_image_to_torch_bgr(img).unsqueeze(0)  # add batch dimension
+        tensor = pil_image_to_torch_bgr(img).unsqueeze(0)
         tensor = tensor.to(device=param.device, dtype=param.dtype)
         with devices.without_autocast():
-            return torch_bgr_to_pil_image(call_model(model, tensor))
+            return torch_bgr_to_pil_image(_model(model, tensor))
 
 
 def upscale_with_model_cpu(
@@ -277,114 +274,6 @@ def upscale_with_model(
     desc="tiled upscale",
 ) -> Image.Image:
     if shared.opts.composite_tiles_on_gpu:
-        return upscale_with_model_gpu(model, img, tile_size=tile_size, tile_overlap=tile_overlap, desc=f"{desc} (GPU composite)")
+        return upscale_with_model_gpu(model, img, tile_size=tile_size, tile_overlap=tile_overlap, desc=f"{desc} (GPU Composite)")
     else:
-        return upscale_with_model_cpu(model, img, tile_size=tile_size, tile_overlap=tile_overlap, desc=f"{desc} (CPU composite)")
-
-
-def tiled_upscale_2(
-    img: torch.Tensor,
-    model,
-    *,
-    tile_size: int,
-    tile_overlap: int,
-    scale: int,
-    device: torch.device,
-    desc="Tiled upscale",
-):
-    """
-    Alternative implementation of `upscale_with_model` originally used by
-    SwinIR and ScuNET. It differs from `upscale_with_model` in that tiling and
-    weighting is done in PyTorch space, as opposed to `images.Grid` doing it in
-    Pillow space without weighting.
-    """
-
-    b, c, h, w = img.size()
-    tile_size = min(tile_size, h, w)
-
-    if tile_size <= 0:
-        logger.debug("Upscaling %s without tiling", img.shape)
-        return call_model(model, img)
-
-    stride = tile_size - tile_overlap
-    h_idx_list = list(range(0, h - tile_size, stride)) + [h - tile_size]
-    w_idx_list = list(range(0, w - tile_size, stride)) + [w - tile_size]
-    result = torch.zeros(
-        b,
-        c,
-        h * scale,
-        w * scale,
-        device=device,
-        dtype=img.dtype,
-    )
-    weights = torch.zeros_like(result)
-    logger.debug("Upscaling %s to %s with tiles", img.shape, result.shape)
-    with tqdm.tqdm(
-        total=len(h_idx_list) * len(w_idx_list),
-        desc=desc,
-        disable=not shared.opts.enable_upscale_progressbar,
-    ) as pbar:
-        for h_idx in h_idx_list:
-            if shared.state.interrupted or shared.state.skipped:
-                break
-
-            for w_idx in w_idx_list:
-                if shared.state.interrupted or shared.state.skipped:
-                    break
-
-                # Only move this patch to the device if it's not already there.
-                in_patch = img[
-                    ...,
-                    h_idx : h_idx + tile_size,
-                    w_idx : w_idx + tile_size,
-                ].to(device=device)
-
-                out_patch = call_model(model, in_patch)
-
-                result[
-                    ...,
-                    h_idx * scale : (h_idx + tile_size) * scale,
-                    w_idx * scale : (w_idx + tile_size) * scale,
-                ].add_(out_patch)
-
-                out_patch_mask = torch.ones_like(out_patch)
-
-                weights[
-                    ...,
-                    h_idx * scale : (h_idx + tile_size) * scale,
-                    w_idx * scale : (w_idx + tile_size) * scale,
-                ].add_(out_patch_mask)
-
-                pbar.update(1)
-
-    output = result.div_(weights)
-
-    return output
-
-
-def upscale_2(
-    img: Image.Image,
-    model,
-    *,
-    tile_size: int,
-    tile_overlap: int,
-    scale: int,
-    desc: str,
-):
-    """
-    Convenience wrapper around `tiled_upscale_2` that handles PIL images.
-    """
-    param = torch_utils.get_param(model)
-    tensor = pil_image_to_torch_bgr(img).to(dtype=param.dtype).unsqueeze(0)
-
-    with torch.inference_mode():
-        output = tiled_upscale_2(
-            tensor,
-            model,
-            tile_size=tile_size,
-            tile_overlap=tile_overlap,
-            scale=scale,
-            desc=desc,
-            device=param.device,
-        )
-    return torch_bgr_to_pil_image(output)
+        return upscale_with_model_cpu(model, img, tile_size=tile_size, tile_overlap=tile_overlap, desc=f"{desc} (CPU Composite)")
