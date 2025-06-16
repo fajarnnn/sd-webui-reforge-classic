@@ -8,13 +8,16 @@ https://github.com/comfyanonymous/ComfyUI
 
 import copy
 import inspect
+import logging
 
 import torch
 
 import ldm_patched.modules.model_management
 import ldm_patched.modules.utils
 from ldm_patched.modules.args_parser import args
+from ldm_patched.modules.lora import pad_tensor_to_shape, weight_decompose
 
+logger = logging.getLogger(__name__)
 extra_weight_calculators = {}  # backward compatibility
 
 
@@ -114,7 +117,7 @@ class ModelPatcher:
 
     def set_model_sampler_cfg_function(self, sampler_cfg_function, disable_cfg1_optimization=False):
         if len(inspect.signature(sampler_cfg_function).parameters) == 3:
-            self.model_options["sampler_cfg_function"] = lambda args: sampler_cfg_function(args["cond"], args["uncond"], args["cond_scale"])  # Old way
+            self.model_options["sampler_cfg_function"] = lambda args: sampler_cfg_function(args["cond"], args["uncond"], args["cond_scale"])
         else:
             self.model_options["sampler_cfg_function"] = sampler_cfg_function
         if disable_cfg1_optimization:
@@ -287,7 +290,7 @@ class ModelPatcher:
 
     def calculate_weight(self, patches, weight, key):
         for p in patches:
-            alpha = p[0]
+            strength = p[0]
             v = p[1]
             strength_model = p[2]
 
@@ -295,7 +298,7 @@ class ModelPatcher:
                 weight *= strength_model
 
             if isinstance(v, list):
-                v = (self.calculate_weight(v[1:], v[0].clone(), key),)
+                v = (self.calculate_weight(v[1:], v[0][1](ldm_patched.modules.model_management.cast_to_device(v[0][0], weight.device, torch.float32, copy=True), inplace=True), key),)
 
             if len(v) == 1:
                 patch_type = "diff"
@@ -304,58 +307,44 @@ class ModelPatcher:
                 v = v[1]
 
             if patch_type == "diff":
-                w1 = v[0]
-                if alpha != 0.0:
-                    if w1.shape != weight.shape:
-                        if w1.ndim == weight.ndim == 4:
-                            new_shape = [max(n, m) for n, m in zip(weight.shape, w1.shape)]
-                            print(f"Merged with {key} channel changed to {new_shape}")
-                            new_diff = alpha * ldm_patched.modules.model_management.cast_to_device(w1, weight.device, weight.dtype)
-                            new_weight = torch.zeros(size=new_shape).to(weight)
-                            new_weight[
-                                : weight.shape[0],
-                                : weight.shape[1],
-                                : weight.shape[2],
-                                : weight.shape[3],
-                            ] = weight
-                            new_weight[
-                                : new_diff.shape[0],
-                                : new_diff.shape[1],
-                                : new_diff.shape[2],
-                                : new_diff.shape[3],
-                            ] += new_diff
-                            new_weight = new_weight.contiguous().clone()
-                            weight = new_weight
-                        else:
-                            print("WARNING SHAPE MISMATCH {} WEIGHT NOT MERGED {} != {}".format(key, w1.shape, weight.shape))
+                diff: torch.Tensor = v[0]
+                do_pad_weight = len(v) > 1 and v[1]["pad_weight"]
+                if do_pad_weight and diff.shape != weight.shape:
+                    logger.debug(f'Padding Weight "{key}" ({weight.shape} -> {diff.shape})')
+                    weight = pad_tensor_to_shape(weight, diff.shape)
+
+                if strength != 0.0:
+                    if diff.shape != weight.shape:
+                        logger.warning(f'SHAPE MISMATCH "{key}" WEIGHT NOT MERGED ({diff.shape} != {weight.shape})')
                     else:
-                        weight += alpha * ldm_patched.modules.model_management.cast_to_device(w1, weight.device, weight.dtype)
+                        weight += strength * ldm_patched.modules.model_management.cast_to_device(diff, weight.device, weight.dtype)
+
             elif patch_type == "lora":  # lora/locon
                 mat1 = ldm_patched.modules.model_management.cast_to_device(v[0], weight.device, torch.float32)
                 mat2 = ldm_patched.modules.model_management.cast_to_device(v[1], weight.device, torch.float32)
+                dora_scale = v[4]
+                reshape = v[5]
+
+                if reshape is not None:
+                    weight = pad_tensor_to_shape(weight, reshape)
                 if v[2] is not None:
-                    alpha *= v[2] / mat2.shape[0]
+                    alpha = v[2] / mat2.shape[0]
+                else:
+                    alpha = 1.0
                 if v[3] is not None:
-                    # locon mid weights, hopefully the math is fine because I didn't properly test it
                     mat3 = ldm_patched.modules.model_management.cast_to_device(v[3], weight.device, torch.float32)
-                    final_shape = [
-                        mat2.shape[1],
-                        mat2.shape[0],
-                        mat3.shape[2],
-                        mat3.shape[3],
-                    ]
-                    mat2 = (
-                        torch.mm(
-                            mat2.transpose(0, 1).flatten(start_dim=1),
-                            mat3.transpose(0, 1).flatten(start_dim=1),
-                        )
-                        .reshape(final_shape)
-                        .transpose(0, 1)
-                    )
+                    final_shape = [mat2.shape[1], mat2.shape[0], mat3.shape[2], mat3.shape[3]]
+                    mat2 = torch.mm(mat2.transpose(0, 1).flatten(start_dim=1), mat3.transpose(0, 1).flatten(start_dim=1)).reshape(final_shape).transpose(0, 1)
+
                 try:
-                    weight += (alpha * torch.mm(mat1.flatten(start_dim=1), mat2.flatten(start_dim=1))).reshape(weight.shape).type(weight.dtype)
+                    lora_diff = torch.mm(mat1.flatten(start_dim=1), mat2.flatten(start_dim=1)).reshape(weight.shape)
+                    if dora_scale is not None:
+                        weight = weight_decompose(dora_scale, weight, lora_diff, alpha, strength, torch.float32)
+                    else:
+                        weight += ((strength * alpha) * lora_diff).type(weight.dtype)
                 except Exception as e:
-                    print("ERROR", key, e)
+                    logger.error(f"Failed to apply {patch_type} to {key}\n{e}")
+
             elif patch_type == "lokr":
                 w1 = v[0]
                 w2 = v[1]
@@ -364,94 +353,113 @@ class ModelPatcher:
                 w2_a = v[5]
                 w2_b = v[6]
                 t2 = v[7]
+                dora_scale = v[8]
                 dim = None
 
                 if w1 is None:
                     dim = w1_b.shape[0]
-                    w1 = torch.mm(
-                        ldm_patched.modules.model_management.cast_to_device(w1_a, weight.device, torch.float32),
-                        ldm_patched.modules.model_management.cast_to_device(w1_b, weight.device, torch.float32),
-                    )
+                    w1 = torch.mm(ldm_patched.modules.model_management.cast_to_device(w1_a, weight.device, torch.float32), ldm_patched.modules.model_management.cast_to_device(w1_b, weight.device, torch.float32))
                 else:
                     w1 = ldm_patched.modules.model_management.cast_to_device(w1, weight.device, torch.float32)
 
                 if w2 is None:
                     dim = w2_b.shape[0]
                     if t2 is None:
-                        w2 = torch.mm(
-                            ldm_patched.modules.model_management.cast_to_device(w2_a, weight.device, torch.float32),
-                            ldm_patched.modules.model_management.cast_to_device(w2_b, weight.device, torch.float32),
-                        )
+                        w2 = torch.mm(ldm_patched.modules.model_management.cast_to_device(w2_a, weight.device, torch.float32), ldm_patched.modules.model_management.cast_to_device(w2_b, weight.device, torch.float32))
                     else:
-                        w2 = torch.einsum(
-                            "i j k l, j r, i p -> p r k l",
-                            ldm_patched.modules.model_management.cast_to_device(t2, weight.device, torch.float32),
-                            ldm_patched.modules.model_management.cast_to_device(w2_b, weight.device, torch.float32),
-                            ldm_patched.modules.model_management.cast_to_device(w2_a, weight.device, torch.float32),
-                        )
+                        w2 = torch.einsum("i j k l, j r, i p -> p r k l", ldm_patched.modules.model_management.cast_to_device(t2, weight.device, torch.float32), ldm_patched.modules.model_management.cast_to_device(w2_b, weight.device, torch.float32), ldm_patched.modules.model_management.cast_to_device(w2_a, weight.device, torch.float32))
                 else:
                     w2 = ldm_patched.modules.model_management.cast_to_device(w2, weight.device, torch.float32)
 
                 if len(w2.shape) == 4:
                     w1 = w1.unsqueeze(2).unsqueeze(2)
                 if v[2] is not None and dim is not None:
-                    alpha *= v[2] / dim
+                    alpha = v[2] / dim
+                else:
+                    alpha = 1.0
 
                 try:
-                    weight += alpha * torch.kron(w1, w2).reshape(weight.shape).type(weight.dtype)
+                    lora_diff = torch.kron(w1, w2).reshape(weight.shape)
+                    if dora_scale is not None:
+                        weight = weight_decompose(dora_scale, weight, lora_diff, alpha, strength, torch.float32)
+                    else:
+                        weight += ((strength * alpha) * lora_diff).type(weight.dtype)
                 except Exception as e:
-                    print("ERROR", key, e)
+                    logger.error(f"Failed to apply {patch_type} to {key}\n{e}")
+
             elif patch_type == "loha":
                 w1a = v[0]
                 w1b = v[1]
                 if v[2] is not None:
-                    alpha *= v[2] / w1b.shape[0]
+                    alpha = v[2] / w1b.shape[0]
+                else:
+                    alpha = 1.0
+
                 w2a = v[3]
                 w2b = v[4]
+                dora_scale = v[7]
                 if v[5] is not None:  # cp decomposition
                     t1 = v[5]
                     t2 = v[6]
-                    m1 = torch.einsum(
-                        "i j k l, j r, i p -> p r k l",
-                        ldm_patched.modules.model_management.cast_to_device(t1, weight.device, torch.float32),
-                        ldm_patched.modules.model_management.cast_to_device(w1b, weight.device, torch.float32),
-                        ldm_patched.modules.model_management.cast_to_device(w1a, weight.device, torch.float32),
-                    )
-
-                    m2 = torch.einsum(
-                        "i j k l, j r, i p -> p r k l",
-                        ldm_patched.modules.model_management.cast_to_device(t2, weight.device, torch.float32),
-                        ldm_patched.modules.model_management.cast_to_device(w2b, weight.device, torch.float32),
-                        ldm_patched.modules.model_management.cast_to_device(w2a, weight.device, torch.float32),
-                    )
+                    m1 = torch.einsum("i j k l, j r, i p -> p r k l", ldm_patched.modules.model_management.cast_to_device(t1, weight.device, torch.float32), ldm_patched.modules.model_management.cast_to_device(w1b, weight.device, torch.float32), ldm_patched.modules.model_management.cast_to_device(w1a, weight.device, torch.float32))
+                    m2 = torch.einsum("i j k l, j r, i p -> p r k l", ldm_patched.modules.model_management.cast_to_device(t2, weight.device, torch.float32), ldm_patched.modules.model_management.cast_to_device(w2b, weight.device, torch.float32), ldm_patched.modules.model_management.cast_to_device(w2a, weight.device, torch.float32))
                 else:
-                    m1 = torch.mm(
-                        ldm_patched.modules.model_management.cast_to_device(w1a, weight.device, torch.float32),
-                        ldm_patched.modules.model_management.cast_to_device(w1b, weight.device, torch.float32),
-                    )
-                    m2 = torch.mm(
-                        ldm_patched.modules.model_management.cast_to_device(w2a, weight.device, torch.float32),
-                        ldm_patched.modules.model_management.cast_to_device(w2b, weight.device, torch.float32),
-                    )
+                    m1 = torch.mm(ldm_patched.modules.model_management.cast_to_device(w1a, weight.device, torch.float32), ldm_patched.modules.model_management.cast_to_device(w1b, weight.device, torch.float32))
+                    m2 = torch.mm(ldm_patched.modules.model_management.cast_to_device(w2a, weight.device, torch.float32), ldm_patched.modules.model_management.cast_to_device(w2b, weight.device, torch.float32))
 
                 try:
-                    weight += (alpha * m1 * m2).reshape(weight.shape).type(weight.dtype)
+                    lora_diff = (m1 * m2).reshape(weight.shape)
+                    if dora_scale is not None:
+                        weight = weight_decompose(dora_scale, weight, lora_diff, alpha, strength, torch.float32)
+                    else:
+                        weight += ((strength * alpha) * lora_diff).type(weight.dtype)
                 except Exception as e:
-                    print("ERROR", key, e)
+                    logger.error(f"Failed to apply {patch_type} to {key}\n{e}")
+
             elif patch_type == "glora":
-                if v[4] is not None:
-                    alpha *= v[4] / v[0].shape[0]
+                dora_scale = v[5]
+
+                old_glora = False
+                if v[3].shape[1] == v[2].shape[0] == v[0].shape[0] == v[1].shape[1]:
+                    rank = v[0].shape[0]
+                    old_glora = True
+
+                if v[3].shape[0] == v[2].shape[1] == v[0].shape[1] == v[1].shape[0]:
+                    if old_glora and v[1].shape[0] == weight.shape[0] and weight.shape[0] == weight.shape[1]:
+                        pass
+                    else:
+                        old_glora = False
+                        rank = v[1].shape[0]
 
                 a1 = ldm_patched.modules.model_management.cast_to_device(v[0].flatten(start_dim=1), weight.device, torch.float32)
                 a2 = ldm_patched.modules.model_management.cast_to_device(v[1].flatten(start_dim=1), weight.device, torch.float32)
                 b1 = ldm_patched.modules.model_management.cast_to_device(v[2].flatten(start_dim=1), weight.device, torch.float32)
                 b2 = ldm_patched.modules.model_management.cast_to_device(v[3].flatten(start_dim=1), weight.device, torch.float32)
 
-                weight += ((torch.mm(b2, b1) + torch.mm(torch.mm(weight.flatten(start_dim=1), a2), a1)) * alpha).reshape(weight.shape).type(weight.dtype)
-            elif patch_type in extra_weight_calculators:
-                weight = extra_weight_calculators[patch_type](weight, alpha, v)
+                if v[4] is not None:
+                    alpha = v[4] / rank
+                else:
+                    alpha = 1.0
+
+                try:
+                    if old_glora:
+                        lora_diff = (torch.mm(b2, b1) + torch.mm(torch.mm(weight.flatten(start_dim=1).to(dtype=torch.float32), a2), a1)).reshape(weight.shape)  # old lycoris glora
+                    else:
+                        if weight.dim() > 2:
+                            lora_diff = torch.einsum("o i ..., i j -> o j ...", torch.einsum("o i ..., i j -> o j ...", weight.to(dtype=torch.float32), a1), a2).reshape(weight.shape)
+                        else:
+                            lora_diff = torch.mm(torch.mm(weight.to(dtype=torch.float32), a1), a2).reshape(weight.shape)
+                        lora_diff += torch.mm(b1, b2).reshape(weight.shape)
+
+                    if dora_scale is not None:
+                        weight = weight_decompose(dora_scale, weight, lora_diff, alpha, strength, torch.float32)
+                    else:
+                        weight += ((strength * alpha) * lora_diff).type(weight.dtype)
+                except Exception as e:
+                    logger.error(f"Failed to apply {patch_type} to {key}\n{e}")
+
             else:
-                print("patch type not recognized", patch_type, key)
+                logger.warning(f'Unrecognized/Unsupported Patch Type "{patch_type}"...')
 
         return weight
 

@@ -3,7 +3,9 @@
 # 3rd Edit by. Haoming02
 # - Based on: https://github.com/comfyanonymous/ComfyUI/blob/v0.3.29/comfy/lora.py
 
+import torch
 
+import ldm_patched.modules.model_management
 import ldm_patched.modules.utils
 
 LORA_CLIP_MAP = {
@@ -38,7 +40,7 @@ def load_lora(lora, to_load):
             try:
                 reshape = lora[reshape_name].tolist()
                 loaded_keys.add(reshape_name)
-            except:
+            except Exception:
                 pass
 
         regular_lora = "{}.lora_up.weight".format(x)
@@ -221,7 +223,7 @@ def model_lora_keys_clip(model, key_map={}):
 
     text_model_lora_key = "lora_te_text_model_encoder_layers_{}_{}"
     clip_l_present = False
-    clip_g_present = False
+
     for b in range(32):  # TODO: clean up
         for c in LORA_CLIP_MAP:
             k = "clip_h.transformer.text_model.encoder.layers.{}.{}.weight".format(b, c)
@@ -245,22 +247,18 @@ def model_lora_keys_clip(model, key_map={}):
 
             k = "clip_g.transformer.text_model.encoder.layers.{}.{}.weight".format(b, c)
             if k in sdk:
-                clip_g_present = True
+
                 if clip_l_present:
                     lora_key = "lora_te2_text_model_encoder_layers_{}_{}".format(b, LORA_CLIP_MAP[c])  # SDXL base
                     key_map[lora_key] = k
                     lora_key = "text_encoder_2.text_model.encoder.layers.{}.{}".format(b, c)  # diffusers lora
                     key_map[lora_key] = k
                 else:
-                    lora_key = "lora_te_text_model_encoder_layers_{}_{}".format(
-                        b, LORA_CLIP_MAP[c]
-                    )  # TODO: test if this is correct for SDXL-Refiner
+                    lora_key = "lora_te_text_model_encoder_layers_{}_{}".format(b, LORA_CLIP_MAP[c])  # TODO: test if this is correct for SDXL-Refiner
                     key_map[lora_key] = k
                     lora_key = "text_encoder.text_model.encoder.layers.{}.{}".format(b, c)  # diffusers lora
                     key_map[lora_key] = k
-                    lora_key = "lora_prior_te_text_model_encoder_layers_{}_{}".format(
-                        b, LORA_CLIP_MAP[c]
-                    )  # cascade lora: TODO put lora key prefix in the model config
+                    lora_key = "lora_prior_te_text_model_encoder_layers_{}_{}".format(b, LORA_CLIP_MAP[c])  # cascade lora: TODO put lora key prefix in the model config
                     key_map[lora_key] = k
 
     return key_map
@@ -295,3 +293,33 @@ def model_lora_keys_unet(model, key_map={}):
                 key_map[diffusers_lora_key] = unet_key
 
     return key_map
+
+
+def weight_decompose(dora_scale: torch.Tensor, weight: torch.Tensor, lora_diff: torch.Tensor, alpha: float, strength: float, intermediate_dtype: torch.dtype) -> torch.Tensor:
+    dora_scale = ldm_patched.modules.model_management.cast_to_device(dora_scale, weight.device, intermediate_dtype)
+    lora_diff *= alpha
+    weight_calc = weight + lora_diff.type(weight.dtype)
+    weight_norm = weight_calc.transpose(0, 1).reshape(weight_calc.shape[1], -1).norm(dim=1, keepdim=True).reshape(weight_calc.shape[1], *[1] * (weight_calc.dim() - 1)).transpose(0, 1)
+
+    weight_calc *= (dora_scale / weight_norm).type(weight.dtype)
+    if strength != 1.0:
+        weight_calc -= weight
+        weight += strength * (weight_calc)
+    else:
+        weight[:] = weight_calc
+    return weight
+
+
+def pad_tensor_to_shape(tensor: torch.Tensor, new_shape: list[int]) -> torch.Tensor:
+    if any([new_shape[i] < tensor.shape[i] for i in range(len(new_shape))]):
+        raise ValueError("The new shape must be larger than the original tensor in all dimensions")
+    if len(new_shape) != len(tensor.shape):
+        raise ValueError("The new shape must have the same number of dimensions as the original tensor")
+
+    padded_tensor = torch.zeros(new_shape, dtype=tensor.dtype, device=tensor.device)
+
+    orig_slices = tuple(slice(0, dim) for dim in tensor.shape)
+    new_slices = tuple(slice(0, dim) for dim in tensor.shape)
+
+    padded_tensor[new_slices] = tensor[orig_slices]
+    return padded_tensor
