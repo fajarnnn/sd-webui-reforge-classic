@@ -269,7 +269,7 @@ def requirements_met(requirements_file):
 
 def prepare_environment():
     torch_index_url = os.environ.get("TORCH_INDEX_URL", "https://download.pytorch.org/whl/cu128")
-    torch_command = os.environ.get("TORCH_COMMAND", f"pip install torch==2.7.0+cu128 torchvision==0.22.0+cu128 --extra-index-url {torch_index_url}")
+    torch_command = os.environ.get("TORCH_COMMAND", f"pip install torch==2.7.1+cu128 torchvision==0.22.1+cu128 --extra-index-url {torch_index_url}")
     xformers_package = os.environ.get("XFORMERS_PACKAGE", f"xformers==0.0.30 --extra-index-url {torch_index_url}")
     sage_package = os.environ.get("SAGE_PACKAGE", "sageattention==1.0.6")
 
