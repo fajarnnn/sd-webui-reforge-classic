@@ -1,14 +1,14 @@
-from modules import paths_internal, timer, shared, extensions, errors
-
-import pkg_resources
-import platform
 import hashlib
-import psutil
+import importlib.metadata
 import json
-import sys
-import re
 import os
+import platform
+import re
+import sys
 
+import psutil
+
+from modules import errors, extensions, paths_internal, shared, timer
 
 TOKEN = "EPIC_BRUH_MOMENT"
 
@@ -102,7 +102,7 @@ def get_dict():
         "Environment": get_environment(),
         "Config": get_config(),
         "Startup": timer.startup_record,
-        "Packages": sorted([f"{pkg.key}=={pkg.version}" for pkg in pkg_resources.working_set]),
+        "Packages": get_packages(),
     }
 
     return res
@@ -165,3 +165,19 @@ def get_config():
         return shared.opts.data
     except Exception as e:
         return str(e)
+
+
+def get_packages():
+    package_list = []
+
+    installed_packages = importlib.metadata.distributions()
+    for pkg in installed_packages:
+        try:
+            package_name = pkg.metadata.get("Name")
+            package_version = pkg.metadata.get("Version")
+            if package_name and package_version:
+                package_list.append(f"{package_name}=={package_version}")
+        except Exception:
+            continue
+
+    return sorted(package_list)

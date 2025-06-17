@@ -22,7 +22,7 @@ pillow-heif==0.22.0
 protobuf==4.25.7  # controlnet
 psutil==5.9.8
 pydantic==1.10.22
-pytorch_lightning==1.9.5
+lightning==2.5.1
 resize-right==0.0.2
 rich==13.9.4
 safetensors==0.5.3
