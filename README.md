@@ -18,7 +18,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <br>
 
-## Features [Jun. 04]
+## Features [Jun. 18]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -55,12 +55,14 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 > - Both `fp16_accumulation` and `cublas_ops` achieve the same speed up; if you already install/update to PyTorch **2.7.0**, you do not need to go for `cublas_ops`
 > - The `fp16_accumulation` and `cublas_ops` require `fp16` precision, thus is not compatible with the `fp8` operation
 
+<br>
+
 - [X] Persistent LoRA Patching
     - speed up LoRA loading in subsequent generations
     - see [Commandline](#by-classic)
 - [X] Implement new Samplers
     - *(ported from reForge Webui)*
-- [X] Implement Scheduler Dropdown
+- [X] Implement Scheduler dropdown
     - *(backported from Automatic1111 Webui upstream)*
     - enable in **Settings/UI Alternatives**
 - [X] Add `CFG` slider to the `Hires. fix` section
@@ -72,23 +74,29 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - enable in **Settings/UI Alternatives**
 - [X] Implement full precision calculation for `Mask blur` blending
     - enable in **Settings/img2img**
-- [X] Support loading upscalers in `fp16` precision
+- [X] Support loading upscalers in `half` precision
     - speed up; reduce quality
+    - enable in **Settings/Upscaling**
+- [X] Support running tile composition on GPU
     - enable in **Settings/Upscaling**
 - [X] Allow `newline` in LoRA metadata
     - *(backported from Automatic1111 Webui upstream)*
+- [X] Implement sending parameters from generation result rather than from UI
+    - **e.g.** send the prompts instead of `Wildcard` syntax
+    - enable in **Settings/Infotext**
 - [X] Implement `diskcache` for hashes
     - *(backported from Automatic1111 Webui upstream)*
 - [X] Implement `skip_early_cond`
     - *(backported from Automatic1111 Webui upstream)*
     - enable in **Settings/Optimizations**
-- [X] Support `v-pred` **SDXL** checkpoints *(**eg.** [NoobAI](https://civitai.com/models/833294?modelVersionId=1190596))*
+- [X] Support `v-pred` **SDXL** checkpoints *(**e.g.** [NoobAI](https://civitai.com/models/833294?modelVersionId=1190596))*
 - [X] Support new LoRA architectures
 - [X] Update `spandrel`
     - support new Upscaler architectures
 - [X] Add `pillow-heif` package
     - support `.avif` and `.heif` images
 - [X] Automatically determine the optimal row count for `X/Y/Z Plot`
+- [X] Support new LoRA architectures
 - [X] `DepthAnything v2` Preprocessor
 - [X] Support [NoobAI Inpaint](https://civitai.com/models/1376234/noobai-inpainting-controlnet) ControlNet
 - [X] Support [Union](https://huggingface.co/xinsir/controlnet-union-sdxl-1.0) / [ProMax](https://huggingface.co/brad-twinkl/controlnet-union-sdxl-1.0-promax) ControlNet
@@ -115,7 +123,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Some Preprocessors *(ControlNet)*
 - [X] `Photopea` and `openpose_editor` *(ControlNet)*
 - [X] Unix `.sh` launch scripts
-    - You can still use this WebUI by copying a launch script from another working WebUI; I just don't want to maintain them...
+    - You can still use this WebUI by simply copying a launch script from other working WebUI
 
 #### Optimizations
 
@@ -125,7 +133,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Fix `canvas-zoom-and-pan` built-in extension
     - no more infinite-resizing bug when using `Send to` buttons
 - [X] Fix memory leak when switching checkpoints
-- [X] Clean up the `ldm_patched` *(**ie.** `comfy`)* folder
+- [X] Clean up the `ldm_patched` *(**i.e.** `comfy`)* folder
 - [X] Remove unused `cmd_args`
 - [X] Remove unused `args_parser`
 - [X] Remove unused `shared_options`
@@ -134,6 +142,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Remove redundant upscaler codes
     - put every upscaler inside the `ESRGAN` folder
 - [X] Optimize upscaler logics
+- [X] Optimize certain operations in `Spandrel`
 - [X] Improve color correction
 - [X] Improve hash caching
 - [X] Improve error logs
@@ -153,6 +162,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - enable again in **Settings/UI Alternatives**
 - [X] Disable Tree View by default
     - enable again in **Settings/Extra Networks**
+- [X] Hide Sampler Parameters by default
+    - enable again by adding **--adv-samplers** flag
 - [X] Run `text encoder` on CPU by default
 - [X] Fix `pydantic` Errors
 - [X] Fix `Soft Inpainting`
@@ -162,7 +173,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Update `protobuf`
     - faster `insightface` loading
 - [X] Update to latest PyTorch
-    - `torch==2.7.0+cu128`
+    - `torch==2.7.1+cu128`
     - `xformers==0.0.30`
 
 > [!Note]
