@@ -1,19 +1,20 @@
 import contextlib
 
-import ldm_patched.modules.clip_vision
-import ldm_patched.modules.model_patcher
-import ldm_patched.modules.utils
 import torch
+from omegaconf import OmegaConf
+
+import ldm_patched.modules.clip_vision
+import ldm_patched.modules.utils
 from ldm_patched.ldm.util import instantiate_from_config
 from ldm_patched.modules import model_detection, model_management
 from ldm_patched.modules.model_base import ModelType, model_sampling
+from ldm_patched.modules.model_patcher import ModelPatcher
 from ldm_patched.modules.sd import CLIP, VAE, load_model_weights
 from modules import sd_hijack, shared
 from modules.sd_models_config import find_checkpoint_config
 from modules.sd_models_types import WebuiSdModel
 from modules_forge import forge_clip
 from modules_forge.unet_patcher import UnetPatcher
-from omegaconf import OmegaConf
 
 
 class FakeObject:
@@ -29,10 +30,10 @@ class FakeObject:
 
 class ForgeObjects:
     def __init__(self, unet, clip, vae, clipvision):
-        self.unet = unet
-        self.clip = clip
-        self.vae = vae
-        self.clipvision = clipvision
+        self.unet: UnetPatcher = unet
+        self.clip: CLIP = clip
+        self.vae: VAE = vae
+        self.clipvision: ModelPatcher = clipvision
 
     def shallow_copy(self):
         return ForgeObjects(self.unet, self.clip, self.vae, self.clipvision)
