@@ -733,16 +733,21 @@ def prefer_fp8():
 def support_fp8():
     if not prefer_fp8():
         return False
+    if not is_nvidia():
+        return False
 
     if int(torch_version[0]) < 2 or int(torch_version[2]) < 4:
         return False
 
     device = get_torch_device()
     props = torch.cuda.get_device_properties(device)
-    if props.major < 8 or props.minor < 9:
-        return False
 
-    return True
+    if props.major >= 9:
+        return True
+    elif props.major == 8 and props.minor >= 9:
+        return True
+    else:
+        return False
 
 
 def supports_dtype(device, dtype):  # TODO
