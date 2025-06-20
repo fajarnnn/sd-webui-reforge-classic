@@ -48,6 +48,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - enable in **Settings/Optimizations**
 - [X] Support fast `fp8` operation *(`torch._scaled_mm`)*
     - requires RTX **40** +
+    - requires **UNet Weights in fp8** option
     - ~10% speed up; reduce quality
     - enable in **Settings/Optimizations**
 
