@@ -12,8 +12,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 from ldm_patched.modules import model_management
+from modules.shared import opts
 
-ops = ldm_patched.modules.ops.disable_weight_init
+if opts.sd_vae_tiled_ops:
+    ops = ldm_patched.modules.ops.tiled_ops
+else:
+    ops = ldm_patched.modules.ops.disable_weight_init
 
 if model_management.xformers_enabled_vae():
     import xformers
@@ -511,7 +515,10 @@ class Decoder(nn.Module):
             up.block = block
             up.attn = attn
             if i_level != 0:
-                up.upsample = Upsample(block_in, resamp_with_conv)
+                if opts.sd_vae_tiled_ops:
+                    up.upsample = ops.Upsample(block_in, resamp_with_conv)
+                else:
+                    up.upsample = Upsample(block_in, resamp_with_conv)
                 curr_res = curr_res * 2
             self.up.insert(0, up)  # prepend to get consistent order
 
