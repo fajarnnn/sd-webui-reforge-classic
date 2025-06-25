@@ -83,7 +83,7 @@ class CFGDenoiser(torch.nn.Module):
         self.sampler.sampler_extra_args["cond"] = c
         self.sampler.sampler_extra_args["uncond"] = uc
 
-    def forward(self, x, sigma, uncond, cond, cond_scale, s_min_uncond, image_cond, **kwargs):
+    def forward(self, x, sigma, uncond, cond, cond_scale, image_cond, s_min_uncond=0.0, skip_early_cond=0.0, **kwargs):
         if state.interrupted or state.skipped:
             raise sd_samplers_common.InterruptedException
 
@@ -148,7 +148,7 @@ class CFGDenoiser(torch.nn.Module):
         )
         cfg_denoiser_callback(denoiser_params)
 
-        if 0.0 <= self.step / self.total_steps <= opts.skip_early_cond:
+        if 0.0 <= self.step / self.total_steps <= skip_early_cond:
             cond_scale = 1.0
         if 0.0 <= sigma[0] <= s_min_uncond:
             cond_scale = 1.0

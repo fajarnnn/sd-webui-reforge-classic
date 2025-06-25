@@ -261,7 +261,8 @@ class Sampler:
         self.eta = None
         self.config: SamplerData = None
         self.last_latent = None
-        self.s_min_uncond = None
+        self.skip_early_cond: float = None
+        self.s_min_uncond: float = None
 
         # Default values for sampler parameters
         self.s_churn = 0.0
@@ -314,6 +315,7 @@ class Sampler:
         self.model_wrap_cfg.step = 0
         self.model_wrap_cfg.image_cfg_scale = getattr(p, "image_cfg_scale", None)
         self.eta = p.eta if p.eta is not None else getattr(opts, self.eta_option_field, 0.0)
+        self.skip_early_cond = getattr(p, "skip_early_cond", 0.0)
         self.s_min_uncond = getattr(p, "s_min_uncond", 0.0)
 
         k_diffusion.sampling.torch = TorchHijack(p)

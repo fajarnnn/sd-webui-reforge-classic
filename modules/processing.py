@@ -205,6 +205,7 @@ class StableDiffusionProcessing:
     do_not_reload_embeddings: bool = False
     denoising_strength: float = None
     ddim_discretize: str = None
+    skip_early_cond: float = None
     s_min_uncond: float = None
     s_churn: float = None
     s_tmax: float = None
@@ -274,6 +275,7 @@ class StableDiffusionProcessing:
             self.styles = []
 
         self.sampler_noise_scheduler_override = None
+        self.skip_early_cond = self.skip_early_cond if self.skip_early_cond is not None else opts.skip_early_cond
         self.s_min_uncond = self.s_min_uncond if self.s_min_uncond is not None else opts.s_min_uncond
         self.s_churn = self.s_churn if self.s_churn is not None else opts.s_churn
         self.s_tmin = self.s_tmin if self.s_tmin is not None else opts.s_tmin
@@ -568,6 +570,7 @@ class Processed:
         self.s_tmin = p.s_tmin
         self.s_tmax = p.s_tmax
         self.s_noise = p.s_noise
+        self.skip_early_cond = p.skip_early_cond
         self.s_min_uncond = p.s_min_uncond
         self.sampler_noise_scheduler_override = p.sampler_noise_scheduler_override
         self.prompt = self.prompt if not isinstance(self.prompt, list) else self.prompt[0]
@@ -720,7 +723,8 @@ def create_infotext(p, all_prompts, all_seeds, all_subseeds, comments=None, iter
         "Token merging ratio hr": None if not enable_hr or token_merging_ratio_hr == 0 else token_merging_ratio_hr,
         "Init image hash": getattr(p, "init_img_hash", None),
         "RNG": opts.randn_source if opts.randn_source != "GPU" else None,
-        "NGMS": None if p.s_min_uncond == 0 else p.s_min_uncond,
+        "SkipEarly": None if p.skip_early_cond < 0.05 else p.skip_early_cond,
+        "NGMS": None if p.s_min_uncond < 0.05 else p.s_min_uncond,
         "Tiling": True if p.tiling else None,
         **p.extra_generation_params,
         "Version": program_version() if opts.add_version_to_infotext else None,
