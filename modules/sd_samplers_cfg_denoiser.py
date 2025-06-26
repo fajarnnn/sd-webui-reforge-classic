@@ -148,9 +148,9 @@ class CFGDenoiser(torch.nn.Module):
         )
         cfg_denoiser_callback(denoiser_params)
 
-        if 0.0 <= self.step / self.total_steps <= skip_early_cond:
+        if 0.0 < self.step / self.total_steps <= skip_early_cond:
             cond_scale = 1.0
-        if 0.0 <= sigma[0] <= s_min_uncond:
+        if 0.0 < sigma[0] < s_min_uncond:
             cond_scale = 1.0
 
         model_options = kwargs.get("model_options", None)
