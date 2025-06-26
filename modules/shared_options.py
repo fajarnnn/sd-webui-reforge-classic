@@ -245,13 +245,18 @@ options_templates.update(
         ("optimizations", "Optimizations", "sd"),
         {
             "cross_attention_optimization": OptionInfo("Automatic", "Cross Attention Optimization", gr.Dropdown, {"choices": ("Automatic",), "interactive": False}),
-            "skip_early_cond": OptionInfo(0.0, "Ignore Negative Prompt during Early Steps", gr.Slider, {"minimum": 0.0, "maximum": 1.0, "step": 0.05}, infotext="Skip Early CFG").info("in percentage of total steps; 0 = disable; higher = faster"),
-            "s_min_uncond": OptionInfo(0.0, "Skip Negative Prompt during Later Steps", gr.Slider, {"minimum": 0.0, "maximum": 8.0, "step": 0.05}).info('in "sigma"; 0 = disable; higher = faster'),
             "persistent_cond_cache": OptionInfo(True, "Persistent Cond Cache").info("do not recalculate conds if the prompts and parameters have not changed since previous generation"),
-            "div_precision": OptionDiv(),
             "fp8_storage": OptionInfo(False, "Store UNet Weights in fp8").info("store the weights in fp8; inference in fp16; reduce memory usage; reduce speed; reduce quality").needs_restart(),
             "fp8_fast": OptionInfo(False, "Inference UNet in fast fp8 operations").info("inference in fp8 using <b>torch._scaled_mm</b>; increase speed; reduce quality; require <b>RTX 40</b> or newer; require <b>UNet Weights in fp8</b> option above").needs_restart(),
             "cublas_fast": OptionInfo(False, "Inference UNet in fast cublas operations").info('inference using <b>CublasLinear</b>; increase speed; require fp16; require <b><a href="https://github.com/Haoming02/sd-webui-forge-classic#install-cublas">manual installation</a></b>').needs_restart(),
+            "div_skip_early": OptionDiv(),
+            "skip_early_cond": OptionInfo(0.0, "Ignore Negative Prompt during Early Steps", gr.Slider, {"minimum": 0.0, "maximum": 1.0, "step": 0.05}, infotext="Skip Early CFG").info("in percentage of total steps; 0 = disable; higher = faster"),
+            "skip_early_cond_img2img": OptionInfo(0.0, " - Skip Early for img2img", gr.Slider, {"minimum": 0.0, "maximum": 1.0, "step": 0.05}, infotext="Skip Early CFG").info("overrides base % if non-zero"),
+            "skip_early_cond_hr": OptionInfo(0.0, " - Skip Early for Hires. fix", gr.Slider, {"minimum": 0.0, "maximum": 1.0, "step": 0.05}, infotext="Skip Early CFG").info("overrides base % if non-zero"),
+            "div_ngms": OptionDiv(),
+            "s_min_uncond": OptionInfo(0.0, "Skip Negative Prompt during Later Steps", gr.Slider, {"minimum": 0.0, "maximum": 8.0, "step": 0.05}).info('in "sigma"; 0 = disable; higher = faster'),
+            "s_min_uncond_img2img": OptionInfo(0.0, " - Skip Later for img2img", gr.Slider, {"minimum": 0.0, "maximum": 8.0, "step": 0.05}).info("overrides base threshold if non-zero"),
+            "s_min_uncond_hr": OptionInfo(0.0, " - Skip Later for Hires. fix", gr.Slider, {"minimum": 0.0, "maximum": 8.0, "step": 0.05}).info("overrides base threshold if non-zero"),
             "div_tome": OptionDiv(),
             "token_merging_explanation": OptionHTML(
                 """

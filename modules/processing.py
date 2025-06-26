@@ -275,8 +275,8 @@ class StableDiffusionProcessing:
             self.styles = []
 
         self.sampler_noise_scheduler_override = None
-        self.skip_early_cond = self.skip_early_cond if self.skip_early_cond is not None else opts.skip_early_cond
-        self.s_min_uncond = self.s_min_uncond if self.s_min_uncond is not None else opts.s_min_uncond
+        self.skip_early_cond = self.get_skip_early_cond()
+        self.s_min_uncond = self.get_s_min_uncond()
         self.s_churn = self.s_churn if self.s_churn is not None else opts.s_churn
         self.s_tmin = self.s_tmin if self.s_tmin is not None else opts.s_tmin
         self.s_tmax = (self.s_tmax if self.s_tmax is not None else opts.s_tmax) or float("inf")
@@ -425,6 +425,22 @@ class StableDiffusionProcessing:
         if not opts.persistent_cond_cache:
             StableDiffusionProcessing.cached_c = [None, None]
             StableDiffusionProcessing.cached_uc = [None, None]
+
+    def get_skip_early_cond(self, *, for_hr: bool = False) -> float:
+        if isinstance(self, StableDiffusionProcessingImg2Img):
+            return self.skip_early_cond or opts.skip_early_cond_img2img or opts.skip_early_cond
+        elif for_hr:
+            return opts.skip_early_cond_hr or self.skip_early_cond or opts.skip_early_cond
+        else:
+            return self.skip_early_cond or opts.skip_early_cond
+
+    def get_s_min_uncond(self, *, for_hr: bool = False) -> float:
+        if isinstance(self, StableDiffusionProcessingImg2Img):
+            return self.s_min_uncond or opts.s_min_uncond_img2img or opts.s_min_uncond
+        elif for_hr:
+            return opts.s_min_uncond_hr or self.s_min_uncond or opts.s_min_uncond
+        else:
+            return self.s_min_uncond or opts.s_min_uncond
 
     def get_token_merging_ratio(self, *, for_hr: bool = False) -> float:
         if "token_merging_ratio" in self.override_settings:
@@ -1320,6 +1336,9 @@ class StableDiffusionProcessingTxt2Img(StableDiffusionProcessing):
             images.save_image(image, self.outpath_samples, "", seeds[index], prompts[index], opts.samples_format, info=info, p=self, suffix="-before-highres-fix")
 
         img2img_sampler_name = self.hr_sampler_name or self.sampler_name
+
+        self.skip_early_cond = self.get_skip_early_cond(for_hr=True)
+        self.s_min_uncond = self.get_s_min_uncond(for_hr=True)
 
         self.sampler = sd_samplers.create_sampler(img2img_sampler_name, self.sd_model)
 
