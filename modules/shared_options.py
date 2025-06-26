@@ -251,12 +251,12 @@ options_templates.update(
             "cublas_fast": OptionInfo(False, "Inference UNet in fast cublas operations").info('inference using <b>CublasLinear</b>; increase speed; require fp16; require <b><a href="https://github.com/Haoming02/sd-webui-forge-classic#install-cublas">manual installation</a></b>').needs_restart(),
             "div_skip_early": OptionDiv(),
             "skip_early_cond": OptionInfo(0.0, "Ignore Negative Prompt during Early Steps", gr.Slider, {"minimum": 0.0, "maximum": 1.0, "step": 0.05}, infotext="Skip Early CFG").info("in percentage of total steps; 0 = disable; higher = faster"),
-            "skip_early_cond_img2img": OptionInfo(0.0, " - Skip Early for img2img", gr.Slider, {"minimum": 0.0, "maximum": 1.0, "step": 0.05}, infotext="Skip Early CFG").info("overrides base % if non-zero"),
-            "skip_early_cond_hr": OptionInfo(0.0, " - Skip Early for Hires. fix", gr.Slider, {"minimum": 0.0, "maximum": 1.0, "step": 0.05}, infotext="Skip Early CFG").info("overrides base % if non-zero"),
+            "skip_early_cond_img2img": OptionInfo(0.0, " - Skip Early for img2img", gr.Slider, {"minimum": -0.5, "maximum": 1.0, "step": 0.05}, infotext="Skip Early CFG").info("overrides base % if non-zero; disable if negative"),
+            "skip_early_cond_hr": OptionInfo(0.0, " - Skip Early for Hires. fix", gr.Slider, {"minimum": -0.5, "maximum": 1.0, "step": 0.05}, infotext="Skip Early CFG").info("overrides base % if non-zero; disable if negative"),
             "div_ngms": OptionDiv(),
             "s_min_uncond": OptionInfo(0.0, "Skip Negative Prompt during Later Steps", gr.Slider, {"minimum": 0.0, "maximum": 8.0, "step": 0.05}).info('in "sigma"; 0 = disable; higher = faster'),
-            "s_min_uncond_img2img": OptionInfo(0.0, " - Skip Later for img2img", gr.Slider, {"minimum": 0.0, "maximum": 8.0, "step": 0.05}).info("overrides base threshold if non-zero"),
-            "s_min_uncond_hr": OptionInfo(0.0, " - Skip Later for Hires. fix", gr.Slider, {"minimum": 0.0, "maximum": 8.0, "step": 0.05}).info("overrides base threshold if non-zero"),
+            "s_min_uncond_img2img": OptionInfo(0.0, " - Skip Later for img2img", gr.Slider, {"minimum": -0.5, "maximum": 8.0, "step": 0.05}).info("overrides base threshold if non-zero; disable if negative"),
+            "s_min_uncond_hr": OptionInfo(0.0, " - Skip Later for Hires. fix", gr.Slider, {"minimum": -0.5, "maximum": 8.0, "step": 0.05}).info("overrides base threshold if non-zero; disable if negative"),
             "div_tome": OptionDiv(),
             "token_merging_explanation": OptionHTML(
                 """
