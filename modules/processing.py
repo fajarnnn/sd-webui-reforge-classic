@@ -216,8 +216,8 @@ class StableDiffusionProcessing:
     sampler_index: int = None
     refiner_checkpoint: str = None
     refiner_switch_at: float = None
-    token_merging_ratio = 0
-    token_merging_ratio_hr = 0
+    token_merging_ratio: float = 0.0
+    token_merging_ratio_hr: float = 0.0
     disable_extra_networks: bool = False
     firstpass_image: Image = None
 
@@ -426,11 +426,15 @@ class StableDiffusionProcessing:
             StableDiffusionProcessing.cached_c = [None, None]
             StableDiffusionProcessing.cached_uc = [None, None]
 
-    def get_token_merging_ratio(self, for_hr=False):
-        if for_hr:
+    def get_token_merging_ratio(self, *, for_hr: bool = False) -> float:
+        if "token_merging_ratio" in self.override_settings:
+            return self.override_settings["token_merging_ratio"]
+        elif isinstance(self, StableDiffusionProcessingImg2Img):
+            return self.token_merging_ratio or opts.token_merging_ratio_img2img or opts.token_merging_ratio
+        elif for_hr:
             return self.token_merging_ratio_hr or opts.token_merging_ratio_hr or self.token_merging_ratio or opts.token_merging_ratio
-
-        return self.token_merging_ratio or opts.token_merging_ratio
+        else:
+            return self.token_merging_ratio or opts.token_merging_ratio
 
     def setup_prompts(self):
         if isinstance(self.prompt, list):
@@ -627,9 +631,6 @@ class Processed:
     def infotext(self, p: StableDiffusionProcessing, index):
         return create_infotext(p, self.all_prompts, self.all_seeds, self.all_subseeds, comments=[], position_in_batch=index % self.batch_size, iteration=index // self.batch_size)
 
-    def get_token_merging_ratio(self, for_hr=False):
-        return self.token_merging_ratio_hr if for_hr else self.token_merging_ratio
-
 
 def create_random_tensors(shape, seeds, subseeds=None, subseed_strength=0.0, seed_resize_from_h=0, seed_resize_from_w=0, p=None):
     g = rng.ImageRNG(shape, seeds, subseeds=subseeds, subseed_strength=subseed_strength, seed_resize_from_h=seed_resize_from_h, seed_resize_from_w=seed_resize_from_w)
@@ -688,6 +689,8 @@ def create_infotext(p, all_prompts, all_seeds, all_subseeds, comments=None, iter
     token_merging_ratio = p.get_token_merging_ratio()
     token_merging_ratio_hr = p.get_token_merging_ratio(for_hr=True)
 
+    _hr_tome = enable_hr and token_merging_ratio_hr > 0.0 and token_merging_ratio_hr != token_merging_ratio
+
     prompt_text = p.main_prompt if use_main_prompt else all_prompts[index]
     negative_prompt = p.main_negative_prompt if use_main_prompt else all_negative_prompts[index]
 
@@ -719,8 +722,8 @@ def create_infotext(p, all_prompts, all_seeds, all_subseeds, comments=None, iter
         "Conditional mask weight": getattr(p, "inpainting_mask_weight", shared.opts.inpainting_mask_weight) if p.is_using_inpainting_conditioning else None,
         "Clip skip": None if clip_skip <= 1 else clip_skip,
         "ENSD": opts.eta_noise_seed_delta if uses_ensd else None,
-        "Token merging ratio": None if token_merging_ratio == 0 else token_merging_ratio,
-        "Token merging ratio hr": None if not enable_hr or token_merging_ratio_hr == 0 else token_merging_ratio_hr,
+        "Token merging ratio": token_merging_ratio if token_merging_ratio > 0.0 else None,
+        "Token merging ratio hr": token_merging_ratio_hr if _hr_tome else None,
         "Init image hash": getattr(p, "init_img_hash", None),
         "RNG": opts.randn_source if opts.randn_source != "GPU" else None,
         "SkipEarly": None if p.skip_early_cond < 0.05 else p.skip_early_cond,
@@ -1721,6 +1724,3 @@ class StableDiffusionProcessingImg2Img(StableDiffusionProcessing):
         devices.torch_gc()
 
         return samples
-
-    def get_token_merging_ratio(self, for_hr=False):
-        return self.token_merging_ratio or ("token_merging_ratio" in self.override_settings and opts.token_merging_ratio) or opts.token_merging_ratio_img2img or opts.token_merging_ratio
