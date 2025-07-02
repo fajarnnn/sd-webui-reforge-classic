@@ -3,8 +3,6 @@ from __future__ import annotations
 import enum
 from collections import namedtuple
 
-import torch.nn as nn
-import torch.nn.functional as F
 from modules import cache, errors, hashes, sd_models, shared
 
 NetworkWeights = namedtuple("NetworkWeights", ["network_key", "sd_key", "w", "sd_module"])
@@ -33,12 +31,11 @@ class NetworkOnDisk:
 
         def read_metadata():
             metadata = sd_models.read_metadata_from_safetensors(filename)
-            metadata.pop("ssmd_cover_images", None)  # cover images are too big to display in UI
             return metadata
 
         if self.is_safetensors:
             try:
-                self.metadata = cache.cached_data_for_file("safetensors-metadata", "/".join(["lora", self.name]), filename, read_metadata)
+                self.metadata = cache.cached_data_for_file("safetensors-metadata", f"lora/{self.name}", filename, read_metadata)
             except Exception as e:
                 errors.display(e, f"reading lora {filename}")
 
@@ -53,7 +50,7 @@ class NetworkOnDisk:
 
         self.hash: str = None
         self.shorthash: str = None
-        self.set_hash(self.metadata.get("sshs_model_hash") or hashes.sha256_from_cache(self.filename, "/".join(["lora", self.name]), use_addnet_hash=self.is_safetensors) or "")
+        self.set_hash(self.metadata.get("sshs_model_hash") or hashes.sha256_from_cache(self.filename, f"lora/{self.name}", use_addnet_hash=self.is_safetensors) or "")
 
         self.sd_version: "SDVersion" = self.detect_version()
 
@@ -76,14 +73,7 @@ class NetworkOnDisk:
 
     def read_hash(self):
         if not self.hash:
-            self.set_hash(
-                hashes.sha256(
-                    self.filename,
-                    "/".join(["lora", self.name]),
-                    use_addnet_hash=self.is_safetensors,
-                )
-                or ""
-            )
+            self.set_hash(hashes.sha256(self.filename, f"lora/{self.name}", use_addnet_hash=self.is_safetensors) or "")
 
     def get_alias(self):
         import networks
@@ -107,89 +97,3 @@ class Network:  # LoraModule
 
         self.mentioned_name = None
         """the text that was used to add the network to prompt - can be either name or an alias"""
-
-
-class ModuleType:
-    def create_module(self, net: Network, weights: NetworkWeights) -> Network | None:
-        return None
-
-
-class NetworkModule:
-    def __init__(self, net: Network, weights: NetworkWeights):
-        self.network = net
-        self.network_key = weights.network_key
-        self.sd_key = weights.sd_key
-        self.sd_module = weights.sd_module
-
-        if hasattr(self.sd_module, "weight"):
-            self.shape = self.sd_module.weight.shape
-
-        self.ops = None
-        self.extra_kwargs = {}
-        if isinstance(self.sd_module, nn.Conv2d):
-            self.ops = F.conv2d
-            self.extra_kwargs = {
-                "stride": self.sd_module.stride,
-                "padding": self.sd_module.padding,
-            }
-        elif isinstance(self.sd_module, nn.Linear):
-            self.ops = F.linear
-        elif isinstance(self.sd_module, nn.LayerNorm):
-            self.ops = F.layer_norm
-            self.extra_kwargs = {
-                "normalized_shape": self.sd_module.normalized_shape,
-                "eps": self.sd_module.eps,
-            }
-        elif isinstance(self.sd_module, nn.GroupNorm):
-            self.ops = F.group_norm
-            self.extra_kwargs = {
-                "num_groups": self.sd_module.num_groups,
-                "eps": self.sd_module.eps,
-            }
-
-        self.dim = None
-        self.bias = weights.w.get("bias")
-        self.alpha = weights.w["alpha"].item() if "alpha" in weights.w else None
-        self.scale = weights.w["scale"].item() if "scale" in weights.w else None
-
-    def multiplier(self):
-        if "transformer" in self.sd_key[:20]:
-            return self.network.te_multiplier
-        else:
-            return self.network.unet_multiplier
-
-    def calc_scale(self):
-        if self.scale is not None:
-            return self.scale
-        if self.dim is not None and self.alpha is not None:
-            return self.alpha / self.dim
-
-        return 1.0
-
-    def finalize_updown(self, updown, orig_weight, output_shape, ex_bias=None):
-        if self.bias is not None:
-            updown = updown.reshape(self.bias.shape)
-            updown += self.bias.to(orig_weight.device, dtype=updown.dtype)
-            updown = updown.reshape(output_shape)
-
-        if len(output_shape) == 4:
-            updown = updown.reshape(output_shape)
-
-        if orig_weight.size().numel() == updown.size().numel():
-            updown = updown.reshape(orig_weight.shape)
-
-        if ex_bias is not None:
-            ex_bias = ex_bias * self.multiplier()
-
-        return updown * self.calc_scale() * self.multiplier(), ex_bias
-
-    def calc_updown(self, target):
-        raise NotImplementedError
-
-    def forward(self, x, y):
-        """A general forward implementation for all modules"""
-        if self.ops is None:
-            raise NotImplementedError
-
-        updown, ex_bias = self.calc_updown(self.sd_module.weight)
-        return y + self.ops(x, weight=updown, bias=ex_bias, **self.extra_kwargs)
