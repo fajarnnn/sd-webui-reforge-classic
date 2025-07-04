@@ -468,6 +468,9 @@ In my experience, the speed of each attention function for SDXL is ranked in the
 > [!Note]
 > `SageAttention` is based on quantization, so its quality might be slightly worse than others
 
+> [!Important]
+> When using `SageAttention 2`, both positive prompts and negative prompts are required; omitting negative prompts can cause `NaN` issues
+
 <br>
 
 ## Issues & Requests
