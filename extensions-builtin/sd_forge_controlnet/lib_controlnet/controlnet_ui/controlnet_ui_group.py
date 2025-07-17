@@ -384,7 +384,7 @@ class ControlNetUiGroup:
         with gr.Row(elem_classes=["controlnet_control_type", "controlnet_row"]):
             self.type_filter = gr.Radio(
                 global_state.get_all_preprocessor_tags(),
-                label=f"Control Type",
+                label="Control Type",
                 value="All",
                 elem_id=f"{elem_id_tabname}_{tabname}_controlnet_type_filter_radio",
                 elem_classes="controlnet_control_type_filter_group",
@@ -420,7 +420,7 @@ class ControlNetUiGroup:
 
         with gr.Row(elem_classes=["controlnet_weight_steps", "controlnet_row"]):
             self.weight = gr.Slider(
-                label=f"Control Weight",
+                label="Control Weight",
                 value=self.default_unit.weight,
                 minimum=0.0,
                 maximum=2.0,

@@ -8,7 +8,7 @@ import argparse
 
 import tensorflow as tf
 
-from transforms import Resize, NormalizeImage, PrepareForNet
+from transforms import Resize, PrepareForNet
 
 
 def run(input_path, output_path, model_path, model_type="large"):

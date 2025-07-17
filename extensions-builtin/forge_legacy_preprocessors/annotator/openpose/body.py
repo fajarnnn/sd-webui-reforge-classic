@@ -1,13 +1,10 @@
 import cv2
 import numpy as np
 import math
-import time
 from scipy.ndimage import gaussian_filter
 import matplotlib.pyplot as plt
-import matplotlib
 import torch
-from torchvision import transforms
-from typing import NamedTuple, List, Union
+from typing import List
 
 from . import util
 from .model import bodypose_model

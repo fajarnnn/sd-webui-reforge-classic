@@ -2,7 +2,7 @@ import math
 import torch
 from modules import prompt_parser, sd_samplers_common
 from modules.script_callbacks import AfterCFGCallbackParams, CFGDenoiserParams, cfg_after_cfg_callback, cfg_denoiser_callback
-from modules.shared import opts, state
+from modules.shared import state
 from modules_forge import forge_sampler
 
 

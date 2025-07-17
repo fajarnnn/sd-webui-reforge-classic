@@ -22,6 +22,6 @@ def run_pnginfo(image):
         )
 
     if len(info) == 0:
-        info = f"<div><p>Image contains no metadata...</p></div>"
+        info = "<div><p>Image contains no metadata...</p></div>"
 
     return "", geninfo, info

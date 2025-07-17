@@ -784,7 +784,7 @@ def load_t2i_adapter(t2i_data):
                 prefix_replace["adapter.body.{}.resnets.{}.".format(i, j)] = (
                     "body.{}.".format(i * 2 + j)
                 )
-            prefix_replace["adapter.body.{}.".format(i, j)] = "body.{}.".format(i * 2)
+            prefix_replace["adapter.body.{}.".format(i, )] = "body.{}.".format(i * 2)
         prefix_replace["adapter."] = ""
         t2i_data = ldm_patched.modules.utils.state_dict_prefix_replace(
             t2i_data, prefix_replace

@@ -19,7 +19,7 @@ from lib_controlnet.utils import align_dim_latent, crop_and_resize_image, judge_
 from PIL import Image, ImageOps
 
 from modules import images, masking, script_callbacks, scripts, shared
-from modules.processing import StableDiffusionProcessing, StableDiffusionProcessingImg2Img, StableDiffusionProcessingTxt2Img, Processed
+from modules.processing import StableDiffusionProcessing, StableDiffusionProcessingImg2Img, StableDiffusionProcessingTxt2Img
 from modules_forge.forge_util import HWC3, numpy_to_pytorch
 from modules_forge.shared import try_load_supported_control_model
 from modules_forge.supported_controlnet import ControlModelPatcher
@@ -366,11 +366,11 @@ class ControlNetForForgeOfficial(scripts.Script):
             hr_option = HiResFixOption.BOTH
 
         if has_high_res_fix and is_hr_pass and (not hr_option.high_res_enabled):
-            logger.info(f"ControlNet Skipped High-res pass.")
+            logger.info("ControlNet Skipped High-res pass.")
             return
 
         if has_high_res_fix and (not is_hr_pass) and (not hr_option.low_res_enabled):
-            logger.info(f"ControlNet Skipped Low-res pass.")
+            logger.info("ControlNet Skipped Low-res pass.")
             return
 
         if is_hr_pass:

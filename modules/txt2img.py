@@ -7,7 +7,6 @@ from modules.infotext_utils import create_override_settings_dict, parse_generati
 from modules.shared import opts
 import modules.shared as shared
 from modules.ui import plaintext_to_html
-from PIL import Image
 import gradio as gr
 from modules_forge import main_thread
 

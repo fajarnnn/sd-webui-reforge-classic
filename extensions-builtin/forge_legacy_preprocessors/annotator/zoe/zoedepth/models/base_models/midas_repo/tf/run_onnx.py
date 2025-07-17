@@ -4,14 +4,12 @@ import os
 import glob
 import utils
 import cv2
-import sys
 import numpy as np
 import argparse
 
-import onnx
 import onnxruntime as rt
 
-from transforms import Resize, NormalizeImage, PrepareForNet
+from transforms import Resize, PrepareForNet
 
 
 def run(input_path, output_path, model_path, model_type="large"):

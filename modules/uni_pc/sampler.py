@@ -1,5 +1,3 @@
-"""SAMPLING ONLY."""
-
 import torch
 
 from .uni_pc import NoiseScheduleVP, model_wrapper, UniPC
@@ -13,7 +11,7 @@ class UniPCSampler(object):
         to_torch = lambda x: x.clone().detach().to(torch.float32).to(model.device)
         self.before_sample = None
         self.after_sample = None
-        self.register_buffer('alphas_cumprod', to_torch(model.alphas_cumprod))
+        self.register_buffer("alphas_cumprod", to_torch(model.alphas_cumprod))
 
     def register_buffer(self, name, attr):
         if type(attr) == torch.Tensor:
@@ -27,30 +25,31 @@ class UniPCSampler(object):
         self.after_update = after_update
 
     @torch.no_grad()
-    def sample(self,
-               S,
-               batch_size,
-               shape,
-               conditioning=None,
-               callback=None,
-               normals_sequence=None,
-               img_callback=None,
-               quantize_x0=False,
-               eta=0.,
-               mask=None,
-               x0=None,
-               temperature=1.,
-               noise_dropout=0.,
-               score_corrector=None,
-               corrector_kwargs=None,
-               verbose=True,
-               x_T=None,
-               log_every_t=100,
-               unconditional_guidance_scale=1.,
-               unconditional_conditioning=None,
-               # this has to come in the same format as the conditioning, # e.g. as encoded tokens, ...
-               **kwargs
-               ):
+    def sample(
+        self,
+        S,
+        batch_size,
+        shape,
+        conditioning=None,
+        callback=None,
+        normals_sequence=None,
+        img_callback=None,
+        quantize_x0=False,
+        eta=0.0,
+        mask=None,
+        x0=None,
+        temperature=1.0,
+        noise_dropout=0.0,
+        score_corrector=None,
+        corrector_kwargs=None,
+        verbose=True,
+        x_T=None,
+        log_every_t=100,
+        unconditional_guidance_scale=1.0,
+        unconditional_conditioning=None,
+        # this has to come in the same format as the conditioning, # e.g. as encoded tokens, ...
+        **kwargs,
+    ):
         if conditioning is not None:
             if isinstance(conditioning, dict):
                 ctmp = conditioning[list(conditioning.keys())[0]]
@@ -80,7 +79,7 @@ class UniPCSampler(object):
         else:
             img = x_T
 
-        ns = NoiseScheduleVP('discrete', alphas_cumprod=self.alphas_cumprod)
+        ns = NoiseScheduleVP("discrete", alphas_cumprod=self.alphas_cumprod)
 
         # SD 1.X is "noise", SD 2.X is "v"
         model_type = "v" if self.model.parameterization == "v" else "noise"
@@ -90,8 +89,8 @@ class UniPCSampler(object):
             ns,
             model_type=model_type,
             guidance_type="classifier-free",
-            #condition=conditioning,
-            #unconditional_condition=unconditional_conditioning,
+            # condition=conditioning,
+            # unconditional_condition=unconditional_conditioning,
             guidance_scale=unconditional_guidance_scale,
         )
 

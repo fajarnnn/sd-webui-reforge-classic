@@ -1,3 +1,5 @@
+import functools
+
 from legacy_preprocessors.preprocessor import *
 
 

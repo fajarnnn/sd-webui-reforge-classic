@@ -49,6 +49,6 @@ def apply_mlsd(input_image, thr_v, thr_d):
                 cv2.line(
                     img_output, (x_start, y_start), (x_end, y_end), [255, 255, 255], 1
                 )
-    except Exception as e:
+    except Exception:
         pass
     return img_output[:, :, 0]

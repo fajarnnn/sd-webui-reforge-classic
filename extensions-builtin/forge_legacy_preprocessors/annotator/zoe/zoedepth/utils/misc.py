@@ -24,11 +24,7 @@
 
 """Miscellaneous utility functions."""
 
-from scipy import ndimage
 
-import base64
-import math
-import re
 from io import BytesIO
 
 import matplotlib

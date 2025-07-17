@@ -3,7 +3,6 @@ import cv2
 import numpy as np
 import torch
 import math
-import functools
 
 from dataclasses import dataclass
 from transformers.models.clip.modeling_clip import CLIPVisionModelOutput
@@ -849,9 +848,9 @@ class InsightFaceModel:
         img, remove_pad = resize_image_with_pad(img, res)
         face_info = self.model.get(img)
         if not face_info:
-            raise Exception(f"Insightface: No face found in image.")
+            raise Exception("Insightface: No face found in image.")
         if len(face_info) > 1:
-            print("Insightface: More than one face is detected in the image. " f"Only the biggest one will be used.")
+            print("Insightface: More than one face is detected in the image. " "Only the biggest one will be used.")
         # only use the maximum face
         face_info = sorted(
             face_info,

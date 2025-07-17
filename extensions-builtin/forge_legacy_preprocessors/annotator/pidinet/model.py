@@ -5,8 +5,6 @@ Date: Feb 18, 2021
 
 import math
 
-import cv2
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

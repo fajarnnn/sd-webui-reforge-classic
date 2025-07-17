@@ -2,16 +2,10 @@
 
 import os
 import ntpath
-import glob
 import torch
-import utils
-import cv2
 import numpy as np
-from torchvision.transforms import Compose, Normalize
-from torchvision import transforms
 
 from shutil import copyfile
-import fileinput
 import sys
 
 sys.path.append(os.getcwd() + "/..")
@@ -46,7 +40,6 @@ def restore_file():
 modify_file()
 
 from midas.midas_net import MidasNet
-from midas.transforms import Resize, NormalizeImage, PrepareForNet
 
 restore_file()
 

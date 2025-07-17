@@ -3,7 +3,6 @@ import logging
 import os
 import sys
 import warnings
-import os
 
 from modules.timer import startup_timer
 
