@@ -121,11 +121,16 @@ def txt2img_upscale_function(id_task: str, request: gr.Request, gallery: list[di
     new_gallery = []
     for i, image in enumerate(_gallery):
         if i == gallery_index:
+            if shared.opts.hires_button_gallery_insert:
+                new_gallery.append(image)
             new_gallery.extend(processed.images)
         else:
             new_gallery.append(image)
 
-    geninfo["infotexts"][gallery_index] = processed.info
+    if shared.opts.hires_button_gallery_insert:
+        geninfo["infotexts"].insert(gallery_index + 1, processed.info)
+    else:
+        geninfo["infotexts"][gallery_index] = processed.info
 
     return new_gallery, json.dumps(geninfo), plaintext_to_html(processed.info), plaintext_to_html(processed.comments, classname="comments")
 

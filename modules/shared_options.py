@@ -350,6 +350,7 @@ options_templates.update(
             "sd_webui_modal_lightbox_icon_opacity": OptionInfo(1.0, "[Lightbox]: control icon unfocused opacity", gr.Slider, {"minimum": 0.0, "maximum": 1.0, "step": 0.05}, onchange=shared.reload_gradio_theme).info("for mouse only").needs_reload_ui(),
             "sd_webui_modal_lightbox_toolbar_opacity": OptionInfo(0.9, "[Lightbox]: tool bar opacity", gr.Slider, {"minimum": 0.0, "maximum": 1.0, "step": 0.05}, onchange=shared.reload_gradio_theme).info("for mouse only").needs_reload_ui(),
             "open_dir_button_choice": OptionInfo("Subdirectory", "What directory the [📂] button opens", gr.Radio, {"choices": ("Output Root", "Subdirectory", "Subdirectory (even temp dir)")}),
+            "hires_button_gallery_insert": OptionInfo(False, "When using the [✨] button, insert the upscaled image to the gallery").info("otherwise replace the selected image in the gallery"),
         },
     )
 )
