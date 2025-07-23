@@ -397,7 +397,7 @@ class ExtraNetworksPage:
         Returns:
             HTML string generated for this tree view
         """
-        res = ""
+        res: list[str] = []
 
         # Setup the tree dictionary
         roots = self.allowed_directories_for_previews()
@@ -405,7 +405,7 @@ class ExtraNetworksPage:
         tree = get_tree([os.path.abspath(x) for x in roots], items=tree_items)
 
         if not tree:
-            return res
+            return ""
 
         def _build_tree(data: Optional[dict[str, ExtraNetworksItem]] = None) -> Optional[str]:
             """
@@ -440,9 +440,9 @@ class ExtraNetworksPage:
             item_html = self.create_tree_dir_item_html(tabname, k, _build_tree(v))
             # Only add non-empty entries to the tree
             if item_html is not None:
-                res += item_html
+                res.append(item_html)
 
-        return f"<ul class='tree-list tree-list--tree'>{res}</ul>"
+        return f"<ul class='tree-list tree-list--tree'>{''.join(res)}</ul>"
 
     def create_card_view_html(self, tabname: str, *, none_message) -> str:
         """
@@ -458,15 +458,15 @@ class ExtraNetworksPage:
         Returns:
             HTML formatted string
         """
-        res = ""
+        res: list[str] = []
         for item in self.items.values():
-            res += self.create_item_html(tabname, item, self.card_tpl)
+            res.append(self.create_item_html(tabname, item, self.card_tpl))
 
-        if res == "":
+        if not res:
             dirs = "".join([f"<li>{x}</li>" for x in self.allowed_directories_for_previews()])
-            res = none_message or shared.html("extra-networks-no-cards.html").format(dirs=dirs)
+            res = [none_message or shared.html("extra-networks-no-cards.html").format(dirs=dirs)]
 
-        return res
+        return "".join(res)
 
     def create_dir_buttons_html(self, tabname: str) -> str:
         """Generates HTML for the folder buttons"""
