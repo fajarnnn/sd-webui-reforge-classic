@@ -71,20 +71,18 @@ function setupExtraNetworksForTab(tabname) {
         };
 
         let applySort = function (force) {
-            let cards = gradioApp().querySelectorAll('#' + tabname + '_extra_tabs div.card');
+            let cards = gradioApp().querySelectorAll('#' + tabname_full + ' div.card');
+            let parent = gradioApp().querySelector('#' + tabname_full + "_cards");
             let reverse = sort_dir.dataset.sortdir == "Descending";
             let sortKey = sort_mode.dataset.sortmode.toLowerCase().replace("sort", "").replaceAll(" ", "_").replace(/_+$/, "").trim() || "name";
             sortKey = "sort" + sortKey.charAt(0).toUpperCase() + sortKey.slice(1);
             let sortKeyStore = sortKey + "-" + (reverse ? "Descending" : "Ascending") + "-" + cards.length;
 
-            if (sortKeyStore == sort_mode.dataset.sortkey && !force) {
+            if (sortKeyStore == sort_mode.dataset.sortkey && !force)
                 return;
-            }
+
             sort_mode.dataset.sortkey = sortKeyStore;
 
-            cards.forEach(function (card) {
-                card.originalParentElement = card.parentElement;
-            });
             let sortedCards = Array.from(cards);
             sortedCards.sort(function (cardA, cardB) {
                 let a = cardA.dataset[sortKey];
@@ -95,18 +93,19 @@ function setupExtraNetworksForTab(tabname) {
 
                 return (a < b ? -1 : (a > b ? 1 : 0));
             });
-            if (reverse) {
-                sortedCards.reverse();
-            }
-            cards.forEach(function (card) {
-                card.remove();
+
+            if (reverse) sortedCards.reverse();
+
+            const frag = document.createDocumentFragment();
+            sortedCards.forEach((card) => {
+                frag.appendChild(card);
             });
-            sortedCards.forEach(function (card) {
-                card.originalParentElement.appendChild(card);
-            });
+
+            parent.innerHTML = '';
+            parent.appendChild(frag);
         };
 
-        search.addEventListener("input", applyFilter);
+        search.addEventListener("input", () => { applyFilter(); });
         applySort();
         applyFilter();
         extraNetworksApplySort[tabname_full] = applySort;
