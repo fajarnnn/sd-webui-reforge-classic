@@ -71,8 +71,7 @@ function setupExtraNetworksForTab(tabname) {
         };
 
         let applySort = function (force) {
-            let cards = gradioApp().querySelectorAll('#' + tabname_full + ' div.card');
-            let parent = gradioApp().querySelector('#' + tabname_full + "_cards");
+            let cards = gradioApp().querySelectorAll('#' + tabname + '_extra_tabs div.card');
             let reverse = sort_dir.dataset.sortdir == "Descending";
             let sortKey = sort_mode.dataset.sortmode.toLowerCase().replace("sort", "").replaceAll(" ", "_").replace(/_+$/, "").trim() || "name";
             sortKey = "sort" + sortKey.charAt(0).toUpperCase() + sortKey.slice(1);
@@ -83,6 +82,9 @@ function setupExtraNetworksForTab(tabname) {
 
             sort_mode.dataset.sortkey = sortKeyStore;
 
+            cards.forEach((card) => {
+                card.originalParentElement = card.parentElement;
+            });
             let sortedCards = Array.from(cards);
             sortedCards.sort(function (cardA, cardB) {
                 let a = cardA.dataset[sortKey];
@@ -96,13 +98,12 @@ function setupExtraNetworksForTab(tabname) {
 
             if (reverse) sortedCards.reverse();
 
-            const frag = document.createDocumentFragment();
-            sortedCards.forEach((card) => {
-                frag.appendChild(card);
+            cards.forEach((card) => {
+                card.remove();
             });
-
-            parent.innerHTML = '';
-            parent.appendChild(frag);
+            sortedCards.forEach((card) => {
+                card.originalParentElement.appendChild(card);
+            });
         };
 
         search.addEventListener("input", () => { applyFilter(); });
