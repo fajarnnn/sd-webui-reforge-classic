@@ -18,7 +18,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <br>
 
-## Features [Jun. 18]
+## Features [Jul. 23]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -85,11 +85,16 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Implement sending parameters from generation result rather than from UI
     - **e.g.** send the prompts instead of `Wildcard` syntax
     - enable in **Settings/Infotext**
+- [X] Implement tiling optimization for VAE
+    - reduce memory usage; reduce speed
+    - enable in **Settings/VAE**
 - [X] Implement `diskcache` for hashes
     - *(backported from Automatic1111 Webui upstream)*
 - [X] Implement `skip_early_cond`
     - *(backported from Automatic1111 Webui upstream)*
     - enable in **Settings/Optimizations**
+- [X] Allow inserting the upscaled image to the Gallery instead of overriding the input image
+    - *(backported from upstream [PR](https://github.com/AUTOMATIC1111/stable-diffusion-webui/pull/16405))*
 - [X] Support `v-pred` **SDXL** checkpoints *(**e.g.** [NoobAI](https://civitai.com/models/833294?modelVersionId=1190596))*
 - [X] Support new LoRA architectures
 - [X] Update `spandrel`
@@ -144,6 +149,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - put every upscaler inside the `ESRGAN` folder
 - [X] Optimize upscaler logics
 - [X] Optimize certain operations in `Spandrel`
+- [X] Optimize the creation of Extra Networks pages
+    - *(backported from Automatic1111 Webui upstream)*
 - [X] Improve color correction
 - [X] Improve hash caching
 - [X] Improve error logs
@@ -165,6 +172,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - enable again in **Settings/Extra Networks**
 - [X] Hide Sampler Parameters by default
     - enable again by adding **--adv-samplers** flag
+- [X] Hide some X/Y/Z Plot options by default
+    - enable again by adding **--adv-xyz** flag
 - [X] Run `text encoder` on CPU by default
 - [X] Fix `pydantic` Errors
 - [X] Fix `Soft Inpainting`
