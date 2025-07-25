@@ -59,7 +59,7 @@ class UpscalerESRGAN(Upscaler):
             tile_overlap=opts.ESRGAN_tile_overlap,
         )
 
-    @lru_cache(maxsize=3, typed=False)
+    @lru_cache(maxsize=4, typed=False)
     def load_model(self, path: str):
         if not path.startswith("http"):
             filename = path

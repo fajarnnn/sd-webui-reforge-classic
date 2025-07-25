@@ -4,10 +4,8 @@ from ldm_patched.modules.model_management import unet_dtype, text_encoder_dtype,
 from lightning_fabric.utilities.device_dtype_mixin import _DeviceDtypeModuleMixin
 from omegaconf import OmegaConf
 from modules.shared import opts
-from functools import lru_cache
 
 
-@lru_cache(maxsize=1, typed=False)
 def _alpha():
     from ldm_patched.ldm.modules.diffusionmodules.util import make_beta_schedule
     import numpy as np

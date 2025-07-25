@@ -1,4 +1,3 @@
-import functools
 import os.path
 import re
 
@@ -9,7 +8,6 @@ from modules import errors, scripts, sd_models, shared
 import network
 
 
-@functools.lru_cache(maxsize=4, typed=False)
 def load_lora_state_dict(filename):
     return load_torch_file(filename, safe_load=True)
 

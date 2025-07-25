@@ -27,7 +27,7 @@ from modules_forge.supported_controlnet import ControlModelPatcher
 global_state.update_controlnet_filenames()
 
 
-@functools.lru_cache(maxsize=shared.opts.data.get("control_net_model_cache_size", 5))
+@functools.lru_cache(maxsize=getattr(shared.opts, "control_net_model_cache_size", 1))
 def cached_controlnet_loader(filename):
     return try_load_supported_control_model(filename)
 
@@ -534,7 +534,7 @@ def on_ui_settings():
             3,
             "Number of Models to Cache in Memory",
             gr.Slider,
-            {"minimum": 1, "maximum": 10, "step": 1},
+            {"minimum": 0, "maximum": 10, "step": 1},
             section=section,
             category_id=category_id,
         ).needs_reload_ui(),

@@ -52,7 +52,7 @@ approximation_indexes = {
 }
 
 
-@lru_cache(maxsize=(shared.opts.sd_vae_checkpoint_cache), typed=False)
+@lru_cache(maxsize=getattr(shared.opts, "sd_vae_checkpoint_cache", 1), typed=False)
 def get_decoder(approximation: int) -> Callable:
     match approximation:
         case 1:

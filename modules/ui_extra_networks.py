@@ -3,7 +3,6 @@ import json
 import os.path
 import urllib.parse
 from dataclasses import dataclass
-from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
@@ -23,7 +22,6 @@ extra_pages = []
 allowed_dirs = set()
 
 
-@lru_cache(maxsize=1, typed=False)
 def allowed_preview_extensions():
     return ("jpg", "jpeg", "png", "webp")
 

@@ -42,62 +42,6 @@ def get_state_dict(d):
     return d.get("state_dict", d)
 
 
-def ndarray_lru_cache(max_size: int = 128, typed: bool = False):
-    """
-    Decorator to enable caching for functions with numpy array arguments.
-    Numpy arrays are mutable, and thus not directly usable as hash keys.
-
-    The idea here is to wrap the incoming arguments with type `np.ndarray`
-    as `HashableNpArray` so that `lru_cache` can correctly handles `np.ndarray`
-    arguments.
-
-    `HashableNpArray` functions exactly the same way as `np.ndarray` except
-    having `__hash__` and `__eq__` overridden.
-    """
-
-    def decorator(func: Callable):
-        """The actual decorator that accept function as input"""
-
-        class HashableNpArray(np.ndarray):
-            def __new__(cls, input_array):
-                # Input array is an instance of ndarray
-                # The view makes the input array and returned array share the same data
-                obj = np.asarray(input_array).view(cls)
-                return obj
-
-            def __eq__(self, other) -> bool:
-                return np.array_equal(self, other)
-
-            def __hash__(self):
-                # Hash the bytes representing the data of the array
-                return hash(self.tobytes())
-
-        @functools.lru_cache(maxsize=max_size, typed=typed)
-        def cached_func(*args, **kwargs):
-            """This function only accepts `HashableNpArray` as input params"""
-            return func(*args, **kwargs)
-
-        # Preserves original function.__name__ and __doc__
-        @functools.wraps(func)
-        def decorated_func(*args, **kwargs):
-            """The decorated function that delegates the original function"""
-
-            def convert_item(item):
-                if isinstance(item, np.ndarray):
-                    return HashableNpArray(item)
-                if isinstance(item, tuple):
-                    return tuple(convert_item(i) for i in item)
-                return item
-
-            args = [convert_item(arg) for arg in args]
-            kwargs = {k: convert_item(arg) for k, arg in kwargs.items()}
-            return cached_func(*args, **kwargs)
-
-        return decorated_func
-
-    return decorator
-
-
 def timer_decorator(func):
     """Time the decorated function and output the result to debug logger"""
     if logger.level != logging.DEBUG:
@@ -129,7 +73,7 @@ class TimeMeta(type):
         return super().__new__(cls, name, bases, attrs)
 
 
-@functools.lru_cache(1, False)
+@functools.lru_cache(maxsize=1, typed=False)
 def _blank_mask() -> str:
     with io.BytesIO() as buffer:
         black = Image.new("RGB", (4, 4))
@@ -143,9 +87,7 @@ def svg_preprocess(inputs: dict, preprocess: Callable):
         return None
 
     if svgSupport and inputs["image"].startswith("data:image/svg+xml;base64,"):
-        svg_data = base64.b64decode(
-            inputs["image"].replace("data:image/svg+xml;base64,", "")
-        )
+        svg_data = base64.b64decode(inputs["image"].replace("data:image/svg+xml;base64,", ""))
         drawing = svg2rlg(io.BytesIO(svg_data))
         png_data = renderPM.drawToString(drawing, fmt="PNG")
         encoded_string = base64.b64encode(png_data)
@@ -178,9 +120,7 @@ def align_dim_latent(x: int) -> int:
     return (x // 8) * 8
 
 
-def prepare_mask(
-    mask: Image.Image, p: processing.StableDiffusionProcessing
-) -> Image.Image:
+def prepare_mask(mask: Image.Image, p: processing.StableDiffusionProcessing) -> Image.Image:
     """
     Prepare an image mask for the inpainting process.
 
@@ -333,31 +273,21 @@ def crop_and_resize_image(detected_map, resize_mode, h, w, fill_border_with_255=
             ],
             axis=0,
         )
-        high_quality_border_color = np.median(borders, axis=0).astype(
-            detected_map.dtype
-        )
+        high_quality_border_color = np.median(borders, axis=0).astype(detected_map.dtype)
         if fill_border_with_255:
             high_quality_border_color = np.zeros_like(high_quality_border_color) + 255
-        high_quality_background = np.tile(
-            high_quality_border_color[None, None], [h, w, 1]
-        )
-        detected_map = high_quality_resize(
-            detected_map, (safeint(old_w * k), safeint(old_h * k))
-        )
+        high_quality_background = np.tile(high_quality_border_color[None, None], [h, w, 1])
+        detected_map = high_quality_resize(detected_map, (safeint(old_w * k), safeint(old_h * k)))
         new_h, new_w, _ = detected_map.shape
         pad_h = max(0, (h - new_h) // 2)
         pad_w = max(0, (w - new_w) // 2)
-        high_quality_background[pad_h : pad_h + new_h, pad_w : pad_w + new_w] = (
-            detected_map
-        )
+        high_quality_background[pad_h : pad_h + new_h, pad_w : pad_w + new_w] = detected_map
         detected_map = high_quality_background
         detected_map = safe_numpy(detected_map)
         return detected_map
     else:
         k = max(k0, k1)
-        detected_map = high_quality_resize(
-            detected_map, (safeint(old_w * k), safeint(old_h * k))
-        )
+        detected_map = high_quality_resize(detected_map, (safeint(old_w * k), safeint(old_h * k)))
         new_h, new_w, _ = detected_map.shape
         pad_h = max(0, (new_h - h) // 2)
         pad_w = max(0, (new_w - w) // 2)

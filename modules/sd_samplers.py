@@ -116,7 +116,7 @@ def get_hr_scheduler_from_infotext(d: dict):
     return get_hr_sampler_and_scheduler(d)[1]
 
 
-@functools.lru_cache(maxsize=10, typed=False)
+@functools.lru_cache(maxsize=4, typed=False)
 def get_sampler_and_scheduler(sampler_name: str, scheduler_name: str, *, status: bool = False):
     default_sampler = samplers[0]
     found_scheduler = sd_schedulers.schedulers_map.get(scheduler_name, sd_schedulers.schedulers[0])

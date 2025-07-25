@@ -346,7 +346,7 @@ def sanitize_filename_part(text, replace_spaces=True):
     return text
 
 
-@functools.lru_cache(maxsize=10, typed=False)
+@functools.lru_cache(maxsize=4, typed=False)
 def get_scheduler_str(sampler_name: str, scheduler_name: str):
     """Returns {Scheduler} if the scheduler is applicable to the sampler"""
     if scheduler_name == "Automatic":
@@ -355,7 +355,7 @@ def get_scheduler_str(sampler_name: str, scheduler_name: str):
     return scheduler_name.capitalize()
 
 
-@functools.lru_cache(maxsize=10, typed=False)
+@functools.lru_cache(maxsize=4, typed=False)
 def get_sampler_scheduler_str(sampler_name: str, scheduler_name: str):
     """Returns the '{Sampler} {Scheduler}' if the scheduler is applicable to the sampler"""
     return f"{sampler_name} {get_scheduler_str(sampler_name, scheduler_name)}"
