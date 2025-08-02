@@ -195,8 +195,6 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None) -> WebuiS
     sd_model.sd_model_checkpoint = checkpoint_info.filename
     sd_model.sd_checkpoint_info = checkpoint_info
 
-    apply_alpha_schedule_override(sd_model)
-
     @torch.inference_mode()
     def patched_decode_first_stage(x):
         sample = sd_model.forge_objects.unet.model.model_config.latent_format.process_out(x)
@@ -240,6 +238,27 @@ def rescale_zero_terminal_snr_abar(alphas_cumprod):
     return alphas_bar
 
 
+def rescale_zero_terminal_snr_sigmas(sigmas):
+    """https://github.com/comfyanonymous/ComfyUI/blob/v0.3.48/comfy/model_sampling.py#L5"""
+    alphas_cumprod = 1 / ((sigmas * sigmas) + 1)
+    alphas_bar_sqrt = alphas_cumprod.sqrt()
+
+    # Store old values.
+    alphas_bar_sqrt_0 = alphas_bar_sqrt[0].clone()
+    alphas_bar_sqrt_T = alphas_bar_sqrt[-1].clone()
+
+    # Shift so the last timestep is zero.
+    alphas_bar_sqrt -= alphas_bar_sqrt_T
+
+    # Scale so the first timestep is back to the old value.
+    alphas_bar_sqrt *= alphas_bar_sqrt_0 / (alphas_bar_sqrt_0 - alphas_bar_sqrt_T)
+
+    # Convert alphas_bar_sqrt to betas
+    alphas_bar = alphas_bar_sqrt**2  # Revert sqrt
+    alphas_bar[-1] = 4.8973451890853435e-08
+    return ((1 - alphas_bar) / alphas_bar) ** 0.5
+
+
 def apply_alpha_schedule_override(sd_model, p=None):
     """
     Applies an override to the alpha schedule of the model according to settings.
@@ -261,6 +280,7 @@ def apply_alpha_schedule_override(sd_model, p=None):
         if p is not None:
             p.extra_generation_params["Noise Schedule"] = "Zero Terminal SNR"
         sd_model.alphas_cumprod = rescale_zero_terminal_snr_abar(sd_model.alphas_cumprod).to(shared.device)
+        sd_model.forge_objects.unet.model.model_sampling.set_sigmas(rescale_zero_terminal_snr_sigmas(sd_model.forge_objects.unet.model.model_sampling.sigmas).to(shared.device))
 
 
 ForgeSD = ForgeObjects
