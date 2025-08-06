@@ -1,5 +1,9 @@
 <h1 align="center">Stable Diffusion WebUI Forge - Classic</h1>
 
+<p align="center"><sup>
+[ Classic | <a href="https://github.com/Haoming02/sd-webui-forge-classic/tree/neo#stable-diffusion-webui-forge---neo">Neo</a> ]
+</sup></p>
+
 <p align="center"><img src="html\ui.webp" width=512 alt="UI"></p>
 
 <blockquote><i>
@@ -18,7 +22,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <br>
 
-## Features [Jul. 23]
+## Features [Aug. 06]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
