@@ -13,6 +13,7 @@ from numpy import exp, pi, sqrt
 from torch import Tensor
 
 from ldm_patched.modules.controlnet import ControlNet, T2IAdapter
+from ldm_patched.modules.latent_formats import SD15, SDXL
 from ldm_patched.modules.model_base import BaseModel
 from ldm_patched.modules.model_management import current_loaded_models, get_torch_device, load_models_gpu
 from ldm_patched.modules.model_patcher import ModelPatcher
@@ -251,7 +252,9 @@ class AbstractDiffusion:
                 self.control_tensor_batch[param_id][batch_id] = control_tile
 
     def process_controlnet(self, x_noisy, c_in: dict, cond_or_uncond: list, bboxes, batch_size: int, batch_id: int, shifts=None, shift_condition=None):
-        control: ControlNet = c_in["control"]
+        from modules.shared import sd_model
+
+        control: ControlNet = c_in["control_model"]
         param_id = -1
         tuple_key = tuple(cond_or_uncond) + tuple(x_noisy.shape)
         while control is not None:
@@ -271,11 +274,7 @@ class AbstractDiffusion:
                     del control.cond_hint
                 control.cond_hint = None
                 compression_ratio = control.compression_ratio
-                if control.vae is not None:
-                    compression_ratio *= control.vae.downscale_ratio
-                else:
-                    if control.latent_format is not None:
-                        raise ValueError("This Controlnet needs a VAE but none was provided, please use a ControlNetApply node with a VAE input and connect it.")
+                control.latent_format = SDXL() if sd_model.is_sdxl else SD15()
                 PH, PW = self.h * compression_ratio, self.w * compression_ratio
 
                 device = getattr(control, "device", x_noisy.device)
@@ -405,9 +404,9 @@ class MultiDiffusion(AbstractDiffusion):
                         v = repeat_to_batch_size(v, x_tile.shape[0])
                 c_tile[k] = v
 
-            if "control" in c_in:
+            if "control_model" in c_in:
                 self.process_controlnet(x_tile, c_in, cond_or_uncond, bboxes, N, batch_id)
-                c_tile["control"] = c_in["control"].get_control_orig(x_tile, t_tile, c_tile, len(cond_or_uncond))
+                c_tile["control"] = c_in["control_model"].get_control(x_tile, t_tile, c_tile, len(cond_or_uncond))
 
             x_tile_out = model_function(x_tile, t_tile, **c_tile)
 
@@ -496,9 +495,9 @@ class MixtureOfDiffusers(AbstractDiffusion):
                         v = repeat_to_batch_size(v, x_tile.shape[0])
                 c_tile[k] = v
 
-            if "control" in c_in:
+            if "control_model" in c_in:
                 self.process_controlnet(x_tile, c_in, cond_or_uncond, bboxes, N, batch_id)
-                c_tile["control"] = c_in["control"].get_control_orig(x_tile, t_tile, c_tile, len(cond_or_uncond))
+                c_tile["control"] = c_in["control_model"].get_control(x_tile, t_tile, c_tile, len(cond_or_uncond))
 
             x_tile_out = model_function(x_tile, t_tile, **c_tile)
 
