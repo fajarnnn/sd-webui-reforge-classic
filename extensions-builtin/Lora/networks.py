@@ -29,8 +29,6 @@ def get_networks_on_desk(names: list[str], *, tried: bool = True) -> list["netwo
 
 
 def load_networks(names, te_multipliers=None, unet_multipliers=None, dyn_dims=None):
-    global lora_state_dict_cache
-
     current_sd = sd_models.model_data.get_sd_model()
     if current_sd is None:
         return
@@ -51,14 +49,13 @@ def load_networks(names, te_multipliers=None, unet_multipliers=None, dyn_dims=No
 
     compiled_lora_targets = []
     for a, b, c in zip(networks_on_disk, unet_multipliers, te_multipliers):
-        compiled_lora_targets.append([a.filename, b, c])
+        compiled_lora_targets.append((a.filename, b, c))
 
-    compiled_lora_targets_hash = str(compiled_lora_targets)
-
-    if current_sd.current_lora_hash == compiled_lora_targets_hash:
+    if shared.cached_lora_hash == compiled_lora_targets:
         return
 
-    current_sd.current_lora_hash = compiled_lora_targets_hash
+    shared.cached_lora_hash = compiled_lora_targets
+    current_sd.current_lora_hash = str(compiled_lora_targets)
     current_sd.forge_objects.unet = current_sd.forge_objects_original.unet
     current_sd.forge_objects.clip = current_sd.forge_objects_original.clip
 
