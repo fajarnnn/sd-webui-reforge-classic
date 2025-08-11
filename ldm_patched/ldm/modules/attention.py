@@ -243,27 +243,25 @@ def attention_sage(q, k, v, heads, mask=None):
     return out.reshape(b, -1, heads * dim_head)
 
 
-def attention_flash(q, k, v, heads, mask=None, attn_precision=None, skip_reshape=False, skip_output_reshape=False):
+def attention_flash(q, k, v, heads, mask=None):
     """
-    Reference: https://github.com/comfyanonymous/ComfyUI/blob/v0.3.30/comfy/ldm/modules/attention.py#L535
-    Edited by. Haoming02
+    Reference: https://github.com/comfyanonymous/ComfyUI/blob/v0.3.49/comfy/ldm/modules/attention.py#L538
+    Simplified by. Haoming02
     """
 
-    if skip_reshape:
-        b, _, _, dim_head = q.shape
-    else:
-        b, _, dim_head = q.shape
-        dim_head //= heads
-        q, k, v = map(
-            lambda t: t.view(b, -1, heads, dim_head).transpose(1, 2),
-            (q, k, v),
-        )
+    b, _, dim_head = q.shape
+    dim_head //= heads
 
-    if mask is not None:
-        if mask.ndim == 2:
-            mask = mask.unsqueeze(0)
-        if mask.ndim == 3:
-            mask = mask.unsqueeze(1)
+    if dim_head not in (64, 96, 128):
+        if model_management.xformers_enabled():
+            return attention_xformers(q, k, v, heads, mask)
+        else:
+            return attention_pytorch(q, k, v, heads, mask)
+
+    q, k, v = map(
+        lambda t: t.view(b, -1, heads, dim_head).transpose(1, 2),
+        (q, k, v),
+    )
 
     try:
         assert mask is None
@@ -278,9 +276,7 @@ def attention_flash(q, k, v, heads, mask=None, attn_precision=None, skip_reshape
         print(f"Error using FlashAttention, fallback to PyTorch sdp attention...\n{e}")
         out = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=mask, dropout_p=0.0, is_causal=False)
 
-    if not skip_output_reshape:
-        out = out.transpose(1, 2).reshape(b, -1, heads * dim_head)
-    return out
+    return out.transpose(1, 2).reshape(b, -1, heads * dim_head)
 
 
 if model_management.sage_enabled():

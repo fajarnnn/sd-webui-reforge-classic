@@ -223,6 +223,16 @@ def normal_attention(q, k, v):
     return h_
 
 
+def get_xformers_flash_attention_op(q, k, v):
+    try:
+        flash_attention_op = xformers.ops.MemoryEfficientAttentionFlashAttentionOp
+        fw, bw = flash_attention_op
+        if fw.supports(xformers.ops.fmha.Inputs(query=q, key=k, value=v, attn_bias=None)):
+            return flash_attention_op
+    except Exception:
+        return None
+
+
 def xformers_attention(q, k, v):
     # compute attention
     B, C, H, W = q.shape
@@ -232,7 +242,7 @@ def xformers_attention(q, k, v):
     )
 
     try:
-        out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None)
+        out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=None, op=get_xformers_flash_attention_op(q, k, v))
         out = out.transpose(1, 2).reshape(B, C, H, W)
     except NotImplementedError:
         out = slice_attention(
