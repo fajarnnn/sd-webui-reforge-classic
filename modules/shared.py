@@ -52,6 +52,7 @@ opts = None
 restricted_opts = None
 
 sd_model: sd_models_types.WebuiSdModel = None
+cached_lora_hash: list[tuple[str, float, float]] = []  # persistent patches
 
 settings_components = None
 """assigned from ui.py, a mapping on setting names to gradio components repsponsible for those settings"""

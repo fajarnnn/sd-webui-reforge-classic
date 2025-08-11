@@ -9,6 +9,7 @@ https://github.com/comfyanonymous/ComfyUI
 import copy
 import inspect
 import logging
+import time
 
 import torch
 
@@ -28,39 +29,37 @@ if PERSISTENT_PATCHES:
 
 class PatchStatus:
     def __init__(self):
-        self.current = 0  # the current status of the ModelPatcher
-        self.updated = 0  # the last time a patch was modified
+        self.t_apply: float = 0
+        """the last `time` a Patch was actually **applied**"""
+        self.t_added: float = 0
+        """the last `time` a new Patch was **added**"""
+        self.l_cache: list[tuple[str, float, float]] = None
+        """the Patches that are **currently** applied"""
 
     def require_patch(self) -> bool:
-        if not PERSISTENT_PATCHES:
-            return True
-
-        return self.current == 0
+        """whether a new Patch was added after the last application"""
+        return self.t_apply < self.t_added
 
     def require_unpatch(self) -> bool:
-        if not PERSISTENT_PATCHES:
-            return True
+        """whether the current Patches do not match the target Patches"""
+        from modules.shared import cached_lora_hash
 
-        if not PatchStatus.has_lora():
-            return True
-
-        return self.current != self.updated
+        return self.l_cache != cached_lora_hash
 
     def patch(self):
-        if self.updated > 0:
-            self.current = self.updated
+        """update the time when Patches are applied"""
+        self.t_apply = time.time()
+        self.sync()
 
-    def unpatch(self):
-        self.current = 0
+    def sync(self):
+        """update the current Patches to match the system Patches"""
+        from modules.shared import cached_lora_hash
 
-    def update(self):
-        self.updated += 1
+        self.l_cache = cached_lora_hash
 
-    @staticmethod
-    def has_lora() -> bool:
-        from modules.shared import sd_model
-
-        return sd_model.current_lora_hash != str([])
+    def on_add_patches(self):
+        """signal that a new Patch was added"""
+        self.t_added = time.time()
 
 
 class ModelPatcher:
@@ -219,7 +218,7 @@ class ModelPatcher:
                 current_patches.append((strength_patch, patches[k], strength_model))
                 self.patches[k] = current_patches
 
-        self.patch_status.update()
+        self.patch_status.on_add_patches()
         return list(p)
 
     def get_key_patches(self, filter_prefix=None):
@@ -255,7 +254,10 @@ class ModelPatcher:
         if not patch_weights:
             return self.model
 
-        if self.patches and self.patch_status.require_patch():
+        if PERSISTENT_PATCHES and self.patch_status.require_unpatch():
+            self.unpatch_model(move=True)
+
+        if self.patches and ((not PERSISTENT_PATCHES) or self.patch_status.require_patch()):
             model_sd = self.model_state_dict()
             for key in self.patches:
                 if key not in model_sd:
@@ -281,6 +283,7 @@ class ModelPatcher:
                 del temp_weight
 
             self.patch_status.patch()
+            logger.debug("Patch Model")
 
         if device_to is not None:
             self.model.to(device_to)
@@ -463,8 +466,8 @@ class ModelPatcher:
 
         return weight
 
-    def unpatch_model(self, device_to=None):
-        if self.backup and self.patch_status.require_unpatch():
+    def unpatch_model(self, device_to=None, *, move: bool = (not PERSISTENT_PATCHES)):
+        if self.backup and move:
             keys = list(self.backup.keys())
 
             if self.weight_inplace_update:
@@ -475,7 +478,8 @@ class ModelPatcher:
                     ldm_patched.modules.utils.set_attr(self.model, k, self.backup[k])
 
             self.backup.clear()
-            self.patch_status.unpatch()
+            self.patch_status.sync()
+            logger.debug("Unpatch Model")
 
         if device_to is not None:
             self.model.to(device_to)

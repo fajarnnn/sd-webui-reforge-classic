@@ -446,6 +446,7 @@ def load_model(checkpoint_info=None, already_loaded_state_dict=None):
 
     model_data.set_sd_model(sd_model)
     model_data.was_loaded_at_least_once = True
+    shared.cached_lora_hash.clear()
 
     # Reload embeddings after model load as they may or may not fit the model
     sd_hijack.model_hijack.embedding_db.load_textual_inversion_embeddings(force_reload=True)
