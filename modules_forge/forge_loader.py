@@ -102,6 +102,7 @@ def load_checkpoint_guess_config(sd, output_vae=True, output_clip=True, output_c
             load_device=load_device,
             offload_device=model_management.unet_offload_device(),
             current_device=initial_load_device,
+            weight_inplace_update=shared.opts.extra_networks_patch_inplace,
         )
         if initial_load_device != torch.device("cpu"):
             print("loaded straight to GPU")

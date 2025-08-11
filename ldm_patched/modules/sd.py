@@ -90,6 +90,7 @@ class CLIP:
             self.cond_stage_model,
             load_device=load_device,
             offload_device=offload_device,
+            weight_inplace_update=opts.extra_networks_patch_inplace,
         )
         self.layer_idx = None
 

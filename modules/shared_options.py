@@ -317,6 +317,7 @@ However, the resulting UI is quite... sluggish.
             "extra_networks_add_text_separator": OptionInfo(" ", "Extra Networks Separator").info("additional text to insert before the Extra Networks syntax"),
             "ui_extra_networks_tab_reorder": OptionInfo("", "Extra Networks Tab Order").info('tab names separated by "," character; empty = default').needs_reload_ui(),
             "textual_inversion_add_hashes_to_infotext": OptionInfo(True, "Append Textual Inversion hashes to infotext"),
+            "extra_networks_patch_inplace": OptionInfo(False, "Patch the LoRAs in-place").info("reduce peak memory usage").needs_restart(),
         },
     )
 )
