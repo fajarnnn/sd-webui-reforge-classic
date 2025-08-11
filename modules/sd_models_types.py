@@ -32,5 +32,11 @@ class WebuiSdModel:
     is_sdxl: bool
     """True if the model's architecture is SD XL"""
 
+    forge_objects_original: "ForgeObjects"
+    """The model patchers freshly created in `forge_loader`"""
+
     forge_objects: "ForgeObjects"
-    """The model patchers used by Forge"""
+    """The model patchers actively used during generation"""
+
+    forge_objects_after_applying_lora: "ForgeObjects"
+    """The model patchers after LoRA is applied; `None` if not using LoRA"""

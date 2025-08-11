@@ -35,6 +35,12 @@ class ForgeObjects:
         self.vae: VAE = vae
         self.clipvision: ModelPatcher = clipvision
 
+    def __del__(self):
+        del self.unet
+        del self.clip
+        del self.vae
+        del self.clipvision
+
     def shallow_copy(self):
         return ForgeObjects(self.unet, self.clip, self.vae, self.clipvision)
 
@@ -132,9 +138,9 @@ def load_model_for_a1111(timer, checkpoint_info=None, state_dict=None) -> WebuiS
         output_model=True,
     )
 
-    sd_model.forge_objects = forge_objects
-    sd_model.forge_objects_original = forge_objects.shallow_copy()
-    sd_model.forge_objects_after_applying_lora = forge_objects.shallow_copy()
+    sd_model.forge_objects_original = forge_objects
+    sd_model.forge_objects = sd_model.forge_objects_original.shallow_copy()
+    sd_model.forge_objects_after_applying_lora = None
 
     del state_dict
     timer.record("forge load real models")

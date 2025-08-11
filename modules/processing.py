@@ -882,6 +882,7 @@ def process_images_inner(p: StableDiffusionProcessing) -> Processed:
 
             sd_models.reload_model_weights()  # model can be changed for example by refiner
 
+            del p.sd_model.forge_objects
             p.sd_model.forge_objects = p.sd_model.forge_objects_original.shallow_copy()
             p.prompts = p.all_prompts[n * p.batch_size : (n + 1) * p.batch_size]
             p.negative_prompts = p.all_negative_prompts[n * p.batch_size : (n + 1) * p.batch_size]
@@ -901,7 +902,8 @@ def process_images_inner(p: StableDiffusionProcessing) -> Processed:
             if not p.disable_extra_networks:
                 extra_networks.activate(p, p.extra_network_data)
 
-            p.sd_model.forge_objects = p.sd_model.forge_objects_after_applying_lora.shallow_copy()
+            if bool(shared.cached_lora_hash):
+                p.sd_model.forge_objects = p.sd_model.forge_objects_after_applying_lora.shallow_copy()
 
             if p.scripts is not None:
                 p.scripts.process_batch(p, batch_number=n, prompts=p.prompts, seeds=p.seeds, subseeds=p.subseeds)
@@ -1287,7 +1289,8 @@ class StableDiffusionProcessingTxt2Img(StableDiffusionProcessing):
 
             x = self.rng.next()
 
-            self.sd_model.forge_objects = self.sd_model.forge_objects_after_applying_lora.shallow_copy()
+            if bool(shared.cached_lora_hash):
+                self.sd_model.forge_objects = self.sd_model.forge_objects_after_applying_lora.shallow_copy()
             apply_token_merging(self.sd_model, self.get_token_merging_ratio())
 
             if self.scripts is not None:
@@ -1399,7 +1402,8 @@ class StableDiffusionProcessingTxt2Img(StableDiffusionProcessing):
         if self.scripts is not None:
             self.scripts.before_hr(self)
 
-        self.sd_model.forge_objects = self.sd_model.forge_objects_after_applying_lora.shallow_copy()
+        if bool(shared.cached_lora_hash):
+            self.sd_model.forge_objects = self.sd_model.forge_objects_after_applying_lora.shallow_copy()
         apply_token_merging(self.sd_model, self.get_token_merging_ratio(for_hr=True))
 
         if self.scripts is not None:
@@ -1717,7 +1721,8 @@ class StableDiffusionProcessingImg2Img(StableDiffusionProcessing):
             self.extra_generation_params["Noise multiplier"] = self.initial_noise_multiplier
             x *= self.initial_noise_multiplier
 
-        self.sd_model.forge_objects = self.sd_model.forge_objects_after_applying_lora.shallow_copy()
+        if bool(shared.cached_lora_hash):
+            self.sd_model.forge_objects = self.sd_model.forge_objects_after_applying_lora.shallow_copy()
         apply_token_merging(self.sd_model, self.get_token_merging_ratio())
 
         if self.scripts is not None:
