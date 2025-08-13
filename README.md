@@ -22,7 +22,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <br>
 
-## Features [Aug. 06]
+## Features [Aug. 13]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -65,6 +65,9 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Persistent LoRA Patching
     - speed up LoRA loading in subsequent generations
     - see [Commandline](#by-classic)
+- [X] Patch LoRA in-place
+    - reduce VRAM usage when loading LoRA
+    - enable in **Settings/Extra Networks**
 - [X] Implement new Samplers
     - *(ported from reForge Webui)*
 - [X] Implement Scheduler dropdown
@@ -181,6 +184,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Run `text encoder` on CPU by default
 - [X] Fix `pydantic` Errors
 - [X] Fix `Soft Inpainting`
+- [X] Fix `Controllllite`
+- [X] Fix `MultiDiffusion`
 - [X] Lint & Format
 - [X] Update `Pillow`
     - faster image processing
