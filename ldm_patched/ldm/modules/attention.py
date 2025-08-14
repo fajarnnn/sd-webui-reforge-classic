@@ -163,11 +163,12 @@ def attention_basic(q, k, v, heads, mask=None):
     return out
 
 
-def attention_pytorch(q, k, v, heads, mask=None):
+def attention_pytorch(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, heads, mask=None):
     b, _, dim_head = q.shape
     dim_head //= heads
+
     q, k, v = map(
-        lambda t: t.view(b, -1, heads, dim_head).transpose(1, 2),
+        lambda t: t.view(b, -1, heads, dim_head).transpose(1, 2).contiguous(),
         (q, k, v),
     )
 
@@ -183,26 +184,22 @@ except:
     pass
 
 
-def attention_xformers(q, k, v, heads, mask=None):
+def attention_xformers(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, heads, mask=None):
     b, _, dim_head = q.shape
     dim_head //= heads
+
     if BROKEN_XFORMERS and b * heads > 65535:
         return attention_pytorch(q, k, v, heads, mask)
 
     q, k, v = map(
-        lambda t: t.unsqueeze(3).reshape(b, -1, heads, dim_head).transpose(1, 2).reshape(b * heads, -1, dim_head).contiguous(),
+        lambda t: t.view(b, -1, heads, dim_head),
         (q, k, v),
     )
 
-    if mask is not None:
-        pad = 8 - q.shape[1] % 8
-        mask_out = torch.empty([q.shape[0], q.shape[1], q.shape[1] + pad], dtype=q.dtype, device=q.device)
-        mask_out[:, :, : mask.shape[-1]] = mask
-        mask = mask_out[:, :, : mask.shape[-1]]
+    assert mask is None
 
     out = xformers.ops.memory_efficient_attention(q, k, v, attn_bias=mask)
-
-    return out.unsqueeze(0).reshape(b, heads, -1, dim_head).transpose(1, 2).reshape(b, -1, heads * dim_head)
+    return out.reshape(b, -1, heads * dim_head)
 
 
 if isSage2 and args.sageattn2_api is not SageAttentionAPIs.Automatic:
@@ -217,7 +214,7 @@ if isSage2 and args.sageattn2_api is not SageAttentionAPIs.Automatic:
         sageattn = partial(sageattn_qk_int8_pv_fp8_cuda, qk_quant_gran="per_thread", pv_accum_dtype="fp32+fp32")
 
 
-def attention_sage(q, k, v, heads, mask=None):
+def attention_sage(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, heads, mask=None):
     """
     Reference: https://github.com/comfyanonymous/ComfyUI/blob/v0.3.13/comfy/ldm/modules/attention.py#L472
     Edited by. Haoming02
@@ -243,7 +240,7 @@ def attention_sage(q, k, v, heads, mask=None):
     return out.reshape(b, -1, heads * dim_head)
 
 
-def attention_flash(q, k, v, heads, mask=None):
+def attention_flash(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, heads, mask=None):
     """
     Reference: https://github.com/comfyanonymous/ComfyUI/blob/v0.3.49/comfy/ldm/modules/attention.py#L538
     Simplified by. Haoming02
@@ -265,6 +262,7 @@ def attention_flash(q, k, v, heads, mask=None):
 
     try:
         assert mask is None
+        # NOTE: the `.transpose` are needed to fix the stride (i.e. faster)
         out = flash_attn_wrapper(
             q.transpose(1, 2),
             k.transpose(1, 2),
