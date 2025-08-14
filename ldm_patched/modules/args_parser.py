@@ -85,14 +85,34 @@ parser.add_argument("--fast-fp16", action="store_true")
 parser.add_argument("--persistent-patches", action="store_true")
 
 
-class SageAttentionAPIs(enum.Enum):
-    Automatic = "auto"
-    Triton16 = "triton-fp16"
-    CUDA16 = "cuda-fp16"
-    CUDA8 = "cuda-fp8"
+class SageAttentionFuncs(enum.Enum):
+    auto = "auto"
+    fp16_triton = "fp16_triton"
+    fp16_cuda = "fp16_cuda"
+    fp8_cuda = "fp8_cuda"
 
 
-parser.add_argument("--sageattn2-api", type=SageAttentionAPIs, default=SageAttentionAPIs.Automatic, action=EnumAction)
+class Sage_quantization_backend(enum.Enum):
+    cuda = "cuda"
+    triton = "triton"
+
+
+class Sage_qk_quant_gran(enum.Enum):
+    per_warp = "per_warp"
+    per_thread = "per_thread"
+
+
+class Sage_pv_accum_dtype(enum.Enum):
+    fp16 = "fp16"
+    fp32 = "fp32"
+    fp16fp32 = "fp16+fp32"
+    fp32fp32 = "fp32+fp32"
+
+
+parser.add_argument("--sage2-function", type=SageAttentionFuncs, default=SageAttentionFuncs.auto, action=EnumAction)
+parser.add_argument("--sage-quantization-backend", type=Sage_quantization_backend, default=Sage_quantization_backend.triton, action=EnumAction)
+parser.add_argument("--sage-quant-gran", type=Sage_qk_quant_gran, default=Sage_qk_quant_gran.per_thread, action=EnumAction)
+parser.add_argument("--sage-accum-dtype", type=Sage_pv_accum_dtype, default=Sage_pv_accum_dtype.fp32, action=EnumAction)
 
 
 args = parser.parse_args([])

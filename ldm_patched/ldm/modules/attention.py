@@ -40,7 +40,7 @@ if model_management.flash_enabled():
 
 
 import ldm_patched.modules.ops
-from ldm_patched.modules.args_parser import args, SageAttentionAPIs
+from ldm_patched.modules.args_parser import args, SageAttentionFuncs
 
 ops = ldm_patched.modules.ops.disable_weight_init
 
@@ -202,16 +202,15 @@ def attention_xformers(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, heads,
     return out.reshape(b, -1, heads * dim_head)
 
 
-if isSage2 and args.sageattn2_api is not SageAttentionAPIs.Automatic:
+if isSage2 and args.sage2_function is not SageAttentionFuncs.auto:
     from functools import partial
-    from sageattention import sageattn_qk_int8_pv_fp16_triton, sageattn_qk_int8_pv_fp16_cuda, sageattn_qk_int8_pv_fp8_cuda
+    import sageattention
 
-    if args.sageattn2_api is SageAttentionAPIs.Triton16:
-        sageattn = partial(sageattn_qk_int8_pv_fp16_triton, quantization_backend="cuda")
-    if args.sageattn2_api is SageAttentionAPIs.CUDA16:
-        sageattn = partial(sageattn_qk_int8_pv_fp16_cuda, qk_quant_gran="per_warp", pv_accum_dtype="fp16+fp32")
-    if args.sageattn2_api is SageAttentionAPIs.CUDA8:
-        sageattn = partial(sageattn_qk_int8_pv_fp8_cuda, qk_quant_gran="per_thread", pv_accum_dtype="fp32+fp32")
+    _function = getattr(sageattention, f"sageattn_qk_int8_pv_{args.sage2_function.value}")
+    if args.sage2_function is SageAttentionFuncs.fp16_triton:
+        sageattn = partial(_function, quantization_backend=args.sage_quantization_backend.value)
+    else:
+        sageattn = partial(_function, qk_quant_gran=args.sage_quant_gran.value, pv_accum_dtype=args.sage_accum_dtype.value)
 
 
 def attention_sage(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, heads, mask=None):
@@ -278,15 +277,15 @@ def attention_flash(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, heads, ma
 
 
 if model_management.sage_enabled():
-    match args.sageattn2_api:
-        case SageAttentionAPIs.Automatic:
+    match args.sage2_function:
+        case SageAttentionFuncs.auto:
             print("Using sage attention")
-        case SageAttentionAPIs.Triton16:
-            print("Using sage attention (Triton fp16)")
-        case SageAttentionAPIs.CUDA16:
-            print("Using sage attention (CUDA fp16)")
-        case SageAttentionAPIs.CUDA8:
-            print("Using sage attention (CUDA fp8)")
+        case SageAttentionFuncs.fp16_triton:
+            print("Using sage attention (fp16 Triton)")
+        case SageAttentionFuncs.fp16_cuda:
+            print("Using sage attention (fp16 CUDA)")
+        case SageAttentionFuncs.fp8_cuda:
+            print("Using sage attention (fp8 CUDA)")
 
     optimized_attention = attention_sage
 elif model_management.flash_enabled():

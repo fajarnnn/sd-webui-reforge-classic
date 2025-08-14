@@ -269,13 +269,12 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 <details>
 <summary>with SageAttention 2</summary>
 
-- `--sageattn2-api`: Select the function used by **SageAttention 2**
+- `--sage2-function`: Select the function used by **SageAttention 2**
     - **options:**
         - `auto` (default)
-        - `triton-fp16`
-        - `cuda-fp16`
-        - `cuda-fp8`
-    - try the `fp16` options if you get `NaN` *(black images)* on `auto`
+        - `fp16_triton`
+        - `fp16_cuda`
+        - `fp8_cuda`
 
 </details>
 
