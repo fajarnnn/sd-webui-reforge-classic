@@ -154,23 +154,14 @@ if not args.always_normal_vram and not args.always_cpu:
         set_vram_to = VRAMState.LOW_VRAM
 
 
-if torch.__version__.startswith("2.7"):
-    if args.fast_fp16:
+if args.fast_fp16:
+    _ver = str(torch.version.__version__)
+    if int(_ver[0]) >= 2 and int(_ver[2]) >= 7:
         torch.backends.cuda.allow_fp16_bf16_reduction_math_sdp(True)
         torch.backends.cuda.matmul.allow_fp16_accumulation = True
         print("allow_fp16_accumulation:", torch.backends.cuda.matmul.allow_fp16_accumulation)
-
-    try:
-        import importlib.metadata
-        import sys
-
-        if importlib.metadata.version("xformers").startswith("0.0.2"):
-            print("\n\nPyTorch 2.7.0 requires xformers 0.0.30 or above!")
-            print("Add the --reinstall-xformers arg to update xformers\n\n")
-            sys.modules["xformers"] = None
-
-    except importlib.metadata.PackageNotFoundError:
-        pass
+    else:
+        print("This version of pytorch does not support fp16_accumulation")
 
 XFORMERS_VERSION = ""
 XFORMERS_ENABLED_VAE = True
