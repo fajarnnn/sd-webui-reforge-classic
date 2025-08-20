@@ -22,7 +22,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <br>
 
-## Features [Aug. 13]
+## Features [Aug. 20]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -50,6 +50,10 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
         - [how to install](#install-cublas)
     - ~25% speed up
     - enable in **Settings/Optimizations**
+
+> [!Important]
+> - Both `fp16_accumulation` and `cublas_ops` achieve the same speed up; if you already install/update to PyTorch **2.7.0** +, there is little reason to go for `cublas_ops`
+
 - [X] Support fast `fp8` operation *(`torch._scaled_mm`)*
     - requires RTX **40** +
     - requires **UNet Weights in fp8** option
@@ -57,7 +61,6 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - enable in **Settings/Optimizations**
 
 > [!Note]
-> - Both `fp16_accumulation` and `cublas_ops` achieve the same speed up; if you already install/update to PyTorch **2.7.0**, you do not need to go for `cublas_ops`
 > - The `fp16_accumulation` and `cublas_ops` require `fp16` precision, thus is not compatible with the `fp8` operation
 
 <br>
@@ -192,8 +195,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Update `protobuf`
     - faster `insightface` loading
 - [X] Update to latest PyTorch
-    - `torch==2.7.1+cu128`
-    - `xformers==0.0.30`
+    - `torch==2.8.0+cu128`
+    - `xformers==0.0.32`
 
 > [!Note]
 > If your GPU does not support the latest PyTorch, manually [install](#install-older-pytorch) older version of PyTorch
