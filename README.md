@@ -444,6 +444,18 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - If you installed `uv`, use `uv pip install` instead
     - The installation takes a few minutes
 
+<br>
+
+### Alternatively
+> for **Windows**
+
+- Download the pre-built `.whl` package from https://github.com/woct0rdho/SageAttention/releases
+```bash
+pip install sageattention...win_amd64.whl
+```
+- If you installed `uv`, use `uv pip install` instead
+- **Important:** Download the correct `.whl` for your PyTorch version
+
 </details>
 
 ### Install older PyTorch
