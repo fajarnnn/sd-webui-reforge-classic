@@ -161,6 +161,15 @@ function submit_txt2img_upscale() {
     return res;
 }
 
+function select_gallery_image_after_upscale() {
+    if (!opts.hires_insert_index) return;
+    setTimeout(() => {
+        const gallery = document.getElementById("txt2img_gallery");
+        const thumbnails = gallery.querySelectorAll("div.thumbnails>button");
+        thumbnails[selected_gallery_index() + 1].click();
+    }, 100);
+}
+
 function submit_img2img() {
     showSubmitButtons('img2img', false);
 
