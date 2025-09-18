@@ -162,7 +162,7 @@ function submit_txt2img_upscale() {
 }
 
 function select_gallery_image_after_upscale() {
-    if (!opts.hires_insert_index) return;
+    if (!(opts.hires_button_gallery_insert && opts.hires_insert_index)) return;
     setTimeout(() => {
         const gallery = document.getElementById("txt2img_gallery");
         const thumbnails = gallery.querySelectorAll("div.thumbnails>button");
