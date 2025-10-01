@@ -490,9 +490,3 @@ class ModelPatcher:
             ldm_patched.modules.utils.set_attr_raw(self.model, k, self.object_patches_backup[k])
 
         self.object_patches_backup.clear()
-
-    def __del__(self):
-        del self.patches
-        del self.object_patches
-        del self.model_options
-        self.model = None

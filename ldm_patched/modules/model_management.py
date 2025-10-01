@@ -444,9 +444,6 @@ class LoadedModel:
     def __eq__(self, other: "LoadedModel"):
         return self.model is other.model
 
-    def __del__(self):
-        del self.model
-
 
 def minimum_inference_memory():
     return 1024 * 1024 * 1024
