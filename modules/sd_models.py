@@ -508,10 +508,14 @@ def list_loaded_weights():
 
 
 def apply_token_merging(sd_model, token_merging_ratio):
-    if token_merging_ratio <= 0:
-        return
+    if shared.opts.scaling_factor > 1.0:
+        from ldm_patched.modules.eps import EpsilonScaling
 
-    from ldm_patched.modules.tomesd import TomePatcher
+        sd_model.forge_objects.unet = EpsilonScaling.patch(model=sd_model.forge_objects.unet, scaling_factor=shared.opts.scaling_factor)
+        print(f"eps_scaling_factor = {shared.opts.scaling_factor}")
 
-    sd_model.forge_objects.unet = TomePatcher.patch(model=sd_model.forge_objects.unet, ratio=token_merging_ratio)
-    print(f"token_merging_ratio = {token_merging_ratio}")
+    if token_merging_ratio > 0:
+        from ldm_patched.modules.tomesd import TomePatcher
+
+        sd_model.forge_objects.unet = TomePatcher.patch(model=sd_model.forge_objects.unet, ratio=token_merging_ratio)
+        print(f"token_merging_ratio = {token_merging_ratio}")

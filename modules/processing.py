@@ -738,6 +738,7 @@ def create_infotext(p, all_prompts, all_seeds, all_subseeds, comments=None, iter
         "Conditional mask weight": getattr(p, "inpainting_mask_weight", shared.opts.inpainting_mask_weight) if p.is_using_inpainting_conditioning else None,
         "Clip skip": None if clip_skip <= 1 else clip_skip,
         "ENSD": opts.eta_noise_seed_delta if uses_ensd else None,
+        "eps_scaling_factor": shared.opts.scaling_factor if shared.opts.scaling_factor > 1.0 else None,
         "Token merging ratio": token_merging_ratio if token_merging_ratio > 0.0 else None,
         "Token merging ratio hr": token_merging_ratio_hr if _hr_tome else None,
         "Init image hash": getattr(p, "init_img_hash", None),
