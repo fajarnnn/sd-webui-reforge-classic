@@ -1,12 +1,18 @@
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from modules.processing import StableDiffusionProcessing
+
 import math
 import re
 
 import gradio as gr
+from PIL import Image
+
 import modules.scripts as scripts
 from modules import devices, images, processing, shared
 from modules.processing import Processed
 from modules.shared import opts, state
-from PIL import Image
 
 
 class SDUpscale(scripts.Script):
@@ -57,7 +63,7 @@ class SDUpscale(scripts.Script):
 
         return [overlap, upscaler_index, scale_factor, override]
 
-    def run(self, p, overlap, upscaler_index, scale_factor, override):
+    def run(self, p: "StableDiffusionProcessing", overlap, upscaler_index, scale_factor, override):
         if isinstance(upscaler_index, str):
             upscaler = next(
                 (x for x in shared.sd_upscalers if x.name == upscaler_index),
@@ -68,13 +74,15 @@ class SDUpscale(scripts.Script):
             assert isinstance(upscaler_index, int)
             upscaler = shared.sd_upscalers[upscaler_index]
 
-        processing.fix_seed(p)
-
         p.extra_generation_params["SD Upscale - Overlap"] = overlap
         p.extra_generation_params["SD Upscale - Upscaler"] = upscaler.name
 
-        initial_info = None
-        seed = p.seed
+        initial_info: str = None
+        seed_pattern = r"Seed: (\d+)"
+        size_pattern = r"Size: (\d+)x(\d+)"
+
+        processing.fix_seed(p)
+        seed: int = p.seed
 
         init_img = p.init_images[0]
         init_img = images.flatten(init_img, opts.img2img_background_color)
@@ -106,13 +114,15 @@ class SDUpscale(scripts.Script):
         print(
             f"""
 [SD Upscale]
-- Processing {len(grid.tiles[0][2])}x{len(grid.tiles)} tiles
-- totaling {len(work)} images at a batch size of {batch_size}
+- Processing {len(grid.tiles[0][2])}x{len(grid.tiles)} tiles for each image
+- totaling {len(work)}x{upscale_count} generations at a batch size of {batch_size}
 - resulting in {state.job_count} iterations
             """
         )
 
-        result_images = []
+        result_images: list[Image.Image] = []
+        infotexts: list[str] = []
+
         for n in range(upscale_count):
             start_seed = seed + n
             p.seed = start_seed
@@ -134,15 +144,16 @@ class SDUpscale(scripts.Script):
             image_index = 0
             for _, _, row in grid.tiles:
                 for tiledata in row:
-                    tiledata[2] = (
-                        work_results[image_index]
-                        if image_index < len(work_results)
-                        else Image.new("RGB", (p.width, p.height))
-                    )
+                    tiledata[2] = work_results[image_index] if image_index < len(work_results) else Image.new("RGB", (p.width, p.height))
                     image_index += 1
 
             combined_image = images.combine_grid(grid)
+            fin_w, fin_h = combined_image.size
+            _info = re.sub(size_pattern, f"Size: {fin_w}x{fin_h}", initial_info)
+            _info = re.sub(seed_pattern, f"Seed: {start_seed}", _info)
+
             result_images.append(combined_image)
+            infotexts.append(_info)
 
             if opts.samples_save:
                 if override:
@@ -151,7 +162,7 @@ class SDUpscale(scripts.Script):
                         path=opts.outdir_samples or opts.outdir_extras_samples,
                         basename="",
                         extension=opts.samples_format,
-                        info=initial_info,
+                        info=_info,
                         short_filename=True,
                         no_prompt=True,
                         grid=False,
@@ -168,12 +179,8 @@ class SDUpscale(scripts.Script):
                         start_seed,
                         p.prompt,
                         opts.samples_format,
-                        info=initial_info,
+                        info=_info,
                         p=p,
                     )
 
-        new_w, new_h = img.size
-        pattern = r"Size: (\d+)x(\d+)"
-        initial_info = re.sub(pattern, f"Size: {new_w}x{new_h}", initial_info)
-
-        return Processed(p, result_images, seed, initial_info)
+        return Processed(p, result_images, seed, initial_info, infotexts=infotexts)
