@@ -1,8 +1,9 @@
 import inspect
 
 import k_diffusion
-import modules.shared as shared
 import torch
+
+import modules.shared as shared
 from modules import (
     sd_samplers_cfg_denoiser,
     sd_samplers_common,
@@ -25,6 +26,7 @@ samplers_k_diffusion = [
     ("Heun", "sample_heun", ["k_heun"], {"second_order": True}),
     ("DPM2", "sample_dpm_2", ["k_dpm_2"], {"scheduler": "karras", "discard_next_to_last_sigma": True, "second_order": True}),
     ("Restart", sd_samplers_extra.restart_sampler, ["restart"], {"scheduler": "karras", "second_order": True}),
+    ("UniPC", sd_samplers_extra.sample_unipc, ["unipc"], {"discard_next_to_last_sigma": True}),
     ("DDPM", "sample_ddpm", ["ddpm"], {}),
 ]
 

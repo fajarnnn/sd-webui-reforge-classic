@@ -1,7 +1,9 @@
+# reference: https://github.com/comfyanonymous/ComfyUI/blob/v0.3.63/comfy/extra_samplers/uni_pc.py
+
 import math
 
 import torch
-import tqdm
+from tqdm.auto import trange
 
 
 class NoiseScheduleVP:
@@ -98,15 +100,14 @@ def model_wrapper(
     model,
     noise_schedule,
     model_type="noise",
-    model_kwargs=None,
+    model_kwargs={},
     guidance_type="uncond",
+    condition=None,
+    unconditional_condition=None,
     guidance_scale=1.0,
     classifier_fn=None,
-    classifier_kwargs=None,
+    classifier_kwargs={},
 ):
-
-    model_kwargs = model_kwargs or {}
-    classifier_kwargs = classifier_kwargs or {}
 
     def get_model_input_time(t_continuous):
         """
@@ -123,10 +124,7 @@ def model_wrapper(
         if t_continuous.reshape((-1,)).shape[0] == 1:
             t_continuous = t_continuous.expand((x.shape[0]))
         t_input = get_model_input_time(t_continuous)
-        if cond is None:
-            output = model(x, t_input, None, **model_kwargs)
-        else:
-            output = model(x, t_input, cond, **model_kwargs)
+        output = model(x, t_input, **model_kwargs)
         if model_type == "noise":
             return output
         elif model_type == "x_start":
@@ -142,7 +140,7 @@ def model_wrapper(
             dims = x.dim()
             return -expand_dims(sigma_t, dims) * output
 
-    def cond_grad_fn(x, t_input, condition):
+    def cond_grad_fn(x, t_input):
         """
         Compute the gradient of the classifier, i.e. nabla_{x} log p_t(cond | x_t)
         """
@@ -151,7 +149,7 @@ def model_wrapper(
             log_prob = classifier_fn(x_in, t_input, condition, **classifier_kwargs)
             return torch.autograd.grad(log_prob.sum(), x_in)[0]
 
-    def model_fn(x, t_continuous, condition, unconditional_condition):
+    def model_fn(x, t_continuous):
         """
         The noise prediction model function that is used for DPM-Solver
         """
@@ -162,7 +160,7 @@ def model_wrapper(
         elif guidance_type == "classifier":
             assert classifier_fn is not None
             t_input = get_model_input_time(t_continuous)
-            cond_grad = cond_grad_fn(x, t_input, condition)
+            cond_grad = cond_grad_fn(x, t_input)
             sigma_t = noise_schedule.marginal_std(t_continuous)
             noise = noise_pred_fn(x, t_continuous)
             return noise - guidance_scale * expand_dims(sigma_t, dims=cond_grad.dim()) * cond_grad
@@ -172,21 +170,7 @@ def model_wrapper(
             else:
                 x_in = torch.cat([x] * 2)
                 t_in = torch.cat([t_continuous] * 2)
-                if isinstance(condition, dict):
-                    assert isinstance(unconditional_condition, dict)
-                    c_in = {}
-                    for k in condition:
-                        if isinstance(condition[k], list):
-                            c_in[k] = [torch.cat([unconditional_condition[k][i], condition[k][i]]) for i in range(len(condition[k]))]
-                        else:
-                            c_in[k] = torch.cat([unconditional_condition[k], condition[k]])
-                elif isinstance(condition, list):
-                    c_in = []
-                    assert isinstance(unconditional_condition, list)
-                    for i in range(len(condition)):
-                        c_in.append(torch.cat([unconditional_condition[i], condition[i]]))
-                else:
-                    c_in = torch.cat([unconditional_condition, condition])
+                c_in = torch.cat([unconditional_condition, condition])
                 noise_uncond, noise = noise_pred_fn(x_in, t_in, cond=c_in).chunk(2)
                 return noise_uncond + guidance_scale * (noise - noise_uncond)
 
@@ -196,22 +180,17 @@ def model_wrapper(
 
 
 class UniPC:
-    def __init__(self, model_fn, noise_schedule, predict_x0=True, thresholding=False, max_val=1.0, variant="bh1", condition=None, unconditional_condition=None, before_sample=None, after_sample=None, after_update=None):
+    def __init__(self, model_fn, noise_schedule, predict_x0=True, thresholding=False, max_val=1.0, variant="bh1"):
         """
         Construct a UniPC
         We support both data_prediction and noise_prediction
         """
-        self.model_fn_ = model_fn
+        self.model = model_fn
         self.noise_schedule = noise_schedule
         self.variant = variant
         self.predict_x0 = predict_x0
         self.thresholding = thresholding
         self.max_val = max_val
-        self.condition = condition
-        self.unconditional_condition = unconditional_condition
-        self.before_sample = before_sample
-        self.after_sample = after_sample
-        self.after_update = after_update
 
     def dynamic_thresholding_fn(self, x0, t=None):
         """
@@ -223,20 +202,6 @@ class UniPC:
         s = expand_dims(torch.maximum(s, self.thresholding_max_val * torch.ones_like(s).to(s.device)), dims)
         x0 = torch.clamp(x0, -s, s) / s
         return x0
-
-    def model(self, x, t):
-        cond = self.condition
-        uncond = self.unconditional_condition
-        if self.before_sample is not None:
-            x, t, cond, uncond = self.before_sample(x, t, cond, uncond)
-        res = self.model_fn_(x, t, cond, uncond)
-        if self.after_sample is not None:
-            x, t, cond, uncond, res = self.after_sample(x, t, cond, uncond, res)
-
-        if isinstance(res, tuple):
-            res = res[1]
-
-        return res
 
     def noise_prediction_fn(self, x, t):
         """
@@ -503,6 +468,8 @@ class UniPC:
                     corr_res = torch.tensordot(D1s, rhos_c[:-1], dims=([1], [0]))
                 else:
                     corr_res = 0
+                D1_t = model_t - model_prev_0
+                x_t = x_t_ - expand_dims(alpha_t * B_h, dims) * (corr_res + rhos_c[-1] * D1_t)
         else:
             x_t_ = expand_dims(torch.exp(log_alpha_t - log_alpha_prev_0), dims) * x - expand_dims(sigma_t * h_phi_1, dims) * model_prev_0
             if x_t is None:
@@ -525,7 +492,7 @@ class UniPC:
     def sample(
         self,
         x,
-        steps=20,
+        timesteps,
         t_start=None,
         t_end=None,
         order=3,
@@ -537,31 +504,31 @@ class UniPC:
         atol=0.0078,
         rtol=0.05,
         corrector=False,
+        callback=None,
+        disable_pbar=False,
     ):
-        t_0 = 1.0 / self.noise_schedule.total_N if t_end is None else t_end
-        t_T = self.noise_schedule.T if t_start is None else t_start
-        device = x.device
-        timesteps = self.get_time_steps(skip_type=skip_type, t_T=t_T, t_0=t_0, N=steps, device=device)
+        steps = len(timesteps) - 1
         if method == "multistep":
-            assert steps >= order, "UniPC order must be < sampling steps"
+            assert steps >= order
             assert timesteps.shape[0] - 1 == steps
-            with torch.no_grad():
-                vec_t = timesteps[0].expand((x.shape[0]))
-                model_prev_list = [self.model_fn(x, vec_t)]
-                t_prev_list = [vec_t]
-                with tqdm.tqdm(total=steps) as pbar:
-                    for init_order in range(1, order):
-                        vec_t = timesteps[init_order].expand(x.shape[0])
-                        x, model_x = self.multistep_uni_pc_update(x, model_prev_list, t_prev_list, vec_t, init_order, use_corrector=True)
-                        if model_x is None:
-                            model_x = self.model_fn(x, vec_t)
-                        if self.after_update is not None:
-                            self.after_update(x, model_x)
-                        model_prev_list.append(model_x)
-                        t_prev_list.append(vec_t)
-                        pbar.update()
-
-                    for step in range(order, steps + 1):
+            for step_index in trange(steps, disable=disable_pbar):
+                if step_index == 0:
+                    vec_t = timesteps[0].expand((x.shape[0]))
+                    model_prev_list = [self.model_fn(x, vec_t)]
+                    t_prev_list = [vec_t]
+                elif step_index < order:
+                    init_order = step_index
+                    vec_t = timesteps[init_order].expand(x.shape[0])
+                    x, model_x = self.multistep_uni_pc_update(x, model_prev_list, t_prev_list, vec_t, init_order, use_corrector=True)
+                    if model_x is None:
+                        model_x = self.model_fn(x, vec_t)
+                    model_prev_list.append(model_x)
+                    t_prev_list.append(vec_t)
+                else:
+                    extra_final_step = 0
+                    if step_index == (steps - 1):
+                        extra_final_step = 1
+                    for step in range(step_index, step_index + 1 + extra_final_step):
                         vec_t = timesteps[step].expand(x.shape[0])
                         if lower_order_final:
                             step_order = min(order, steps + 1 - step)
@@ -572,8 +539,6 @@ class UniPC:
                         else:
                             use_corrector = True
                         x, model_x = self.multistep_uni_pc_update(x, model_prev_list, t_prev_list, vec_t, step_order, use_corrector=use_corrector)
-                        if self.after_update is not None:
-                            self.after_update(x, model_x)
                         for i in range(order - 1):
                             t_prev_list[i] = t_prev_list[i + 1]
                             model_prev_list[i] = model_prev_list[i + 1]
@@ -582,12 +547,10 @@ class UniPC:
                             if model_x is None:
                                 model_x = self.model_fn(x, vec_t)
                             model_prev_list[-1] = model_x
-                        pbar.update()
+                if callback is not None:
+                    callback({"x": x, "i": step_index, "denoised": model_prev_list[-1]})
         else:
             raise NotImplementedError()
-        if denoise_to_zero:
-            x = self.denoise_to_zero_fn(x, torch.ones((x.shape[0],)).to(device) * t_0)
-        x /= self.noise_schedule.marginal_alpha(timesteps[-1])
         return x
 
 

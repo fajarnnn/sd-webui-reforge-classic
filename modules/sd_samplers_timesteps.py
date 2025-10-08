@@ -1,8 +1,9 @@
 import inspect
 import sys
 
-import modules.shared as shared
 import torch
+
+import modules.shared as shared
 from modules import devices, sd_samplers_common, sd_samplers_timesteps_impl
 from modules.script_callbacks import ExtraNoiseParams, extra_noise_callback
 from modules.sd_samplers_cfg_denoiser import CFGDenoiser
@@ -12,7 +13,6 @@ from modules_forge.forge_sampler import sampling_cleanup, sampling_prepare
 samplers_timesteps = [
     ("DDIM", sd_samplers_timesteps_impl.ddim, ["ddim"], {}),
     ("PLMS", sd_samplers_timesteps_impl.plms, ["plms"], {}),
-    ("UniPC", sd_samplers_timesteps_impl.unipc, ["unipc"], {}),
 ]
 
 
