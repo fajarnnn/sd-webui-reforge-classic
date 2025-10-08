@@ -22,7 +22,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 
 <br>
 
-## Features [Aug. 20]
+## Features [Oct. 08]
 > Most base features of the original [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) should still function
 
 #### New Features
@@ -83,6 +83,8 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Implement MaHiRo
     - alternative CFG calculation; improve prompt adherence
     - enable in **Settings/UI Alternatives**
+- [X] Implement [Epsilon Scaling](https://github.com/comfyanonymous/ComfyUI/pull/10132)
+    - enable in **Settings/Stable Diffusion**
 - [X] Implement full precision calculation for `Mask blur` blending
     - enable in **Settings/img2img**
 - [X] Support loading upscalers in `half` precision
@@ -148,7 +150,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
     - no more random hacks and monkey patches
 - [X] Fix `canvas-zoom-and-pan` built-in extension
     - no more infinite-resizing bug when using `Send to` buttons
-- [X] Fix memory leak when switching checkpoints
+- [X] Fix RAM and VRAM leak when switching checkpoints
 - [X] Clean up the `ldm_patched` *(**i.e.** `comfy`)* folder
 - [X] Remove unused `cmd_args`
 - [X] Remove unused `args_parser`
@@ -165,6 +167,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Improve hash caching
 - [X] Improve error logs
     - no longer print `TypeError: 'NoneType' object is not iterable`
+- [X] Update the implementation for `uni_pc` sampler
 - [X] Revamp settings
     - improve formatting
     - update descriptions
@@ -189,6 +192,7 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
 - [X] Fix `Soft Inpainting`
 - [X] Fix `Controllllite`
 - [X] Fix `MultiDiffusion`
+- [X] Fix `SD Upscale`
 - [X] Lint & Format
 - [X] Update `Pillow`
     - faster image processing
@@ -278,6 +282,11 @@ The name "Forge" is inspired by "Minecraft Forge". This project aims to become t
         - `fp16_triton`
         - `fp16_cuda`
         - `fp8_cuda`
+
+- If you are getting `NaN` errors, try:
+```bash
+--sage2-function fp16_cuda --sage-quant-gran per_warp --sage-accum-dtype fp16+fp32
+```
 
 </details>
 
