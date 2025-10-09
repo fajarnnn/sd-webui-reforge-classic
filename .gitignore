@@ -22,15 +22,6 @@ __pycache__
 /log
 /tmp
 
-/cache.json
-/config.json
-/ui-config.json
-/styles.csv
-/styles.csv.bak
-/params.txt
-/webui-user.bat
-/webui-user.sh
-/user.css
 notification.mp3
 
 /config_states

@@ -39,7 +39,7 @@ const contextMenuInit = function () {
             contextMenuList.append(contextMenuEntry);
         });
 
-        gradioApp().appendChild(contextMenu);
+        gradioApp().body.appendChild(contextMenu);
 
         let menuWidth = contextMenu.offsetWidth + 4;
         let menuHeight = contextMenu.offsetHeight + 4;

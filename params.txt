@@ -1,0 +1,3 @@
+(Masterpiece, Best Quality, Absurdres, ultra realistic, 8k uhd, high detail skin), Woman Lying in bed, full body view, using fishnet stocking 
+Negative prompt: (worst quality, low quality, blurry, bad anatomy, extra limbs, bad hands), Tan Skin, brown skin, dark skin, (Anime, cartoonish, 3D)
+Steps: 6, Sampler: DPM++ SDE, Schedule type: Automatic, CFG scale: 3, Seed: 2297459358, Size: 1024x1024, Model hash: dd08fa32f9, Model: 1759168, Denoising strength: 0.6, Clip skip: 2, RNG: CPU, Hires upscale: 1.2, Hires steps: 4, Hires upscaler: Latent, MaHiRo: True, Emphasis: Original, Version: classic
