@@ -1,5 +1,6 @@
 {
-    "txt2img/Prompt/visible": true,(Masterpiece, Best Quality, Absurdres, ultra realistic, 8k uhd, high detail skin), 3 Female using ({black|blue|pink} teacher outfit, eyeglasses) , ({topless:1.5|half nude:1.5|nude:2}) at {School hospital|library|teacher office|classroom|school park},__nsfw/nsfw_pose__",
+    "txt2img/Prompt/visible": true,
+    "txt2img/Prompt/value":"(Masterpiece, Best Quality, Absurdres, ultra realistic, 8k uhd, high detail skin), 3 Female using ({black|blue|pink} teacher outfit, eyeglasses) , ({topless:1.5|half nude:1.5|nude:2}) at {School hospital|library|teacher office|classroom|school park},__nsfw/nsfw_pose__",
     "txt2img/Negative Prompt/visible": true,
     "txt2img/Negative Prompt/value": "(worst quality, low quality, blurry, bad anatomy, extra limbs, bad hands), Tan Skin, brown skin, dark skin, (Anime, cartoonish, 3D)",
     "txt2img/Interrupt/visible": true,
@@ -770,7 +771,7 @@
     "customscript/faceswaplab.py/txt2img/Sort by size (larger>smaller)/visible": true,
     "customscript/faceswaplab.py/txt2img/Sort by size (larger>smaller)/value": true,
     "customscript/faceswaplab.py/txt2img/Target face : Comma separated face number(s)/visible": true,
-    "customscript/faceswaplab.py/txt2img/Target face : Comma separated face number(s)/value": "0",
+    "customscript/faceswaplab.py/txt2img/Target face : Comma separated face number(s)/value": "",
     "customscript/faceswaplab.py/txt2img/Reference source face : start from 0/visible": true,
     "customscript/faceswaplab.py/txt2img/Reference source face : start from 0/value": 0,
     "customscript/faceswaplab.py/txt2img/Swap in source image (blended face)/value": false,
