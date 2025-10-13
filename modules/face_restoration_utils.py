@@ -160,7 +160,7 @@ class CommonFaceRestoration(face_restoration.FaceRestoration):
         finally:
             if shared.opts.face_restoration_unload:
                 self.model_unload(avoid_model_moving=True)
-                print("Unloaded face-restoration model")
+                logger.info("Unloaded face-restoration model")
 
 
 def patch_facexlib(dirname: str) -> None:
