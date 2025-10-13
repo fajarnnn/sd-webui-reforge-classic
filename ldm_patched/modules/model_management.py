@@ -34,8 +34,8 @@ class CPUState(Enum):
 
 
 # Determine VRAM State
-vram_state = VRAMState.NORMAL_VRAM
-set_vram_to = VRAMState.NORMAL_VRAM
+vram_state = VRAMState.HIGH_VRAM
+set_vram_to = VRAMState.HIGH_VRAM
 cpu_state = CPUState.GPU
 
 try:
@@ -466,49 +466,49 @@ def free_memory(memory_required, device, keep_loaded=[]):
     import psutil, os, torch
 
     # 🧠 Ambang batas RAM bisa diatur via env var (default 80%)
-    RAM_OFFLOAD_LIMIT = int(os.environ.get("FORGE_RAM_LIMIT", "80"))
-    ram = psutil.virtual_memory()
-    ram_usage = ram.percent
+    # RAM_OFFLOAD_LIMIT = int(os.environ.get("FORGE_RAM_LIMIT", "80"))
+    # ram = psutil.virtual_memory()
+    # ram_usage = ram.percent
 
-    # 🚫 Jika RAM sudah penuh, jangan offload ke CPU
-    if ram_usage >= RAM_OFFLOAD_LIMIT:
-        print(f"🚫 [FORGE] Skip offload — RAM usage {ram_usage:.1f}% (>= {RAM_OFFLOAD_LIMIT}%). Unloading models & clearing caches...")
+    # # 🚫 Jika RAM sudah penuh, jangan offload ke CPU
+    # if ram_usage >= RAM_OFFLOAD_LIMIT:
+    #     print(f"🚫 [FORGE] Skip offload — RAM usage {ram_usage:.1f}% (>= {RAM_OFFLOAD_LIMIT}%). Unloading models & clearing caches...")
 
-        # >>> tambahan: UNLOAD SEMUA MODEL yang tersisa supaya referensi di RAM hilang
-        try:
-            while current_loaded_models:
-                m = current_loaded_models.pop(0)
-                try:
-                    m.model_unload()
-                except Exception as e:
-                    print(f"[FORGE] model_unload() failed: {e}")
-                del m
-        except Exception as e:
-            print(f"[FORGE] Failed while draining current_loaded_models: {e}")
-        # <<< tambahan selesai
+    #     # >>> tambahan: UNLOAD SEMUA MODEL yang tersisa supaya referensi di RAM hilang
+    #     try:
+    #         while current_loaded_models:
+    #             m = current_loaded_models.pop(0)
+    #             try:
+    #                 m.model_unload()
+    #             except Exception as e:
+    #                 print(f"[FORGE] model_unload() failed: {e}")
+    #             del m
+    #     except Exception as e:
+    #         print(f"[FORGE] Failed while draining current_loaded_models: {e}")
+    #     # <<< tambahan selesai
 
-        # tetap clear VRAM biar gak OOM
-        if torch.cuda.is_available():
-            try:
-                torch.cuda.empty_cache()
-                torch.cuda.ipc_collect()
-            except Exception as e:
-                print(f"[FORGE] Failed to clear VRAM cache: {e}")
+    #     # tetap clear VRAM biar gak OOM
+    #     if torch.cuda.is_available():
+    #         try:
+    #             torch.cuda.empty_cache()
+    #             torch.cuda.ipc_collect()
+    #         except Exception as e:
+    #             print(f"[FORGE] Failed to clear VRAM cache: {e}")
 
-        # >>> tambahan: GC + (opsional) debug RAM
-        try:
-            gc.collect()
-        except Exception as e:
-            print(f"[FORGE] gc.collect failed: {e}")
-        try:
-            import psutil as _psutil
-            _ram = _psutil.virtual_memory()
-            print(f"[DEBUG RAM] after skip-offload cleanup: used={_ram.used/1024/1024:.2f}MB ({_ram.percent}%)")
-        except Exception:
-            pass
-        # <<< tambahan selesai
+    #     # >>> tambahan: GC + (opsional) debug RAM
+    #     try:
+    #         gc.collect()
+    #     except Exception as e:
+    #         print(f"[FORGE] gc.collect failed: {e}")
+    #     try:
+    #         import psutil as _psutil
+    #         _ram = _psutil.virtual_memory()
+    #         print(f"[DEBUG RAM] after skip-offload cleanup: used={_ram.used/1024/1024:.2f}MB ({_ram.percent}%)")
+    #     except Exception:
+    #         pass
+    #     # <<< tambahan selesai
 
-        return  # stop proses offload ke RAM
+    #     return  # stop proses offload ke RAM
 
     # 🧩 Mekanisme normal Forge
     offload_everything = ALWAYS_VRAM_OFFLOAD or vram_state is VRAMState.NO_VRAM
@@ -574,8 +574,8 @@ def load_models_gpu(models, memory_required=0):
 
         if (moving_time := time.perf_counter() - execution_start_time) > 0.1:
             print(f"Memory cleanup has taken {moving_time:.2f} seconds")
-        gc.collect()
-        soft_empty_cache(force=True)
+        # gc.collect()
+        # soft_empty_cache(force=True)
         return
 
     print(f"Begin to load {len(models_to_load)} model{'s' if len(models_to_load) > 1 else ''}")
@@ -628,8 +628,8 @@ def load_models_gpu(models, memory_required=0):
 
     moving_time = time.perf_counter() - execution_start_time
     print(f"Moving model(s) has taken {moving_time:.2f} seconds")
-    gc.collect()
-    soft_empty_cache(force=True)
+    # gc.collect()
+    # soft_empty_cache(force=True)
 
 
 def load_model_gpu(model):

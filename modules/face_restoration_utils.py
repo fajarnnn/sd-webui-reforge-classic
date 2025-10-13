@@ -159,7 +159,8 @@ class CommonFaceRestoration(face_restoration.FaceRestoration):
             return restore_with_face_helper(np_image, self.face_helper, restore_face)
         finally:
             if shared.opts.face_restoration_unload:
-                self.send_model_to(devices.cpu)
+                self.model_unload(avoid_model_moving=True)
+                print("Unloaded face-restoration model")
 
 
 def patch_facexlib(dirname: str) -> None:
