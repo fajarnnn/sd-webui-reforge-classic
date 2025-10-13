@@ -9,7 +9,7 @@ https://github.com/comfyanonymous/ComfyUI
 import time
 from enum import Enum
 from functools import lru_cache
-
+import gc  # ← tambahan minimal
 import psutil
 import torch
 
@@ -472,16 +472,41 @@ def free_memory(memory_required, device, keep_loaded=[]):
 
     # 🚫 Jika RAM sudah penuh, jangan offload ke CPU
     if ram_usage >= RAM_OFFLOAD_LIMIT:
-        print(f"🚫 [FORGE] Skip offload — RAM usage {ram_usage:.1f}% (>= {RAM_OFFLOAD_LIMIT}%)")
+        print(f"🚫 [FORGE] Skip offload — RAM usage {ram_usage:.1f}% (>= {RAM_OFFLOAD_LIMIT}%). Unloading models & clearing caches...")
 
-        # 🧹 Tapi tetap clear VRAM biar gak OOM
+        # >>> tambahan: UNLOAD SEMUA MODEL yang tersisa supaya referensi di RAM hilang
+        try:
+            while current_loaded_models:
+                m = current_loaded_models.pop(0)
+                try:
+                    m.model_unload()
+                except Exception as e:
+                    print(f"[FORGE] model_unload() failed: {e}")
+                del m
+        except Exception as e:
+            print(f"[FORGE] Failed while draining current_loaded_models: {e}")
+        # <<< tambahan selesai
+
+        # tetap clear VRAM biar gak OOM
         if torch.cuda.is_available():
-            print("🧹 [FORGE] Clearing VRAM cache only (no offload)...")
             try:
                 torch.cuda.empty_cache()
                 torch.cuda.ipc_collect()
             except Exception as e:
                 print(f"[FORGE] Failed to clear VRAM cache: {e}")
+
+        # >>> tambahan: GC + (opsional) debug RAM
+        try:
+            gc.collect()
+        except Exception as e:
+            print(f"[FORGE] gc.collect failed: {e}")
+        try:
+            import psutil as _psutil
+            _ram = _psutil.virtual_memory()
+            print(f"[DEBUG RAM] after skip-offload cleanup: used={_ram.used/1024/1024:.2f}MB ({_ram.percent}%)")
+        except Exception:
+            pass
+        # <<< tambahan selesai
 
         return  # stop proses offload ke RAM
 
@@ -511,6 +536,12 @@ def free_memory(memory_required, device, keep_loaded=[]):
             mem_free_total, mem_free_torch = get_free_memory(device, torch_free_too=True)
             if mem_free_torch > mem_free_total * 0.25:
                 soft_empty_cache()
+    try:
+        import psutil as _psutil
+        _ram = _psutil.virtual_memory()
+        print(f"[DEBUG RAM] after free_memory: used={_ram.used/1024/1024:.2f}MB ({_ram.percent}%)")
+    except Exception:
+        pass
 
 
 
@@ -543,7 +574,8 @@ def load_models_gpu(models, memory_required=0):
 
         if (moving_time := time.perf_counter() - execution_start_time) > 0.1:
             print(f"Memory cleanup has taken {moving_time:.2f} seconds")
-
+        gc.collect()
+        soft_empty_cache(force=True)
         return
 
     print(f"Begin to load {len(models_to_load)} model{'s' if len(models_to_load) > 1 else ''}")
@@ -596,6 +628,8 @@ def load_models_gpu(models, memory_required=0):
 
     moving_time = time.perf_counter() - execution_start_time
     print(f"Moving model(s) has taken {moving_time:.2f} seconds")
+    gc.collect()
+    soft_empty_cache(force=True)
 
 
 def load_model_gpu(model):
@@ -917,6 +951,13 @@ def should_use_fp16(device=None, model_params=0, prioritize_performance=True, ma
 
 
 def soft_empty_cache(force=False):
+    # >>> tambahan: bersihin referensi CPU tensors juga
+    try:
+        gc.collect()
+    except Exception as e:
+        print(f"[FORGE] gc.collect() failed: {e}")
+    # <<< tambahan selesai
+
     if cpu_state is CPUState.MPS:
         torch.mps.empty_cache()
     elif is_intel_xpu():

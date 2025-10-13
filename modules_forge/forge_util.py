@@ -8,7 +8,7 @@ import torch
 from ldm_patched.modules import model_management
 
 
-def prepare_free_memory(aggressive=False):
+def prepare_free_memory(aggressive=True):
     if aggressive:
         model_management.unload_all_models()
         print("Cleanup all memory")
