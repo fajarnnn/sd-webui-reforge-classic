@@ -463,12 +463,38 @@ def unload_model_clones(model):
 
 
 def free_memory(memory_required, device, keep_loaded=[]):
+    import psutil, os, torch
+
+    # 🧠 Ambang batas RAM bisa diatur via env var (default 80%)
+    RAM_OFFLOAD_LIMIT = int(os.environ.get("FORGE_RAM_LIMIT", "80"))
+    ram = psutil.virtual_memory()
+    ram_usage = ram.percent
+
+    # 🚫 Jika RAM sudah penuh, jangan offload ke CPU
+    if ram_usage >= RAM_OFFLOAD_LIMIT:
+        print(f"🚫 [FORGE] Skip offload — RAM usage {ram_usage:.1f}% (>= {RAM_OFFLOAD_LIMIT}%)")
+
+        # 🧹 Tapi tetap clear VRAM biar gak OOM
+        if torch.cuda.is_available():
+            print("🧹 [FORGE] Clearing VRAM cache only (no offload)...")
+            try:
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
+            except Exception as e:
+                print(f"[FORGE] Failed to clear VRAM cache: {e}")
+
+        return  # stop proses offload ke RAM
+
+    # 🧩 Mekanisme normal Forge
     offload_everything = ALWAYS_VRAM_OFFLOAD or vram_state is VRAMState.NO_VRAM
     unloaded_model = False
+
     for i in range(len(current_loaded_models) - 1, -1, -1):
         if not offload_everything:
+            # Jika VRAM masih cukup, tidak perlu offload
             if get_free_memory(device) > memory_required:
                 break
+
         shift_model = current_loaded_models[i]
         if shift_model.device == device:
             if shift_model not in keep_loaded:
@@ -477,6 +503,7 @@ def free_memory(memory_required, device, keep_loaded=[]):
                 del m
                 unloaded_model = True
 
+    # 🧹 Bersihkan cache kalau memang ada model yang di-unload
     if unloaded_model:
         soft_empty_cache()
     else:
@@ -484,6 +511,7 @@ def free_memory(memory_required, device, keep_loaded=[]):
             mem_free_total, mem_free_torch = get_free_memory(device, torch_free_too=True)
             if mem_free_torch > mem_free_total * 0.25:
                 soft_empty_cache()
+
 
 
 def load_models_gpu(models, memory_required=0):
