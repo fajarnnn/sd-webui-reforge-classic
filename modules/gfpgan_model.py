@@ -28,19 +28,29 @@ class FaceRestorerGFPGAN(face_restoration_utils.CommonFaceRestoration):
             download_name="GFPGANv1.4.pth",
             ext_filter=[".pth"],
         ):
-            return modelloader.load_spandrel_model(
-                model_path,
-                device=devices.device_gfpgan,
-                expected_architecture="GFPGAN",
-            ).model
-        raise ValueError("No GFPGAN Model Found")
+            try:
+                return modelloader.load_spandrel_model(
+                    model_path,
+                    device=devices.device_gfpgan,
+                    expected_architecture="GFPGAN",
+                ).model
+            except Exception as e:
+                print("⚠️ [Forge] Spandrel load failed, fallback to legacy GFPGAN loader:", e)
+                import torch
+                try:
+                    net = torch.load(str(model_path), map_location=devices.device_gfpgan)
+                    print("✅ [Forge] Legacy GFPGAN loaded successfully!")
+                    return net
+                except Exception as err:
+                    print("❌ [Forge] Legacy GFPGAN load failed:", err)
+                    raise err
 
-    def restore(self, np_image):
-        def restore_face(cropped_face_t):
-            assert self.net is not None
-            return self.net(cropped_face_t, return_rgb=False)[0]
+        def restore(self, np_image):
+            def restore_face(cropped_face_t):
+                assert self.net is not None
+                return self.net(cropped_face_t, return_rgb=False)[0]
 
-        return self.restore_with_helper(np_image, restore_face)
+            return self.restore_with_helper(np_image, restore_face)
 
 
 def gfpgan_fix_faces(np_image):
