@@ -331,9 +331,9 @@ def prepare_environment():
     if not is_installed("gradio"):
         run_pip(f"install {gradio_package}", "gradio")
 
-    if not requirements_met(requirements_file):
-        run_pip(f'install -r "{requirements_file}"', "requirements")
-        startup_timer.record("install requirements")
+    # if not requirements_met(requirements_file):
+    #     run_pip(f'install -r "{requirements_file}"', "requirements")
+    #     startup_timer.record("install requirements")
 
     if not is_installed("insightface"):
         try:
