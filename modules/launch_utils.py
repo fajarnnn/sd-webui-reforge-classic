@@ -337,18 +337,22 @@ def prepare_environment():
 
     if not is_installed("insightface"):
         try:
+            print("Installing insightface...")
             run_pip(f"install --no-deps {insightface_package}", "insightface")
         except RuntimeError:
             print("Failed to install insightface; please manually install C++ build tools first")
 
     if not args.skip_install:
+        print("Installing extensions...")
         run_extensions_installers(settings_file=args.ui_settings_file)
 
     if args.update_all_extensions:
+        print("Updating extensions...")
         git_pull_recursive(extensions_dir)
         startup_timer.record("update extensions")
 
     if not requirements_met(requirements_file):
+        print("Installing requirements2...")
         run_pip(f'install -r "{requirements_file}"', "requirements")
         startup_timer.record("enforce requirements")
 
