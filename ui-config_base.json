@@ -763,7 +763,7 @@
     "customscript/faceswaplab.py/txt2img/Face Checkpoint (precedence over reference face)/value": "FaceGal.safetensors",
     "txt2img/↻/visible": true,
     "customscript/faceswaplab.py/txt2img/Enable/visible": true,
-    "customscript/faceswaplab.py/txt2img/Enable/value": true,
+    "customscript/faceswaplab.py/txt2img/Enable/value": false,
     "customscript/faceswaplab.py/txt2img/Blend Faces ((Source|Checkpoint)+References = 1)/visible": true,
     "customscript/faceswaplab.py/txt2img/Blend Faces ((Source|Checkpoint)+References = 1)/value": false,
     "customscript/faceswaplab.py/txt2img/Same Gender/visible": true,
