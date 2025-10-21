@@ -342,9 +342,9 @@ def prepare_environment():
         except RuntimeError:
             print("Failed to install insightface; please manually install C++ build tools first")
 
-    if not args.skip_install:
-        print("Installing extensions...")
-        run_extensions_installers(settings_file=args.ui_settings_file)
+    # if not args.skip_install:
+    #     print("Installing extensions...")
+    #     run_extensions_installers(settings_file=args.ui_settings_file)
 
     if args.update_all_extensions:
         print("Updating extensions...")
