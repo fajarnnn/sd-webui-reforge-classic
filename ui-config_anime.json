@@ -11,7 +11,7 @@
     "txt2img/🗑️/visible": true,
     "txt2img/📋/visible": true,
     "txt2img/Styles/visible": true,
-    "txt2img/Styles/value": ["Hinata"],
+    "txt2img/Styles/value": ["A_POS","A_NEG"],
     "txt2img/🖌️/visible": true,
     "txt2img/🔄/visible": true,
     "txt2img/📝/visible": true,

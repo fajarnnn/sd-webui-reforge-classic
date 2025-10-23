@@ -1,5 +1,5 @@
 import os
-
+import random
 import gradio as gr
 
 from modules import (
@@ -85,7 +85,7 @@ options_templates.update(
         ("saving-paths", "Paths for Saving", "saving"),
         {
             "outdir_samples": OptionInfo("", "Output Directory for Images", component_args=hide_dirs).info("if empty, default to the <b>three</b> folders below"),
-            "outdir_txt2img_samples": OptionInfo(util.truncate_path(os.path.join(default_output_dir, "txt2img-images")), "Output Directory for txt2img Images", component_args=hide_dirs),
+            "outdir_txt2img_samples": OptionInfo(util.truncate_path(os.path.join(default_output_dir, "txt2img-images-"+random.randint(1, 100))), "Output Directory for txt2img Images", component_args=hide_dirs),
             "outdir_img2img_samples": OptionInfo(util.truncate_path(os.path.join(default_output_dir, "img2img-images")), "Output Directory for img2img Images", component_args=hide_dirs),
             "outdir_extras_samples": OptionInfo(util.truncate_path(os.path.join(default_output_dir, "extras-images")), "Output Directory for Extras Images", component_args=hide_dirs),
             "div00": OptionDiv(),
