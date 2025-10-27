@@ -1,0 +1,86 @@
+﻿name,prompt,negative_prompt
+3 Person Naruto,"__enhancer__, (detailed skin:1.1), (full body), __Naruto/naruto_pov_group__,3 Beautiful Woman with natural big breast, __nsfw/nsfw_expression__ in __Naruto/place__ ,__style/realistic__, __genre/fantasy_scifi__,__Naruto/action__ ADCOMM
+__Naruto/detailed__ ({detailed pussy,nude|topless}:{1|2}) ADDCOL
+__Naruto/detailed__ ({detailed pussy,nude|topless}:{1|2}) ADDCOL
+__Naruto/detailed__ ({detailed pussy,nude|topless}:{1|2})","lowres, blurry, bad anatomy, bad hands, missing fingers, extra limbs, deformed, disfigured, bad proportions, worst quality, low quality, jpeg artifacts, watermark, text"
+1 Person Naruto,"__enhancer__,(detailed skin:1.1), (full body), __Naruto/naruto_pov_single__,Beautiful Woman, __Naruto/detailed__ ({detailed pussy, nude|topless}:{1|2}), with natural big breast, __nsfw/nsfw_expression__ in __Naruto/place__ ,__style/realistic__, __genre/fantasy_scifi__,__Naruto/action__ ","(anime,cartoon, black and white), (SFW), (censored), extra hand, extra foot, open mouth, lowres, blurry, bad anatomy, bad hands, missing fingers, extra limbs, deformed, disfigured, bad proportions, worst quality, low quality, jpeg artifacts, watermark, text"
+2 Person Naruto,"__enhancer__,(detailed skin:1.1), (full body), __Naruto/naruto_pov_group__, 2 Beautiful Woman with natural big breast, __nsfw/nsfw_expression__ in __Naruto/place__ ,__style/realistic__, __genre/fantasy_scifi__,__Naruto/action__ ADCOMM
+__Naruto/detailed__ ({detailed pussy, nude|topless}:{1|2}) ADDCOL
+__Naruto/detailed__ ({detailed pussy, nude|topless}:{1|2})","lowres, blurry, bad anatomy, bad hands, missing fingers, extra limbs, deformed, disfigured, bad proportions, worst quality, low quality, jpeg artifacts, watermark, text"
+CYBERPUNK STYLE,"(__cyberpunk/genre__ at __cyberpunk/place__,__cyberpunk/pose__ wearing __cyberpunk/outfit__ with __cyberpunk/mood__, including __cyberpunk/object__,detail:__cyberpunk/detail__)",
+AUTO STYLE,"(__automotive/genre__ at __automotive/place__,__automotive/pose__ wearing __automotive/outfit__ with __automotive/mood__, including __automotive/object__,detail:__automotive/detail__)",
+SPORT STYLE,"(__sport/genre__ at __sport/place__,__sport/pose__ wearing __sport/outfit__ with __sport/mood__, including __sport/object__,detail:__sport/detail__)",
+DARKFANTASY STYLE,"(__dark_fantasy/genre__ at __dark_fantasy/place__,__dark_fantasy/pose__ wearing __dark_fantasy/outfit__ with __dark_fantasy/mood__, including __dark_fantasy/object__,detail:__dark_fantasy/detail__)",
+FANTASY STYLE,"(__fantasy/genre__ at __fantasy/place__,__fantasy/pose__ wearing __fantasy/outfit__ with __fantasy/mood__, including __fantasy/object__,detail:__fantasy/detail__)",
+TATOO STYLE,"(__tatoo_piercing/genre__ at __tatoo_piercing/place__,__tatoo_piercing/pose__ wearing __tatoo_piercing/outfit__ with __tatoo_piercing/mood__, including __tatoo_piercing/object__,detail:__tatoo_piercing/detail__)",
+Anko Mitarashi,"1girl, mitarashi anko,forehead protector, necklace, trenchcoat, mesh top, mesh shorts, orange skirt",
+Konan,"1girl, K0nanakatsuki, 1girl, solo, looking at viewer,  orange eyes, purple eyeshadow,  blue hair, single hair bun, hair flower, lip piercing",
+Tayuya,"ctayuya, very long hair, long bangs, red hair, hair between eyes, black sclera, yellow eyes,  horns, dark skin, facial mark,robe, grey robe, naked robe, rope, ",
+Guren,"guren, black eyes, blue hair, ponytail, sidelocks,red lips, lipstick, fur trim, japanese clothes,uneven sleeves, red bodysuit, turtleneck bodysuit, rope belt, gloves, boots",
+Hinata,"uzumaki hinata, byakugan eyes, no pupils, black hair, bob cut, short hair, blunt bangs",
+Karin,"uzumaki karin, red hair, red eyes, long hair,glasses,  jacket, navel, micro short, black shorts, black thighhighs, toeless footwear,glasses",
+EIDA,"1girl,eida_boruto,  long hair, multicolored hair, shorts, green eyes, blue hair, high heels, jewelry, nail polish, bangs, pink hair, bracelet, blunt bangs,  star (symbol), high-waist shorts",
+Fuu,"fuu, crop top, detached sleeves, fishnets, miniskirt",
+Hanabi,"1girl,hanabihyuuga,  black hair, long hair, low ponytail, pearl eyes, no pupils, big breasts",
+Ino Long,"1girl,InoLongHairShipuuden, midriff, blonde hair, hair over one eye, large breasts, fishnets, blue eyes, crop top, bare shoulders, navel, skirt, groin",
+Ino Short,"1girl,InoShipuuden, solo, blonde hair, high ponytail, hair over one eye, midriff, navel, purple skirt, fishnets, crop top, breasts, blue eyes, bare shoulders, cowboy shot",
+A_NEG,,"low quality, Worst Quality, Worst Details, chibi, loli, loli face, NSFW, watermark, text, artist name"
+A_POS,"(Masterpiece, Best Quality, Amazing Quality:1.1)",
+Inuzuka Hana,"1girl,Inuzuka Hana, brown hair, long hair, ponytail, black eyes, facial mark, green vest, cleavage, sleeveless, grey bike shorts",
+Kaguya,"1girl, otsutsuki kaguya, grey hair, long hair, grey eyes, third eye, horns, red lips, pale skin",
+Karui,"1girl, karuiillu, forehead protector, green shirt, grey skirt, white vest, earrings, sandals",
+Ameno,"1girl, ameno, short hair, brown hair, brown eyes, swept bangs, ponytail, mature female, breasts, anime screencap, sleeveless chef outfit, towel bandana, red Waist belt",
+Kurotsuchi Shipuuden,"1girl, kur0t5uch1,sh1ppud3n outfit, short hair, vest, red undershirt, one sleeve, bare right arm, half skirt, forehead protector, shorts, fishnets, sandals, toeless footwear, turtleneck, gloves, black gloves",
+Kurotsuchi Boruto,"1girl, kur0t5uch1, boruto outfit, alternate short hair, red dress, right side slit, side slit, bare right arm, one sleeve, red sandals, gloves, black gloves",
+Mei Terumi,"1girl, mei terumi, terumi mei, long hair, brown hair, green eyes, topknot, hair covering one eye, mature female, breasts, anime screencap",
+Mikoto Uchiha,"1girl,mikoto_uchiha",
+Mito Uzumaki,"1girl, M1T0_XL, facial mark, forehead mark, hair bun, lips, double bun, hair ornament, hairclip",
+Mabui,"1girl, mabuire, solo, looking at viewer, dark skin, blue eyes,green shirt, long sleeves, fishnet top, high collar, long skirt, sandals",
+Pakura,"1girl, pakurare, looking at viewer, orange eyes, forehead protector, two-tone hair, orange hair, green hair, single hair bun,  black dress, detached sleeves, bare shoulders,  purple shorts, bandaged waist,  bandaged legs,  toeless footwear,  sideboob, breasts",
+Rin Nohara,"1girl,Rin_Nohara_NYX, Rin_Nohara_NYX, brown eyes, brown hair, medium hair, facial mark, forehead protector, Konohagakure Symbol, ninja headband, black shirt, long sleeves, side slit white skirt with sash, white sash, black shorts, thigh strap, brown thighhighs, toeless footwear, blue footwear",
+Samui,"1girl,samui_wz, mature female, short hair, blonde hair, blunt bangs, blue eyes, large breasts, cleavage, fishnets, fishnet top, ninja, toeless footwear, grey skirt, jaggy lines",
+Shion,"1girl,shionrt, blonde hair, long hair, bangs, purple eyes,white pupils, breasts,jacket, yellow jacket, multicolored jacket, long sleeves, very long sleeves, sports bra, white sports bra, shorts, red shorts, midriff, sandals",
+Shizune,"1girl, shizune_boruto, Mature Female, black hair, japanese clothes, fishnets, letterboxed, short hair, black eyes, long sleeves, collarbone, kimono, day, sandals",
+Tenten,"1girl,ydtenten, short hair, double bun, brown eyes, bangs, headband,forehead protector, konohagakure symbol,fingerless gloves, black gloves, white japanese shirt, long sleeves, red pants jounin outfit, green vest, long sleeves, black sleeves",
+Tsume Inuzuka,"1girl, tsm31nzka, black eyes, slit pupils, facial mark, laugh lines, mature female, female focus, looking at viewer, smile, teeth, defined lips, glossy lips, attack pose, claw hand, posing, midair, (jumping:1.2), bent knees, flak jacket, jumpsuit, toned body, breasts, bandages, toeless footwear",
+Tsunade,"1girl, tsunade, sleeveless grey kimono-style top with deep v-neck and black trim, tightly wrapped blue waist sash, dark navy cropped pants, black open-toe sandals with ankle straps, realistic fabric folds, accurate proportions, highly detailed clothing texture, perfect color matching, anime style",
+Yugito Nii,"1girl, YugitoNii, blonde hair, black eyes, lipstick, ponytail, large breasts, lack shirt, purple blouse, short sleeves, black pants,forehead protector, bandages, fingerless gloves, sandals",
+Kurenai,"1girl, yuuhi01, Mature Female, red eyes, lipstick, purple eyeshadow, long hair, black hair,forehead protector, lipstick, fishnet top, single sleeve, white dress, bandages, bandaged arm, toeless footwear",
+Yuugao,"1girl, yuugao,long purple hair,straight hair,bangs,brown eyes,red lips,black sleeveless turtleneck, gray armored vest, black gloves, katana on back, arm and leg guards,tattoo on left arm,dark leggings,",
+Yuugao Masked,"1girl,  yuugao,long purple hair,straight hair,bangs,brown eyes,red lips. black sleeveless turtleneck, gray armored vest, black gloves, katana on back, arm and leg guards,tattoo on left arm,dark leggings , masked face,white mask after bangs,tiny round eyes,Expressionless,cat mouth",
+Shizuka Naruto,"1girl,  shizuka,black hair,high ponytail,large green eyes,bangs",
+Fuuka,"1girl, fuuuka, long hair, lipstick, mole under mouth, detached sleeves, bare shoulders, pink japanese clothes, bike shorts, tabi",
+Kushina,"1girl, kushinauzumaki, blue eyes, long hair, hairclip, green apron, white shirt, collar, bracelet, toeless footwear",
+Kurenai Yuuhi,"1girl, yuhi kurenai, red eyes, black hair, lipstick, makeup, eyeshadow, forehead protector, bandages",
+1 Leg Up Threesome,"(full body shot),  __Naruto/char_only_lora__, juicy pussy, cum in pussy, forehead mark, red hairband <lora:Sakura_Haruno_Boruto_Naruto_Next_Generations_v2:0.9>, long hair, black hair, white eyes, large breasts, perfect body, alta resolucion, anatomically correct , The best quality, details, high quality, masterpiece, , spitroast, blush, 2boys,Sasuke Uchiha, uzumaki naruto,(different size), navel, standing, nipples, closed eyes, hetero, sweat, completely nude, penis, sex, vaginal, completely nude, oral, standing on one leg, fellatio, group sex, threesome, medium breasts, mmf threesome, hands up, thigh grab","low quality, Worst Quality, Worst Details, chibi, loli, loli face, NSFW, watermark, text, (artist name:1.1),(grid:1.1)"
+Wheelbarrow Sex,"(anatomically correct) ,side view, {__Naruto/char_only_lora__}, __nsfw/breast_woman__, The best quality, details, high quality, masterpiece, wheelbarrow position, (sex from behind:1.2),(top-down bottom-up, legs up,lifting person, walking sex:1.2), torso grab , 1boy,standing, 1girl, ambiguous penetration, hand support","low quality, Worst Quality, Worst Details, chibi, loli, loli face, watermark, text, artist name, grid, face on floor,1boy kneeling,(not lifting:1.1), weak posture, legs down"
+Sakura Only,"<lora:Sakura_Haruno_Boruto_Naruto_Next_Generations_v2:0.8>, sakuraharuno: mature female, navel,small breasts, short hair, bob cut, pink hair, green eyes, forehead mark, red hairband",
+Tsunade Only,"<lora:Tsunade_-__V1.2_-_ILL:0.8>__, tsunade, old lady, tattoo, navel,large breasts, blonde hair,  in the middle, brown eyes",
+Shizune only,"<lora:Shizune-Boruto-ILXL:0.8>, shizune_boruto, Mature Female,black hair, short hair, black eyes",
+Hinata Only,"<lora:Hinata_Hyuga_Boruto_Naruto_Next_Generations:0.8>, hyuuga hinata, mature female, short hair, bob cut, bangs, blue hair, pearl eyes, no pupils",
+Shizuka Only,"<lora:抚子静香shizuka_NAI:0.8>, shizuka,black hair,high ponytail,large green eyes,bangs",
+Sasuke Only," <lora:Sasuke_Uchiha_-_Next_Generations_-_Illustrious_Commission:0.8> Sasuke Uchiha, black hair, black eyes, hair over one eye",
+Jiraiya Only,"<lora:DaJiraiya:0.8>,jiraiya, white_jiraiya",
+Kakshi Only," <lora:kakashi_il_v1:0.8>,kakashi, sharingan",
+Naruto Only,"<lora:Naruto_Uzumaki_ILLUS:0.8>, nar1, uzumaki naruto, short hair, blue eyes, blonde hair, whisker markings",
+Minato only,"<lora:Minato_Namikaze_-_Naruto:0.8>, minato, minato namikaze, blonde hair, spiked hair, sidelocks, blue eyes, bangs",
+Kushina Only,"<lora:Naruto_UzumakiKushina_iXL_v1.1_byMarjorie:0.8>,kushinauzumaki, (mature female), blue eyes, long hair,dark red hair, hair clip, grey eyes",
+Hanabi Only,"<lora:Hanabi_Hyuuga_Boruto_Naruto_Next_Generations:0.8>, hanabihyuuga,  black hair, long hair, low ponytail, pearl eyes, no pupils, big breasts ",
+Mei Terumi Only,"<lora:mei-terumi-anime-illustriousxl-lora-nochekaiser:0.8>,mei terumi, terumi mei, long hair, brown hair, green eyes, topknot, hair covering one eye, mature female",
+Ino Long Only," <lora:Ino_illustrious_v1:1>,InoLongHairShipuuden,  blonde hair, hair over one eye, blue eyes",
+ThreeDIff Reg,"(Masterpiece, Best Quality, Amazing Quality:1.1), __camera_shot_mid__, 3girls, BREAK
+<lora:Naruto_UzumakiKushina_iXL_v1.1_byMarjorie:0.6> kushinauzumaki, 1girl, (mature female), blue eyes, long hair,dark red hair, hair clip, grey eyes, {green apron|naked}, rubbing breasts, lactation, on left BREAK Spreading legs,cum shot BREAK
+<lora:Sakura_Haruno_Boruto_Naruto_Next_Generations_v2:0.6> sakuraharuno, mature female,small breasts, short hair, bob cut, pink hair, green eyes, {red dress|naked},navel, forehead mark, red hairband, {moaning|smiling|orgasm|ahegao face}, in the middle BREAK cowgirl sex, hand on pussy, fingering, gushing, cum shot BREAK
+<lora:Hanabi_Hyuuga_Boruto_Naruto_Next_Generations:0.6> hanabihyuuga, 1girl,  black hair, long hair, low ponytail, pearl eyes, no pupils, big breasts,smiling,{red shirt|red bra|naked}, on right BREAK standing,wet pussy",
+ThreeDIff GB Reg,"(Masterpiece, Best Quality, Amazing Quality:1.1), three-quarter body shot, 3girls,3boys, BREAK
+<lora:Naruto_UzumakiKushina_iXL_v1.1_byMarjorie:0.6> kushinauzumaki, 1girl, (mature female), blue eyes, long hair,dark red hair, hair clip, grey eyes, {green apron|naked}, (rubbing breasts:1.1), lactation, on left BREAK Spreading legs,cum shot, hatake kakashi, from below,lying,noy hand on pussy, fingering, gushing BREAK
+<lora:Sakura_Haruno_Boruto_Naruto_Next_Generations_v2:0.6> sakuraharuno, mature female,small breasts, short hair, bob cut, pink hair, green eyes, {red dress|naked},navel, forehead mark, red hairband, (hands on breasts:1.1), {moaning|smiling|orgasm|ahegao face}, in the middle BREAK cum shot, uzumaki naruto, 1boy, from below, {thrusting penis,penis on pussy|cunnilingus} BREAK
+<lora:Hanabi_Hyuuga_Boruto_Naruto_Next_Generations:0.6> hanabihyuuga, 1girl,  black hair, long hair, low ponytail, pearl eyes, no pupils, big breasts,(hands up:1.1),moaning,{red shirt|red bra|naked}, on right BREAK lying,cum shot, (uchiha sasuke, 1boy, lying,from below,boy hand on pussy, fingering, gushing:1.1)",
+3 People Elegant,"(Masterpiece, Best Quality, Amazing Quality:1.1, __lighting__), __camera_shot_*__, 3girls,elegant pose,joyful expression, at __Naruto/place__,cleavage BREAK
+<lora:Naruto_UzumakiKushina_iXL_v1.1_byMarjorie:0.5> kushinauzumaki, 1girl, (mature female), blue eyes, long hair,dark red hair, hair clip, necklace,grey eyes, medium breast, __color__ casual shirt, (navel,midriff:1.2)
+BREAK 
+__color__, skirt, (navel,midriff), on right  BREAK
+<lora:Sakura_Haruno_Boruto_Naruto_Next_Generations_v2:0.5> sakuraharuno, mature female,small breasts, short hair, bob cut, pink hair, green eyes,forehead mark, __color__ sleeveless shirt,earrings, bike short,bracelets, in the middle,navel BREAK 
+__color__ jeans,navel BREAK
+<lora:Hanabi_Hyuuga_Boruto_Naruto_Next_Generations:0.5> hanabihyuuga, 1girl,  black hair, long hair, low ponytail, __color__ casual shirt, floral pattern, pearl eyes, navel,necklace,no pupils, big breasts,  BREAK
+__color__, pants, navel",
